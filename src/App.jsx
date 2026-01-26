@@ -16,10 +16,10 @@ const apiKey = "";
 
 // --- CHARTE GRAPHIQUE SMILE ---
 const THEME = {
-  primary: "#2E86C1", // Smile Blue
-  secondary: "#006898", // Darker Blue
-  textDark: "#333333", // Anthracite
-  textGrey: "#666666", // Grey
+  primary: "#2E86C1", 
+  secondary: "#006898", 
+  textDark: "#333333", 
+  textGrey: "#666666", 
   bg: "#FFFFFF"
 };
 
@@ -68,8 +68,18 @@ const DEFAULT_CV_DATA = {
   }
 };
 
-// --- HELPER FORMATTING ---
+// --- HELPER PAGINATION (Découpage des expériences) ---
+// Découpe un tableau en morceaux de taille 'size'
+const chunkArray = (array, size) => {
+  if (!array.length) return [];
+  const chunked = [];
+  for (let i = 0; i < array.length; i += size) {
+    chunked.push(array.slice(i, i + size));
+  }
+  return chunked;
+};
 
+// --- HELPER FORMATTING ---
 const formatTextForPreview = (text) => {
   if (!text) return "";
   let clean = text
@@ -203,6 +213,7 @@ const RichTextarea = ({ label, value, onChange, placeholder, maxLength }) => {
   );
 };
 
+// --- DROPZONE ---
 const DropZone = ({ onFile, label = "Déposez une image", icon = <Upload size={16}/>, className = "" }) => {
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef(null);
@@ -219,6 +230,7 @@ const DropZone = ({ onFile, label = "Déposez une image", icon = <Upload size={1
   );
 };
 
+// --- SELECTEUR LOGO ---
 const LogoSelector = ({ onSelect, label = "Ajouter un logo" }) => {
   const [search, setSearch] = useState("");
   const handleSearch = () => { if (!search.trim()) return; onSelect({ type: 'url', src: getIconUrl(search), name: search }); setSearch(""); };
@@ -239,6 +251,7 @@ const LogoSelector = ({ onSelect, label = "Ajouter un logo" }) => {
   );
 };
 
+// --- HEXAGONES ---
 const MiniHexagon = ({ filled, onClick }) => (
   <svg viewBox="0 0 100 100" onClick={onClick} className={`w-3 h-3 ${onClick ? 'cursor-pointer hover:scale-125 transition-transform' : ''} ${filled ? 'text-[#2E86C1] fill-current' : 'text-slate-200 fill-current'}`}>
     <polygon points="50 0, 100 25, 100 75, 50 100, 0 75, 0 25" />
@@ -250,6 +263,7 @@ const HexagonRating = ({ score, onChange }) => (
   </div>
 );
 
+// --- COMPOSANT BANDEAU TRIANGLE ---
 const CornerTriangle = ({ customLogo }) => (
   <div className="absolute top-0 left-0 w-[140px] h-[140px] z-50 pointer-events-none overflow-hidden print:w-[120px] print:h-[120px]">
     <div className="absolute top-0 left-0 w-full h-full bg-[#2E86C1]" style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)' }}></div>
@@ -379,13 +393,18 @@ export default function App() {
 
   const formatName = () => cvData.isAnonymous ? `${cvData.profile.firstname[0]}. ${cvData.profile.lastname[0]}.` : `${cvData.profile.firstname} ${cvData.profile.lastname}`;
 
+  // Decoupage des experiences pour la pagination
+  // On considère 3 expériences par page comme "standard" pour un rendu propre
+  // Cela crée des pages virtuelles dans l'aperçu qui deviendront de vraies pages à l'impression
+  const experienceChunks = chunkArray(cvData.experiences, 3);
+
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col md:flex-row h-screen overflow-hidden font-sans">
       
       {/* --- WIZARD --- */}
       <div className="w-full md:w-[550px] bg-white border-r border-slate-200 flex flex-col h-full z-10 shadow-xl print:hidden">
         
-        {/* BARRE D'ÉTAT SAUVEGARDE & ACTIONS */}
+        {/* BARRE D'ÉTAT */}
         <div className="bg-slate-50 border-b border-slate-200 p-2 flex justify-between items-center px-4 text-xs">
            <div className="flex items-center gap-3">
              <div className="flex items-center gap-1 text-green-600 font-medium">
@@ -402,7 +421,7 @@ export default function App() {
              <div className="w-px h-4 bg-slate-300 mx-1 self-center"></div>
              <Button variant="ghost" className="px-2 py-1 h-7 text-[#2E86C1]" onClick={handleEmail} title="Préparer Email"><Mail size={12}/> Email</Button>
              <Button variant={cvData.isAnonymous ? "danger" : "secondary"} className="px-2 py-1 h-7" onClick={() => setCvData(p => ({...p, isAnonymous: !p.isAnonymous}))}>
-               {cvData.isAnonymous ? <><Shield size={12}/> Visible</> : <><Eye size={12}/> Anonymiser</>}
+               {cvData.isAnonymous ? <><Shield size={12}/> Rendre Visible</> : <><Eye size={12}/> Anonymiser</>}
              </Button>
            </div>
         </div>
@@ -422,6 +441,7 @@ export default function App() {
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-8 custom-scrollbar">
+          {/* ETAPE 1 : PROFIL */}
           {step === 1 && (
             <div className="space-y-6 animate-in slide-in-from-right duration-300">
               <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><User size={24} /><h2 className="text-lg font-bold uppercase">Profil</h2></div>
@@ -490,7 +510,6 @@ export default function App() {
             </div>
           )}
 
-          {/* ÉTAPE 3 : FORMATION & COMPETENCES (PAGE 2 DU PDF) */}
           {step === 3 && (
              <div className="space-y-8 animate-in slide-in-from-right duration-300">
                <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><GraduationCap size={24} /><h2 className="text-lg font-bold uppercase">Formation</h2></div>
@@ -539,7 +558,6 @@ export default function App() {
              </div>
           )}
 
-          {/* ÉTAPE 4 : EXPÉRIENCES (PAGE 3 DU PDF) */}
           {step === 4 && (
             <div className="space-y-8 animate-in slide-in-from-right duration-300">
               <div className="flex justify-between items-center mb-4 text-[#2E86C1]">
@@ -580,7 +598,6 @@ export default function App() {
         </div>
         <div className="flex-1 overflow-auto w-full p-8 flex justify-center custom-scrollbar">
           <div className="print-container flex flex-col origin-top transition-transform duration-300 gap-10" style={{ transform: `scale(${zoom})`, marginBottom: `${zoom * 100}px` }}>
-            
             {/* PAGE 1 */}
             <div className="cv-page relative overflow-hidden flex flex-col shadow-2xl bg-white">
               <CornerTriangle customLogo={cvData.smileLogo} />
@@ -633,42 +650,48 @@ export default function App() {
                <Footer />
             </div>
 
-            {/* PAGE 3 (et suivantes) : EXPÉRIENCES */}
-            <div className="cv-page relative flex flex-col p-12 shadow-2xl bg-white">
-               <CornerTriangle customLogo={cvData.smileLogo} />
-               <HeaderSmall name={formatName()} role={cvData.profile.current_role} />
-               <div className="flex justify-between items-end border-b border-slate-200 pb-2 mb-8 mt-16 px-4">
-                 <h3 className="text-xl font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat">Mes dernières expériences</h3>
-                 <span className="text-[10px] font-bold text-[#666666] uppercase">Références</span>
-               </div>
-               <div className="flex-1 space-y-10 px-4">
-                 {cvData.experiences.map((exp) => (
-                   <div key={exp.id} className="grid grid-cols-12 gap-6 break-inside-avoid">
-                      <div className="col-span-2 flex flex-col items-center pt-2">
-                        <div className="w-16 h-16 rounded-lg border border-slate-200 overflow-hidden flex items-center justify-center bg-white mb-2 p-1">
-                           {exp.client_logo ? <img src={exp.client_logo} className="w-full h-full object-contain" /> : <LayoutTemplate size={24} className="text-slate-300"/>}
+            {/* PAGE 3+ : EXPÉRIENCES AVEC PAGINATION */}
+            {experienceChunks.map((chunk, pageIndex) => (
+              <div key={pageIndex} className="cv-page relative flex flex-col p-12 shadow-2xl bg-white">
+                 <CornerTriangle customLogo={cvData.smileLogo} />
+                 <HeaderSmall name={formatName()} role={cvData.profile.current_role} />
+                 
+                 <div className="flex justify-between items-end border-b border-slate-200 pb-2 mb-8 mt-16 px-4">
+                   <h3 className="text-xl font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat">
+                     {pageIndex === 0 ? "Mes dernières expériences" : "Expériences (Suite)"}
+                   </h3>
+                   <span className="text-[10px] font-bold text-[#666666] uppercase">Références</span>
+                 </div>
+
+                 <div className="flex-1 space-y-10 px-4">
+                   {chunk.map((exp) => (
+                     <div key={exp.id} className="grid grid-cols-12 gap-6 break-inside-avoid">
+                        <div className="col-span-2 flex flex-col items-center pt-2">
+                          <div className="w-16 h-16 rounded-lg border border-slate-200 overflow-hidden flex items-center justify-center bg-white mb-2 p-1">
+                             {exp.client_logo ? <img src={exp.client_logo} className="w-full h-full object-contain" /> : <LayoutTemplate size={24} className="text-slate-300"/>}
+                          </div>
+                          <span className="text-[10px] font-bold text-[#333333] uppercase text-center leading-tight">{exp.client_name}</span>
                         </div>
-                        <span className="text-[10px] font-bold text-[#333333] uppercase text-center leading-tight">{exp.client_name}</span>
-                      </div>
-                      <div className="col-span-10 border-l border-slate-100 pl-6 pb-6">
-                        <div className="flex justify-between items-baseline mb-3">
-                           <h4 className="text-lg font-bold text-[#333333] uppercase">{exp.client_name} <span className="font-normal text-[#666666]">| {exp.role}</span></h4>
-                           <span className="text-xs font-bold text-[#2E86C1] uppercase">{exp.period}</span>
+                        <div className="col-span-10 border-l border-slate-100 pl-6 pb-6">
+                          <div className="flex justify-between items-baseline mb-3">
+                             <h4 className="text-lg font-bold text-[#333333] uppercase">{exp.client_name} <span className="font-normal text-[#666666]">| {exp.role}</span></h4>
+                             <span className="text-xs font-bold text-[#2E86C1] uppercase">{exp.period}</span>
+                          </div>
+                          <div className="mb-4">
+                             <h5 className="text-[10px] font-bold text-[#2E86C1] uppercase mb-1">Objectif</h5>
+                             <p className="text-sm text-[#333333] leading-relaxed" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.objective)}}></p>
+                          </div>
+                          <div className="flex gap-8 mt-4 pt-4 border-t border-slate-50">
+                             <div className="flex-1"><h5 className="text-[10px] font-bold text-[#999999] uppercase mb-1">Réalisation</h5><p className="text-xs font-medium text-[#333333]" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.phases)}}></p></div>
+                             <div className="flex-[2]"><h5 className="text-[10px] font-bold text-[#999999] uppercase mb-1">Environnement</h5><div className="flex flex-wrap gap-1">{exp.tech_stack.map((t, i) => <span key={i} className="text-xs font-bold text-[#2E86C1] bg-blue-50 px-2 py-0.5 rounded">{t}</span>)}</div></div>
+                          </div>
                         </div>
-                        <div className="mb-4">
-                           <h5 className="text-[10px] font-bold text-[#2E86C1] uppercase mb-1">Objectif</h5>
-                           <p className="text-sm text-[#333333] leading-relaxed" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.objective)}}></p>
-                        </div>
-                        <div className="flex gap-8 mt-4 pt-4 border-t border-slate-50">
-                           <div className="flex-1"><h5 className="text-[10px] font-bold text-[#999999] uppercase mb-1">Réalisation</h5><p className="text-xs font-medium text-[#333333]" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.phases)}}></p></div>
-                           <div className="flex-[2]"><h5 className="text-[10px] font-bold text-[#999999] uppercase mb-1">Environnement</h5><div className="flex flex-wrap gap-1">{exp.tech_stack.map((t, i) => <span key={i} className="text-xs font-bold text-[#2E86C1] bg-blue-50 px-2 py-0.5 rounded">{t}</span>)}</div></div>
-                        </div>
-                      </div>
-                   </div>
-                 ))}
-               </div>
-               <Footer />
-            </div>
+                     </div>
+                   ))}
+                 </div>
+                 <Footer />
+              </div>
+            ))}
             
           </div>
         </div>
@@ -678,30 +701,79 @@ export default function App() {
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&family=Open+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap');
         .font-montserrat { font-family: 'Montserrat', sans-serif; }
         .font-sans { font-family: 'Open Sans', sans-serif; }
+        
+        /* Styles de la page A4 (Aperçu + Impression) */
         .cv-page { 
            width: 210mm; 
-           min-height: 297mm; /* Permet à la page de s'agrandir */
-           height: auto; /* Hauteur automatique */
+           min-height: 297mm; /* Hauteur fixe A4 pour simuler le papier */
+           height: 297mm; /* Assure que la page ne s'étire pas infiniment en aperçu */
            background: white; 
            flex-shrink: 0; 
            box-sizing: border-box; 
-           page-break-after: always; /* Force nouvelle page à la fin du bloc */
+           page-break-after: always;
            position: relative; 
-           border: none !important; 
+           border: none !important;
+           overflow: hidden; /* Coupe ce qui dépasse pour forcer la pagination */
         }
+
         .break-inside-avoid {
-           break-inside: avoid; /* Empêche de couper une expérience en deux */
+           break-inside: avoid;
            page-break-inside: avoid;
         }
+
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+        /* STYLES D'IMPRESSION AGRESSIFS POUR CORRIGER LE PDF */
         @media print {
-          @page { size: A4; margin: 0; }
-          body { background: white; -webkit-print-color-adjust: exact; margin: 0; padding: 0; }
-          .cv-page { width: 210mm; min-height: 297mm; height: auto; margin: 0; page-break-after: always; box-shadow: none; border: none !important; }
-          .print-hidden { display: none !important; }
-          .print-container { box-shadow: none; transform: none !important; margin-bottom: 0 !important; gap: 0 !important; }
-          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          /* Reset total du corps de page */
+          body, #root, .flex, .h-screen, .w-full {
+            display: block !important;
+            height: auto !important;
+            width: auto !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: visible !important;
+            background: white !important;
+          }
+
+          /* Masquer l'interface UI */
+          .print-hidden, 
+          div[class*="w-[550px]"], /* Sidebar */
+          div[class*="absolute bottom-6"] /* Zoom controls */ 
+          { 
+            display: none !important; 
+          }
+
+          /* Conteneur principal d'impression */
+          .print-container { 
+            transform: none !important; 
+            margin: 0 !important; 
+            padding: 0 !important;
+            box-shadow: none !important; 
+            display: block !important; 
+            width: 100% !important;
+            gap: 0 !important; /* Enlever le gap entre les pages */
+          }
+
+          /* Forcer le saut de page */
+          .cv-page { 
+            width: 100% !important; /* S'adapte à la largeur du papier */
+            height: auto !important;
+            min-height: 297mm !important;
+            margin: 0 !important; 
+            page-break-after: always !important; 
+            break-after: page !important;
+            box-shadow: none !important; 
+            border: none !important; 
+            print-color-adjust: exact !important;
+            -webkit-print-color-adjust: exact !important;
+          }
+          
+          /* Eviter les pages blanches inutiles à la fin */
+          .cv-page:last-child {
+             page-break-after: auto !important;
+          }
         }
       `}</style>
     </div>
