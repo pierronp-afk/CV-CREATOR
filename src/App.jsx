@@ -3,13 +3,9 @@ import {
   ArrowRight, ArrowLeft, Download, Plus, Trash2, MoveUp, MoveDown, 
   Upload, X, Briefcase, GraduationCap, User, Hexagon, Cpu, 
   Image as ImageIcon, ZoomIn, ZoomOut, Search, LayoutTemplate, 
-  Save, FolderOpen, Eye, EyeOff, Shield, Edit2, Check, Wand2, Loader2,
-  Bold, List
+  Save, FolderOpen, Eye, EyeOff, Shield, Edit2, Check,
+  Bold, List, Copy
 } from 'lucide-react';
-
-// --- CONFIGURATION API KEY POUR VERCEL ---
-// Cette ligne récupère la clé sécurisée définie dans les réglages de Vercel.
-const apiKey = import.meta.env.VITE_GOOGLE_API_KEY || "";
 
 // --- CHARTE GRAPHIQUE SMILE ---
 const THEME = {
@@ -20,9 +16,12 @@ const THEME = {
   bg: "#FFFFFF"
 };
 
+// Helper pour les icônes blanches (Fond bleu)
 const getIconUrl = (slug) => `https://cdn.simpleicons.org/${slug.toLowerCase().replace(/\s+/g, '')}/white`;
+// Helper pour les icônes colorées (Barre d'outils)
+const getBrandIconUrl = (slug) => `https://cdn.simpleicons.org/${slug.toLowerCase().replace(/\s+/g, '')}`;
 
-// --- HELPER FORMATTING & IA ---
+// --- HELPER FORMATTING ---
 
 // Nettoie et interprète le texte pour l'affichage (Gras, Puces, Sauts de ligne)
 const formatTextForPreview = (text) => {
@@ -33,40 +32,6 @@ const formatTextForPreview = (text) => {
     .replace(/&lt;b&gt;/g, "<b>").replace(/&lt;\/b&gt;/g, "</b>") // Restaure le gras
     .replace(/\n/g, "<br/>"); // Sauts de ligne
   return clean;
-};
-
-const improveTextWithAI = async (text, type = "standard") => {
-  if (!apiKey) {
-    console.warn("Clé API manquante. L'IA ne fonctionnera pas.");
-    return text;
-  }
-  if (!text || text.length < 5) return text;
-  
-  const contextPrompt = "Reformule ce texte pour un CV professionnel (Consultant). Ton 'corporate', direct et percutant. Corrige les fautes. PAS de markdown (**), PAS de guillemets, PAS de phrases d'intro. Texte :";
-
-  try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: `${contextPrompt} "${text}"` }] }]
-      })
-    });
-    const data = await response.json();
-    let cleanText = data.candidates?.[0]?.content?.parts?.[0]?.text || text;
-    
-    // Nettoyage forcé des artefacts
-    cleanText = cleanText
-      .replace(/\*\*/g, '') 
-      .replace(/^"|"$/g, '') 
-      .replace(/^Voici.*?:\s*/i, '')
-      .trim();
-
-    return cleanText;
-  } catch (e) {
-    console.error("Erreur IA", e);
-    return text;
-  }
 };
 
 // --- COMPOSANTS UI ---
@@ -98,8 +63,8 @@ const Input = ({ label, value, onChange, placeholder, maxLength, type = "text" }
   </div>
 );
 
-// --- COMPOSANT TEXTAREA RICHE (Boutons + IA) ---
-const RichTextarea = ({ label, value, onChange, onAI, loadingAI, placeholder, maxLength }) => {
+// --- COMPOSANT TEXTAREA RICHE (Boutons + Liens LLM) ---
+const RichTextarea = ({ label, value, onChange, placeholder, maxLength }) => {
   const textareaRef = useRef(null);
 
   const toggleBold = () => {
@@ -110,41 +75,22 @@ const RichTextarea = ({ label, value, onChange, onAI, loadingAI, placeholder, ma
     const text = textarea.value;
     const selected = text.substring(start, end);
 
-    // Cas 1 : Le texte sélectionné est entouré de <b> et </b> juste à l'extérieur
-    if (start >= 3 && end <= text.length - 4 && 
-        text.substring(start - 3, start) === '<b>' && 
-        text.substring(end, end + 4) === '</b>') {
-      
+    if (start >= 3 && end <= text.length - 4 && text.substring(start - 3, start) === '<b>' && text.substring(end, end + 4) === '</b>') {
       const newText = text.substring(0, start - 3) + selected + text.substring(end + 4);
       onChange(newText);
-      // Restaurer la sélection (décalée de 3 caractères vers la gauche)
-      setTimeout(() => {
-        textarea.focus();
-        textarea.setSelectionRange(start - 3, end - 3);
-      }, 0);
+      setTimeout(() => { textarea.focus(); textarea.setSelectionRange(start - 3, end - 3); }, 0);
       return;
     }
-
-    // Cas 2 : La sélection contient déjà les balises (ex: "|<b>texte</b>|")
     if (selected.startsWith('<b>') && selected.endsWith('</b>')) {
       const cleanSelected = selected.substring(3, selected.length - 4);
       const newText = text.substring(0, start) + cleanSelected + text.substring(end);
       onChange(newText);
-      setTimeout(() => {
-        textarea.focus();
-        textarea.setSelectionRange(start, start + cleanSelected.length);
-      }, 0);
+      setTimeout(() => { textarea.focus(); textarea.setSelectionRange(start, start + cleanSelected.length); }, 0);
       return;
     }
-
-    // Cas 3 : Pas de gras, on ajoute
     const newText = text.substring(0, start) + `<b>${selected}</b>` + text.substring(end);
     onChange(newText);
-    
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(start + 3, end + 3);
-    }, 0);
+    setTimeout(() => { textarea.focus(); textarea.setSelectionRange(start + 3, end + 3); }, 0);
   };
 
   const insertBullet = () => {
@@ -154,28 +100,50 @@ const RichTextarea = ({ label, value, onChange, onAI, loadingAI, placeholder, ma
     const text = textarea.value;
     const before = text.substring(0, start);
     const after = text.substring(start);
-    
-    // Insère une puce
     const newText = `${before}• ${after}`;
     onChange(newText);
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(start + 2, start + 2);
-    }, 0);
+    setTimeout(() => { textarea.focus(); textarea.setSelectionRange(start + 2, start + 2); }, 0);
   };
+
+  // Fonction magique : Copie le texte et ouvre l'IA
+  const copyAndOpenAI = (url) => {
+    if (value) {
+      navigator.clipboard.writeText(value);
+      // On pourrait mettre un petit toast ici "Texte copié !"
+    }
+    window.open(url, '_blank');
+  };
+
+  const llmTools = [
+    { name: 'ChatGPT', url: 'https://chat.openai.com/', icon: 'openai' },
+    { name: 'Gemini', url: 'https://gemini.google.com/', icon: 'googlegemini' },
+    { name: 'Claude', url: 'https://claude.ai/', icon: 'anthropic' },
+    { name: 'Mistral', url: 'https://chat.mistral.ai/', icon: 'mistral' },
+  ];
 
   return (
     <div className="mb-6 relative">
       <div className="flex justify-between items-end mb-1">
         <label className="text-xs font-bold text-[#333333] uppercase block">{label}</label>
+        
         {/* Barre d'outils */}
         <div className="flex items-center gap-1 bg-slate-100 rounded-t-lg px-2 py-1 border border-slate-200 border-b-0 absolute right-0 top-0 transform -translate-y-full">
           <Button variant="toolbar" onClick={toggleBold} title="Gras (On/Off)"><Bold size={12}/></Button>
           <Button variant="toolbar" onClick={insertBullet} title="Insérer une puce"><List size={12}/></Button>
-          <div className="w-px h-3 bg-slate-300 mx-1"></div>
-          <Button variant="toolbar" onClick={onAI} disabled={loadingAI} title="Améliorer avec l'IA" className="text-violet-600 bg-violet-50 hover:bg-violet-100">
-            {loadingAI ? <Loader2 size={12} className="animate-spin"/> : <Wand2 size={12}/>}
-          </Button>
+          
+          <div className="w-px h-3 bg-slate-300 mx-2"></div>
+          <span className="text-[9px] text-slate-400 font-bold mr-1">IA:</span>
+          
+          {llmTools.map((tool) => (
+            <button
+              key={tool.name}
+              onClick={() => copyAndOpenAI(tool.url)}
+              className="p-1 hover:bg-white rounded transition-all hover:scale-110 grayscale hover:grayscale-0 opacity-70 hover:opacity-100"
+              title={`Copier texte et ouvrir ${tool.name}`}
+            >
+              <img src={getBrandIconUrl(tool.icon)} className="w-4 h-4" alt={tool.name} />
+            </button>
+          ))}
         </div>
       </div>
       <div className="relative">
@@ -188,6 +156,7 @@ const RichTextarea = ({ label, value, onChange, onAI, loadingAI, placeholder, ma
           placeholder={placeholder}
         />
       </div>
+      <p className="text-[9px] text-slate-400 mt-1 italic text-right">Cliquez sur un logo IA pour copier votre texte et l'améliorer.</p>
     </div>
   );
 };
@@ -242,7 +211,7 @@ const HexagonRating = ({ score, onChange }) => (
   </div>
 );
 
-// --- COMPOSANT BANDEAU TRIANGLE (Logo Modifiable) ---
+// --- COMPOSANT BANDEAU TRIANGLE ---
 const CornerTriangle = ({ customLogo }) => (
   <div className="absolute top-0 left-0 w-[140px] h-[140px] z-50 pointer-events-none overflow-hidden print:w-[120px] print:h-[120px]">
     <div className="absolute top-0 left-0 w-full h-full bg-[#2E86C1]" style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)' }}></div>
@@ -262,7 +231,6 @@ export default function App() {
   const [step, setStep] = useState(1);
   const [zoom, setZoom] = useState(0.55);
   const jsonInputRef = useRef(null);
-  const [loadingAI, setLoadingAI] = useState(null);
   
   const [cvData, setCvData] = useState({
     isAnonymous: false,
@@ -307,27 +275,6 @@ export default function App() {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [editingCategory, setEditingCategory] = useState(null); 
   const [newSkillsInput, setNewSkillsInput] = useState({});
-
-  const handleAIBio = async () => {
-    setLoadingAI('bio');
-    const improved = await improveTextWithAI(cvData.profile.summary, 'bio');
-    setCvData(prev => ({ ...prev, profile: { ...prev.profile, summary: improved } }));
-    setLoadingAI(null);
-  };
-
-  const handleAIExpObjective = async (id, text) => {
-    setLoadingAI(`exp-obj-${id}`);
-    const improved = await improveTextWithAI(text, 'standard');
-    updateExperience(id, 'objective', improved);
-    setLoadingAI(null);
-  };
-
-  const handleAIExpPhases = async (id, text) => {
-    setLoadingAI(`exp-phases-${id}`);
-    const improved = await improveTextWithAI(text, 'bullet');
-    updateExperience(id, 'phases', improved);
-    setLoadingAI(null);
-  };
 
   const downloadJSON = () => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(cvData));
@@ -440,9 +387,8 @@ export default function App() {
                 label="Bio / Résumé" 
                 value={cvData.profile.summary} 
                 onChange={(val) => handleProfileChange('summary', val)} 
-                onAI={handleAIBio} 
-                loadingAI={loadingAI === 'bio'}
                 maxLength={400}
+                placeholder="Décrivez votre profil..."
               />
 
               <div className="bg-white p-4 rounded-xl border border-slate-200">
@@ -459,13 +405,14 @@ export default function App() {
               </div>
             </div>
           )}
-          {/* ... (Steps 2, 3, 4 : Code inchangé par rapport aux versions précédentes) */}
+          
           {step === 2 && (
             <div className="space-y-6 animate-in slide-in-from-right duration-300">
                <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><Hexagon size={24} /><h2 className="text-lg font-bold uppercase">Soft Skills</h2></div>
                {[0, 1, 2].map(i => (<Input key={i} label={`Hexagone #${i+1}`} value={cvData.soft_skills[i]} onChange={(v) => {const s = [...cvData.soft_skills]; s[i] = v; setCvData(p => ({...p, soft_skills: s}));}} />))}
             </div>
           )}
+
           {step === 3 && (
             <div className="space-y-8 animate-in slide-in-from-right duration-300">
               <div className="flex justify-between items-center mb-4 text-[#2E86C1]">
@@ -489,12 +436,13 @@ export default function App() {
                   <Input label="Client" value={exp.client_name} onChange={(v) => updateExperience(exp.id, 'client_name', v)} />
                   <Input label="Rôle" value={exp.role} onChange={(v) => updateExperience(exp.id, 'role', v)} />
                   <Input label="Période" value={exp.period} onChange={(v) => updateExperience(exp.id, 'period', v)} />
-                  <RichTextarea label="Objectif" value={exp.objective} onChange={(v) => updateExperience(exp.id, 'objective', v)} onAI={() => handleAIExpObjective(exp.id, exp.objective)} loadingAI={loadingAI === `exp-obj-${exp.id}`} />
-                  <RichTextarea label="Réalisation" value={exp.phases} onChange={(v) => updateExperience(exp.id, 'phases', v)} onAI={() => handleAIExpPhases(exp.id, exp.phases)} loadingAI={loadingAI === `exp-phases-${exp.id}`} />
+                  <RichTextarea label="Objectif" value={exp.objective} onChange={(v) => updateExperience(exp.id, 'objective', v)} />
+                  <RichTextarea label="Réalisation" value={exp.phases} onChange={(v) => updateExperience(exp.id, 'phases', v)} />
                 </div>
               ))}
             </div>
           )}
+
           {step === 4 && (
              <div className="space-y-8 animate-in slide-in-from-right duration-300">
                <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><GraduationCap size={24} /><h2 className="text-lg font-bold uppercase">Formation</h2></div>
