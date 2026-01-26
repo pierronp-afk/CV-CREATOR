@@ -7,10 +7,6 @@ import {
   Bold, List
 } from 'lucide-react';
 
-// --- CONFIGURATION API KEY POUR VERCEL ---
-// Cette ligne récupère la clé sécurisée définie dans les réglages de Vercel.
-const apiKey = import.meta.env.VITE_GOOGLE_API_KEY || "";
-
 // --- CHARTE GRAPHIQUE SMILE ---
 const THEME = {
   primary: "#2E86C1", // Smile Blue
@@ -22,12 +18,11 @@ const THEME = {
 
 const getIconUrl = (slug) => `https://cdn.simpleicons.org/${slug.toLowerCase().replace(/\s+/g, '')}/white`;
 
-// --- HELPER FORMATTING & IA ---
+// --- HELPER FORMATTING & IA (Appel Sécurisé vers /api/ai) ---
 
 // Nettoie et interprète le texte pour l'affichage (Gras, Puces, Sauts de ligne)
 const formatTextForPreview = (text) => {
   if (!text) return "";
-  // Protection XSS basique : on ne laisse passer que <b>, </b>, <br>, •
   let clean = text
     .replace(/</g, "&lt;").replace(/>/g, "&gt;") // Escape tout
     .replace(/&lt;b&gt;/g, "<b>").replace(/&lt;\/b&gt;/g, "</b>") // Restaure le gras
@@ -35,36 +30,28 @@ const formatTextForPreview = (text) => {
   return clean;
 };
 
+// Cette fonction appelle maintenant VOTRE backend Vercel (/api/ai)
+// La clé API reste cachée sur le serveur.
 const improveTextWithAI = async (text, type = "standard") => {
-  if (!apiKey) {
-    console.warn("Clé API manquante. L'IA ne fonctionnera pas.");
-    return text;
-  }
   if (!text || text.length < 5) return text;
-  
-  const contextPrompt = "Reformule ce texte pour un CV professionnel (Consultant). Ton 'corporate', direct et percutant. Corrige les fautes. PAS de markdown (**), PAS de guillemets, PAS de phrases d'intro. Texte :";
 
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+    const response = await fetch('/api/ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: `${contextPrompt} "${text}"` }] }]
-      })
+      body: JSON.stringify({ text, type })
     });
-    const data = await response.json();
-    let cleanText = data.candidates?.[0]?.content?.parts?.[0]?.text || text;
-    
-    // Nettoyage forcé des artefacts
-    cleanText = cleanText
-      .replace(/\*\*/g, '') 
-      .replace(/^"|"$/g, '') 
-      .replace(/^Voici.*?:\s*/i, '')
-      .trim();
 
-    return cleanText;
+    if (!response.ok) {
+      throw new Error('Erreur réseau ou clé API invalide côté serveur');
+    }
+
+    const data = await response.json();
+    return data.result || text;
+
   } catch (e) {
-    console.error("Erreur IA", e);
+    console.error("Erreur IA (Appel API):", e);
+    // En cas d'erreur (ex: local sans serveur), on renvoie le texte original
     return text;
   }
 };
@@ -110,41 +97,29 @@ const RichTextarea = ({ label, value, onChange, onAI, loadingAI, placeholder, ma
     const text = textarea.value;
     const selected = text.substring(start, end);
 
-    // Cas 1 : Le texte sélectionné est entouré de <b> et </b> juste à l'extérieur
+    // Cas 1 : Le texte sélectionné est entouré de <b> et </b>
     if (start >= 3 && end <= text.length - 4 && 
         text.substring(start - 3, start) === '<b>' && 
         text.substring(end, end + 4) === '</b>') {
-      
       const newText = text.substring(0, start - 3) + selected + text.substring(end + 4);
       onChange(newText);
-      // Restaurer la sélection (décalée de 3 caractères vers la gauche)
-      setTimeout(() => {
-        textarea.focus();
-        textarea.setSelectionRange(start - 3, end - 3);
-      }, 0);
+      setTimeout(() => { textarea.focus(); textarea.setSelectionRange(start - 3, end - 3); }, 0);
       return;
     }
 
-    // Cas 2 : La sélection contient déjà les balises (ex: "|<b>texte</b>|")
+    // Cas 2 : La sélection contient déjà les balises
     if (selected.startsWith('<b>') && selected.endsWith('</b>')) {
       const cleanSelected = selected.substring(3, selected.length - 4);
       const newText = text.substring(0, start) + cleanSelected + text.substring(end);
       onChange(newText);
-      setTimeout(() => {
-        textarea.focus();
-        textarea.setSelectionRange(start, start + cleanSelected.length);
-      }, 0);
+      setTimeout(() => { textarea.focus(); textarea.setSelectionRange(start, start + cleanSelected.length); }, 0);
       return;
     }
 
-    // Cas 3 : Pas de gras, on ajoute
+    // Cas 3 : Ajout du gras
     const newText = text.substring(0, start) + `<b>${selected}</b>` + text.substring(end);
     onChange(newText);
-    
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(start + 3, end + 3);
-    }, 0);
+    setTimeout(() => { textarea.focus(); textarea.setSelectionRange(start + 3, end + 3); }, 0);
   };
 
   const insertBullet = () => {
@@ -154,21 +129,15 @@ const RichTextarea = ({ label, value, onChange, onAI, loadingAI, placeholder, ma
     const text = textarea.value;
     const before = text.substring(0, start);
     const after = text.substring(start);
-    
-    // Insère une puce
     const newText = `${before}• ${after}`;
     onChange(newText);
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(start + 2, start + 2);
-    }, 0);
+    setTimeout(() => { textarea.focus(); textarea.setSelectionRange(start + 2, start + 2); }, 0);
   };
 
   return (
     <div className="mb-6 relative">
       <div className="flex justify-between items-end mb-1">
         <label className="text-xs font-bold text-[#333333] uppercase block">{label}</label>
-        {/* Barre d'outils */}
         <div className="flex items-center gap-1 bg-slate-100 rounded-t-lg px-2 py-1 border border-slate-200 border-b-0 absolute right-0 top-0 transform -translate-y-full">
           <Button variant="toolbar" onClick={toggleBold} title="Gras (On/Off)"><Bold size={12}/></Button>
           <Button variant="toolbar" onClick={insertBullet} title="Insérer une puce"><List size={12}/></Button>
@@ -188,7 +157,6 @@ const RichTextarea = ({ label, value, onChange, onAI, loadingAI, placeholder, ma
           placeholder={placeholder}
         />
       </div>
-      <p className="text-[9px] text-slate-400 mt-1 italic text-right">Sélectionnez le texte et cliquez sur B pour mettre en gras/enlever le gras.</p>
     </div>
   );
 };
@@ -197,35 +165,15 @@ const RichTextarea = ({ label, value, onChange, onAI, loadingAI, placeholder, ma
 const DropZone = ({ onFile, label = "Déposez une image", icon = <Upload size={16}/>, className = "" }) => {
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef(null);
-
   const handleDragOver = (e) => { e.preventDefault(); setIsDragging(true); };
   const handleDragLeave = (e) => { e.preventDefault(); setIsDragging(false); };
-  const handleDrop = (e) => {
-    e.preventDefault();
-    setIsDragging(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      onFile(e.dataTransfer.files[0]);
-    }
-  };
-  const handleChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      onFile(e.target.files[0]);
-    }
-  };
-
+  const handleDrop = (e) => { e.preventDefault(); setIsDragging(false); if (e.dataTransfer.files[0]) onFile(e.dataTransfer.files[0]); };
+  const handleChange = (e) => { if (e.target.files[0]) onFile(e.target.files[0]); };
   return (
-    <div 
-      className={`border-2 border-dashed rounded-lg p-3 text-center cursor-pointer transition-all duration-200 flex flex-col items-center justify-center gap-1 ${isDragging ? 'border-[#2E86C1] bg-blue-50 scale-[1.02]' : 'border-slate-300 bg-white hover:border-[#2E86C1] hover:bg-slate-50'} ${className}`}
-      onClick={() => inputRef.current.click()}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-    >
+    <div className={`border-2 border-dashed rounded-lg p-3 text-center cursor-pointer transition-all duration-200 flex flex-col items-center justify-center gap-1 ${isDragging ? 'border-[#2E86C1] bg-blue-50 scale-[1.02]' : 'border-slate-300 bg-white hover:border-[#2E86C1] hover:bg-slate-50'} ${className}`} onClick={() => inputRef.current.click()} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
       <input type="file" ref={inputRef} className="hidden" accept="image/*" onChange={handleChange} />
       <div className={`transition-colors ${isDragging ? 'text-[#2E86C1]' : 'text-slate-400'}`}>{icon}</div>
-      <span className={`text-[10px] font-bold uppercase transition-colors ${isDragging ? 'text-[#2E86C1]' : 'text-slate-500'}`}>
-        {isDragging ? "Lâchez l'image !" : label}
-      </span>
+      <span className={`text-[10px] font-bold uppercase transition-colors ${isDragging ? 'text-[#2E86C1]' : 'text-slate-500'}`}>{isDragging ? "Lâchez l'image !" : label}</span>
     </div>
   );
 };
@@ -233,18 +181,8 @@ const DropZone = ({ onFile, label = "Déposez une image", icon = <Upload size={1
 // --- SELECTEUR LOGO ---
 const LogoSelector = ({ onSelect, label = "Ajouter un logo" }) => {
   const [search, setSearch] = useState("");
-  const handleSearch = () => {
-    if (!search.trim()) return;
-    onSelect({ type: 'url', src: getIconUrl(search), name: search });
-    setSearch("");
-  };
-  const handleFile = (file) => {
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (ev) => onSelect({ type: 'file', src: ev.target.result, name: file.name });
-      reader.readAsDataURL(file);
-    }
-  };
+  const handleSearch = () => { if (!search.trim()) return; onSelect({ type: 'url', src: getIconUrl(search), name: search }); setSearch(""); };
+  const handleFile = (file) => { if (file) { const reader = new FileReader(); reader.onload = (ev) => onSelect({ type: 'file', src: ev.target.result, name: file.name }); reader.readAsDataURL(file); }};
   return (
     <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
       {label && <label className="text-[10px] font-bold text-[#333333] uppercase block mb-2">{label}</label>}
@@ -289,15 +227,13 @@ const CornerTriangle = ({ customLogo }) => (
   </div>
 );
 
-// --- APP PRINCIPALE ---
-
 export default function App() {
   const [step, setStep] = useState(1);
   const [zoom, setZoom] = useState(0.55);
   const jsonInputRef = useRef(null);
   const [loadingAI, setLoadingAI] = useState(null);
   
-  // --- STATE ---
+  // --- STATE INITIAL ---
   const [cvData, setCvData] = useState({
     isAnonymous: false,
     smileLogo: null, 
@@ -343,24 +279,24 @@ export default function App() {
   const [editingCategory, setEditingCategory] = useState(null); 
   const [newSkillsInput, setNewSkillsInput] = useState({});
 
-  // --- IA HANDLERS ---
+  // --- IA HANDLERS (Via Backend) ---
   const handleAIBio = async () => {
     setLoadingAI('bio');
-    const improved = await improveTextWithAI(cvData.profile.summary);
+    const improved = await improveTextWithAI(cvData.profile.summary, 'bio');
     setCvData(prev => ({ ...prev, profile: { ...prev.profile, summary: improved } }));
     setLoadingAI(null);
   };
 
   const handleAIExpObjective = async (id, text) => {
     setLoadingAI(`exp-obj-${id}`);
-    const improved = await improveTextWithAI(text);
+    const improved = await improveTextWithAI(text, 'standard');
     updateExperience(id, 'objective', improved);
     setLoadingAI(null);
   };
 
   const handleAIExpPhases = async (id, text) => {
     setLoadingAI(`exp-phases-${id}`);
-    const improved = await improveTextWithAI(text);
+    const improved = await improveTextWithAI(text, 'bullet');
     updateExperience(id, 'phases', improved);
     setLoadingAI(null);
   };
@@ -448,6 +384,7 @@ export default function App() {
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-8 custom-scrollbar">
+          {/* ETAPE 1 */}
           {step === 1 && (
             <div className="space-y-6 animate-in slide-in-from-right duration-300">
               <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><User size={24} /><h2 className="text-lg font-bold uppercase">Profil</h2></div>
@@ -497,8 +434,7 @@ export default function App() {
               </div>
             </div>
           )}
-          
-          {/* ... (Steps 2, 3, 4 : Code inchangé par rapport aux versions précédentes) */}
+          {/* ... (Steps 2, 3, 4 : Code inchangé) */}
           {step === 2 && (
             <div className="space-y-6 animate-in slide-in-from-right duration-300">
                <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><Hexagon size={24} /><h2 className="text-lg font-bold uppercase">Soft Skills</h2></div>
@@ -586,13 +522,11 @@ export default function App() {
 
       {/* --- PREVIEW --- */}
       <div className="flex-1 bg-slate-800 overflow-hidden relative flex flex-col items-center">
-        {/* Zoom Controls */}
         <div className="absolute bottom-6 z-50 flex items-center gap-4 bg-white/90 backdrop-blur px-6 py-2 rounded-full shadow-2xl border border-white/20 print:hidden transition-all hover:scale-105">
            <button onClick={() => setZoom(Math.max(0.2, zoom - 0.1))} className="p-2 hover:bg-slate-100 rounded-full"><ZoomOut size={18} /></button>
            <span className="text-xs font-bold text-slate-600 min-w-[3rem] text-center">{Math.round(zoom * 100)}%</span>
            <button onClick={() => setZoom(Math.min(1.5, zoom + 0.1))} className="p-2 hover:bg-slate-100 rounded-full"><ZoomIn size={18} /></button>
         </div>
-
         <div className="flex-1 overflow-auto w-full p-8 flex justify-center custom-scrollbar">
           <div className="print-container flex flex-col origin-top transition-transform duration-300 gap-10" style={{ transform: `scale(${zoom})`, marginBottom: `${zoom * 100}px` }}>
             {/* PAGE 1 */}
@@ -621,8 +555,7 @@ export default function App() {
               </div>
               <Footer />
             </div>
-            
-            {/* ... (Pages 2 et 3 sont les mêmes que dans la version précédente, inchangées) */}
+            {/* PAGE 2 */}
             <div className="cv-page relative flex flex-col p-12 shadow-2xl bg-white">
                <CornerTriangle customLogo={cvData.smileLogo} />
                <HeaderSmall name={formatName()} role={cvData.profile.current_role} />
@@ -658,7 +591,7 @@ export default function App() {
                </div>
                <Footer />
             </div>
-            
+            {/* PAGE 3 */}
             <div className="cv-page relative flex flex-col p-12 shadow-2xl bg-white">
                <CornerTriangle customLogo={cvData.smileLogo} />
                <HeaderSmall name={formatName()} role={cvData.profile.current_role} />
