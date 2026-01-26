@@ -1,10 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   ArrowRight, ArrowLeft, Download, Plus, Trash2, MoveUp, MoveDown, 
   Upload, X, Briefcase, GraduationCap, User, Hexagon, Cpu, 
   Image as ImageIcon, ZoomIn, ZoomOut, Search, LayoutTemplate, 
   Save, FolderOpen, Eye, EyeOff, Shield, Edit2, Check,
-  Bold, List, Copy, HelpCircle
+  Bold, List, Copy, HelpCircle, RefreshCw, Cloud, Mail
 } from 'lucide-react';
 
 // --- CHARTE GRAPHIQUE SMILE ---
@@ -21,14 +21,58 @@ const getIconUrl = (slug) => `https://cdn.simpleicons.org/${slug.toLowerCase().r
 // Helper pour les icônes colorées (Barre d'outils)
 const getBrandIconUrl = (slug) => `https://cdn.simpleicons.org/${slug.toLowerCase().replace(/\s+/g, '')}`;
 
+// --- DONNÉES PAR DÉFAUT ---
+const DEFAULT_CV_DATA = {
+  isAnonymous: false,
+  smileLogo: null, 
+  profile: {
+    firstname: "Prénom",
+    lastname: "NOM",
+    years_experience: "5",
+    current_role: "Poste",
+    main_tech: "Techno principale",
+    summary: "Forte expérience en gestion de projet Drupal et dans l'accompagnement de nos clients.",
+    photo: null, 
+    tech_logos: [
+      { type: 'url', src: 'https://cdn.simpleicons.org/php/white', name: 'PHP' },
+      { type: 'url', src: 'https://cdn.simpleicons.org/drupal/white', name: 'Drupal' },
+      { type: 'url', src: 'https://cdn.simpleicons.org/symfony/white', name: 'Symfony' }
+    ]
+  },
+  soft_skills: ["Autonomie", "Rigueur", "Communication"],
+  experiences: [
+    {
+      id: 1,
+      client_name: "Disney",
+      client_logo: null,
+      period: "Jan 2023 - Présent",
+      role: "Développeur Frontend",
+      objective: "Développer la partie frontend de l'outil Castresa...",
+      achievements: ["Participation à la phase de conception", "Adaptation de l'interface"],
+      tech_stack: ["Drupal", "Twig"],
+      phases: "Conception, Développement"
+    }
+  ],
+  education: [
+    { year: "2008/2010", degree: "Master Miage", location: "Orléans" }
+  ],
+  skills_categories: {
+    "Langages": [{ name: "JAVA", rating: 4 }, { name: "PHP", rating: 5 }, { name: "Typescript", rating: 3 }],
+    "Outils": [{ name: "Jira", rating: 5 }, { name: "AWS", rating: 3 }],
+    "Méthodologies": [{ name: "Agile", rating: 5 }, { name: "Scrum", rating: 5 }]
+  }
+};
+
 // --- HELPER FORMATTING ---
 
+// Nettoie et interprète le texte pour l'affichage (Gras, Puces, Sauts de ligne)
 const formatTextForPreview = (text) => {
   if (!text) return "";
+  // Protection XSS basique : on ne laisse passer que <b>, </b>, <br>, •
   let clean = text
-    .replace(/</g, "&lt;").replace(/>/g, "&gt;") 
-    .replace(/&lt;b&gt;/g, "<b>").replace(/&lt;\/b&gt;/g, "</b>") 
-    .replace(/\n/g, "<br/>"); 
+    .replace(/</g, "&lt;").replace(/>/g, "&gt;") // Escape tout
+    .replace(/&lt;b&gt;/g, "<b>").replace(/&lt;\/b&gt;/g, "</b>") // Restaure le gras
+    .replace(/\n/g, "<br/>"); // Sauts de ligne
   return clean;
 };
 
@@ -116,7 +160,7 @@ const RichTextarea = ({ label, value, onChange, placeholder, maxLength }) => {
     { name: 'ChatGPT', url: 'https://chat.openai.com/', icon: 'openai' },
     { name: 'Gemini', url: 'https://gemini.google.com/', icon: 'googlegemini' },
     { name: 'Claude', url: 'https://claude.ai/', icon: 'anthropic/000000' }, // Force le noir
-    { name: 'Mistral', url: 'https://chat.mistral.ai/', icon: 'mistral/000000' }, // Force le noir pour visibilité
+    { name: 'Mistral', url: 'https://chat.mistral.ai/', icon: 'mistral/000000' }, // Force le noir
   ];
 
   return (
@@ -154,6 +198,7 @@ const RichTextarea = ({ label, value, onChange, placeholder, maxLength }) => {
           placeholder={placeholder}
         />
       </div>
+      <p className="text-[9px] text-slate-400 mt-1 italic text-right">Cliquez sur un logo IA pour copier votre texte (avec prompt) et l'améliorer.</p>
     </div>
   );
 };
@@ -224,55 +269,46 @@ const CornerTriangle = ({ customLogo }) => (
   </div>
 );
 
+// --- APP PRINCIPALE ---
+
 export default function App() {
   const [step, setStep] = useState(1);
   const [zoom, setZoom] = useState(0.55);
   const jsonInputRef = useRef(null);
   
-  const [cvData, setCvData] = useState({
-    isAnonymous: false,
-    smileLogo: null, 
-    profile: {
-      firstname: "Prénom",
-      lastname: "NOM",
-      years_experience: "5",
-      current_role: "Poste",
-      main_tech: "Techno principale",
-      summary: "Forte expérience en gestion de projet Drupal et dans l'accompagnement de nos clients.",
-      photo: null, // Photo de profil
-      tech_logos: [
-        { type: 'url', src: 'https://cdn.simpleicons.org/php/white', name: 'PHP' },
-        { type: 'url', src: 'https://cdn.simpleicons.org/drupal/white', name: 'Drupal' },
-        { type: 'url', src: 'https://cdn.simpleicons.org/symfony/white', name: 'Symfony' }
-      ]
-    },
-    soft_skills: ["Autonomie", "Rigueur", "Communication"],
-    experiences: [
-      {
-        id: 1,
-        client_name: "Disney",
-        client_logo: null,
-        period: "Jan 2023 - Présent",
-        role: "Développeur Frontend",
-        objective: "Développer la partie frontend de l'outil Castresa...",
-        achievements: ["Participation à la phase de conception", "Adaptation de l'interface"],
-        tech_stack: ["Drupal", "Twig"],
-        phases: "Conception, Développement"
-      }
-    ],
-    education: [
-      { year: "2008/2010", degree: "Master Miage", location: "Orléans" }
-    ],
-    skills_categories: {
-      "Langages": [{ name: "JAVA", rating: 4 }, { name: "PHP", rating: 5 }, { name: "Typescript", rating: 3 }],
-      "Outils": [{ name: "Jira", rating: 5 }, { name: "AWS", rating: 3 }],
-      "Méthodologies": [{ name: "Agile", rating: 5 }, { name: "Scrum", rating: 5 }]
-    }
+  // --- INITIALISATION ÉTAT AVEC LOCALSTORAGE ---
+  const [cvData, setCvData] = useState(() => {
+    try {
+      const saved = localStorage.getItem('smile_cv_data');
+      if (saved) return JSON.parse(saved);
+    } catch(e) { console.error(e); }
+    return DEFAULT_CV_DATA;
   });
 
+  const [lastSaved, setLastSaved] = useState(null);
+
+  // --- SAUVEGARDE AUTOMATIQUE ---
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      localStorage.setItem('smile_cv_data', JSON.stringify(cvData));
+      setLastSaved(new Date());
+    }, 1000); // 1 seconde de délai pour éviter de spammer le stockage
+    return () => clearTimeout(timer);
+  }, [cvData]);
+
+  // --- UI STATES LOCAUX ---
   const [newCategoryName, setNewCategoryName] = useState("");
   const [editingCategory, setEditingCategory] = useState(null); 
   const [newSkillsInput, setNewSkillsInput] = useState({});
+
+  // --- ACTIONS ---
+  
+  const resetCV = () => {
+    if (confirm("Attention : Cela va effacer toutes vos données actuelles et recharger le modèle par défaut. Continuer ?")) {
+      localStorage.removeItem('smile_cv_data');
+      setCvData(DEFAULT_CV_DATA);
+    }
+  };
 
   const downloadJSON = () => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(cvData));
@@ -290,6 +326,13 @@ export default function App() {
       try { setCvData(JSON.parse(event.target.result)); } catch (err) { alert("Fichier invalide"); }
     };
     reader.readAsText(file);
+  };
+
+  // MAIL : Ouvre le client mail par défaut
+  const handleEmail = () => {
+    const subject = `CV Smile - ${cvData.profile.firstname} ${cvData.profile.lastname}`;
+    const body = `Bonjour,\n\nVeuillez trouver ci-joint mon CV au format Smile.\n\nCordialement,\n${cvData.profile.firstname} ${cvData.profile.lastname}`;
+    window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 
   const handleProfileChange = (field, value) => setCvData(prev => ({ ...prev, profile: { ...prev.profile, [field]: value } }));
@@ -336,15 +379,27 @@ export default function App() {
       
       {/* --- WIZARD --- */}
       <div className="w-full md:w-[500px] bg-white border-r border-slate-200 flex flex-col h-full z-10 shadow-xl print:hidden">
-        <div className="bg-slate-50 border-b border-slate-200 p-2 flex justify-between items-center px-4">
-           <div className="flex gap-2">
-             <Button variant="ghost" className="px-2 py-1 text-xs" onClick={downloadJSON} title="Sauvegarder JSON"><Save size={14}/> Save</Button>
-             <Button variant="ghost" className="px-2 py-1 text-xs" onClick={() => jsonInputRef.current.click()} title="Charger JSON"><FolderOpen size={14}/> Load</Button>
-             <input type="file" ref={jsonInputRef} className="hidden" accept=".json" onChange={uploadJSON} />
+        
+        {/* BARRE D'ÉTAT SAUVEGARDE & ACTIONS */}
+        <div className="bg-slate-50 border-b border-slate-200 p-2 flex justify-between items-center px-4 text-xs">
+           <div className="flex items-center gap-3">
+             <div className="flex items-center gap-1 text-green-600 font-medium">
+               <Cloud size={12}/> 
+               {lastSaved ? `Sauvegardé ${lastSaved.toLocaleTimeString()}` : "Prêt"}
+             </div>
            </div>
-           <Button variant={cvData.isAnonymous ? "danger" : "secondary"} className="px-2 py-1 text-xs" onClick={() => setCvData(p => ({...p, isAnonymous: !p.isAnonymous}))}>
-             {cvData.isAnonymous ? <><Shield size={12}/> Anonyme ON</> : <><Eye size={12}/> Anonyme OFF</>}
-           </Button>
+           <div className="flex gap-1">
+             <Button variant="ghost" className="px-2 py-1 h-7" onClick={resetCV} title="Recommencer à zéro (Reset)"><RefreshCw size={12}/> Reset</Button>
+             <div className="w-px h-4 bg-slate-300 mx-1 self-center"></div>
+             <Button variant="ghost" className="px-2 py-1 h-7" onClick={downloadJSON} title="Sauvegarder JSON"><Save size={12}/></Button>
+             <Button variant="ghost" className="px-2 py-1 h-7" onClick={() => jsonInputRef.current.click()} title="Charger JSON"><FolderOpen size={12}/></Button>
+             <input type="file" ref={jsonInputRef} className="hidden" accept=".json" onChange={uploadJSON} />
+             <div className="w-px h-4 bg-slate-300 mx-1 self-center"></div>
+             <Button variant="ghost" className="px-2 py-1 h-7 text-[#2E86C1]" onClick={handleEmail} title="Préparer Email"><Mail size={12}/> Email</Button>
+             <Button variant={cvData.isAnonymous ? "danger" : "secondary"} className="px-2 py-1 h-7" onClick={() => setCvData(p => ({...p, isAnonymous: !p.isAnonymous}))}>
+               {cvData.isAnonymous ? <><Shield size={12}/> Anonyme</> : <><Eye size={12}/> Visible</>}
+             </Button>
+           </div>
         </div>
 
         <div className="p-6 border-b border-slate-100 bg-white sticky top-0 z-20">
@@ -432,37 +487,8 @@ export default function App() {
             </div>
           )}
 
+          {/* ÉTAPE 3 : FORMATION & COMPETENCES (INVERSÉ) */}
           {step === 3 && (
-            <div className="space-y-8 animate-in slide-in-from-right duration-300">
-              <div className="flex justify-between items-center mb-4 text-[#2E86C1]">
-                <div className="flex items-center gap-3"><Briefcase size={24} /><h2 className="text-lg font-bold uppercase">Expériences</h2></div>
-                <Button onClick={addExperience} variant="outline" className="px-3 py-1 text-xs"><Plus size={14} /> Ajouter</Button>
-              </div>
-              {cvData.experiences.map((exp) => (
-                <div key={exp.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm relative group mb-4">
-                  <div className="absolute top-4 right-4 flex gap-1"><button onClick={() => removeExperience(exp.id)} className="p-1 bg-red-50 text-red-500 rounded"><Trash2 size={14}/></button></div>
-                  <div className="mb-4">
-                     <span className="text-xs font-bold text-[#333333] uppercase block mb-2">Logo Client</span>
-                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-slate-50 border border-slate-200 rounded-full flex items-center justify-center overflow-hidden shrink-0">
-                           {exp.client_logo ? <img src={exp.client_logo} className="w-full h-full object-cover" /> : <ImageIcon size={20} className="text-slate-300"/>}
-                        </div>
-                        <div className="flex-1">
-                          <LogoSelector label="" onSelect={(logo) => updateExperience(exp.id, 'client_logo', logo.src)} />
-                        </div>
-                     </div>
-                  </div>
-                  <Input label="Client" value={exp.client_name} onChange={(v) => updateExperience(exp.id, 'client_name', v)} />
-                  <Input label="Rôle" value={exp.role} onChange={(v) => updateExperience(exp.id, 'role', v)} />
-                  <Input label="Période" value={exp.period} onChange={(v) => updateExperience(exp.id, 'period', v)} />
-                  <RichTextarea label="Objectif" value={exp.objective} onChange={(v) => updateExperience(exp.id, 'objective', v)} />
-                  <RichTextarea label="Réalisation" value={exp.phases} onChange={(v) => updateExperience(exp.id, 'phases', v)} />
-                </div>
-              ))}
-            </div>
-          )}
-
-          {step === 4 && (
              <div className="space-y-8 animate-in slide-in-from-right duration-300">
                <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><GraduationCap size={24} /><h2 className="text-lg font-bold uppercase">Formation</h2></div>
                {cvData.education.map((edu, i) => (
@@ -508,6 +534,37 @@ export default function App() {
                  ))}
                </div>
              </div>
+          )}
+
+          {/* ÉTAPE 4 : EXPÉRIENCES (INVERSÉ) */}
+          {step === 4 && (
+            <div className="space-y-8 animate-in slide-in-from-right duration-300">
+              <div className="flex justify-between items-center mb-4 text-[#2E86C1]">
+                <div className="flex items-center gap-3"><Briefcase size={24} /><h2 className="text-lg font-bold uppercase">Expériences</h2></div>
+                <Button onClick={addExperience} variant="outline" className="px-3 py-1 text-xs"><Plus size={14} /> Ajouter</Button>
+              </div>
+              {cvData.experiences.map((exp) => (
+                <div key={exp.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm relative group mb-4">
+                  <div className="absolute top-4 right-4 flex gap-1"><button onClick={() => removeExperience(exp.id)} className="p-1 bg-red-50 text-red-500 rounded"><Trash2 size={14}/></button></div>
+                  <div className="mb-4">
+                     <span className="text-xs font-bold text-[#333333] uppercase block mb-2">Logo Client</span>
+                     <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-slate-50 border border-slate-200 rounded-full flex items-center justify-center overflow-hidden shrink-0">
+                           {exp.client_logo ? <img src={exp.client_logo} className="w-full h-full object-cover" /> : <ImageIcon size={20} className="text-slate-300"/>}
+                        </div>
+                        <div className="flex-1">
+                          <LogoSelector label="" onSelect={(logo) => updateExperience(exp.id, 'client_logo', logo.src)} />
+                        </div>
+                     </div>
+                  </div>
+                  <Input label="Client" value={exp.client_name} onChange={(v) => updateExperience(exp.id, 'client_name', v)} />
+                  <Input label="Rôle" value={exp.role} onChange={(v) => updateExperience(exp.id, 'role', v)} />
+                  <Input label="Période" value={exp.period} onChange={(v) => updateExperience(exp.id, 'period', v)} />
+                  <RichTextarea label="Objectif" value={exp.objective} onChange={(v) => updateExperience(exp.id, 'objective', v)} />
+                  <RichTextarea label="Réalisation" value={exp.phases} onChange={(v) => updateExperience(exp.id, 'phases', v)} />
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </div>
@@ -567,7 +624,7 @@ export default function App() {
                    <div key={exp.id} className="grid grid-cols-12 gap-6">
                       <div className="col-span-2 flex flex-col items-center pt-2">
                         <div className="w-16 h-16 rounded-full border border-slate-200 overflow-hidden flex items-center justify-center bg-white mb-2">
-                           {exp.client_logo ? <img src={exp.client_logo} className="w-full h-full object-cover" /> : <LayoutTemplate size={24} className="text-slate-300"/>}
+                           {exp.client_logo ? <img src={exp.client_logo} className="w-full h-full object-contain p-1" /> : <LayoutTemplate size={24} className="text-slate-300"/>}
                         </div>
                         <span className="text-[10px] font-bold text-[#333333] uppercase text-center leading-tight">{exp.client_name}</span>
                       </div>
@@ -614,13 +671,13 @@ export default function App() {
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&family=Open+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap');
         .font-montserrat { font-family: 'Montserrat', sans-serif; }
         .font-sans { font-family: 'Open Sans', sans-serif; }
-        .cv-page { width: 210mm; height: 297mm; background: white; flex-shrink: 0; box-sizing: border-box; page-break-after: always; position: relative; }
+        .cv-page { width: 210mm; height: 297mm; background: white; flex-shrink: 0; box-sizing: border-box; page-break-after: always; position: relative; border: none !important; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         @media print {
           @page { size: A4; margin: 0; }
-          body { background: white; -webkit-print-color-adjust: exact; }
-          .cv-page { width: 210mm; height: 297mm; margin: 0; page-break-after: always; box-shadow: none; }
+          body { background: white; -webkit-print-color-adjust: exact; margin: 0; padding: 0; }
+          .cv-page { width: 210mm; height: 297mm; margin: 0; page-break-after: always; box-shadow: none; border: none !important; }
           .print-hidden { display: none !important; }
           .print-container { box-shadow: none; transform: none !important; margin-bottom: 0 !important; gap: 0 !important; }
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
