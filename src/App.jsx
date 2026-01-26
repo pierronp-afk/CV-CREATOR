@@ -378,7 +378,7 @@ export default function App() {
     <div className="min-h-screen bg-slate-100 flex flex-col md:flex-row h-screen overflow-hidden font-sans">
       
       {/* --- WIZARD --- */}
-      <div className="w-full md:w-[500px] bg-white border-r border-slate-200 flex flex-col h-full z-10 shadow-xl print:hidden">
+      <div className="w-full md:w-[550px] bg-white border-r border-slate-200 flex flex-col h-full z-10 shadow-xl print:hidden">
         
         {/* BARRE D'ÉTAT SAUVEGARDE & ACTIONS */}
         <div className="bg-slate-50 border-b border-slate-200 p-2 flex justify-between items-center px-4 text-xs">
@@ -397,7 +397,7 @@ export default function App() {
              <div className="w-px h-4 bg-slate-300 mx-1 self-center"></div>
              <Button variant="ghost" className="px-2 py-1 h-7 text-[#2E86C1]" onClick={handleEmail} title="Préparer Email"><Mail size={12}/> Email</Button>
              <Button variant={cvData.isAnonymous ? "danger" : "secondary"} className="px-2 py-1 h-7" onClick={() => setCvData(p => ({...p, isAnonymous: !p.isAnonymous}))}>
-               {cvData.isAnonymous ? <><Shield size={12}/> Anonymiser</> : <><Eye size={12}/> Visible</>}
+               {cvData.isAnonymous ? <><Shield size={12}/> Rendre Visible</> : <><Eye size={12}/> Anonymiser</>}
              </Button>
            </div>
         </div>
