@@ -105,10 +105,11 @@ const RichTextarea = ({ label, value, onChange, placeholder, maxLength }) => {
     setTimeout(() => { textarea.focus(); textarea.setSelectionRange(start + 2, start + 2); }, 0);
   };
 
-  // Fonction magique : Copie le texte et ouvre l'IA
+  // Fonction magique : Copie le texte AVEC PROMPT et ouvre l'IA
   const copyAndOpenAI = (url) => {
     if (value) {
-      navigator.clipboard.writeText(value);
+      const prompt = "Agis comme un expert en recrutement. Reformule ce texte pour un CV professionnel (Consultant). Ton 'corporate', direct, concis et percutant. Corrige les fautes. PAS de markdown (**), PAS de guillemets, PAS de phrases d'intro. Texte à améliorer : \n";
+      navigator.clipboard.writeText(prompt + value);
       // On pourrait mettre un petit toast ici "Texte copié !"
     }
     window.open(url, '_blank');
@@ -117,7 +118,7 @@ const RichTextarea = ({ label, value, onChange, placeholder, maxLength }) => {
   const llmTools = [
     { name: 'ChatGPT', url: 'https://chat.openai.com/', icon: 'openai' },
     { name: 'Gemini', url: 'https://gemini.google.com/', icon: 'googlegemini' },
-    { name: 'Claude', url: 'https://claude.ai/', icon: 'anthropic' },
+    { name: 'Claude', url: 'https://claude.ai/', icon: 'anthropic/000000' }, // Force le noir pour Claude
     { name: 'Mistral', url: 'https://chat.mistral.ai/', icon: 'mistral' },
   ];
 
@@ -156,7 +157,7 @@ const RichTextarea = ({ label, value, onChange, placeholder, maxLength }) => {
           placeholder={placeholder}
         />
       </div>
-      <p className="text-[9px] text-slate-400 mt-1 italic text-right">Cliquez sur un logo IA pour copier votre texte et l'améliorer.</p>
+      <p className="text-[9px] text-slate-400 mt-1 italic text-right">Cliquez sur un logo IA pour copier votre texte (avec prompt) et l'améliorer.</p>
     </div>
   );
 };
@@ -211,7 +212,7 @@ const HexagonRating = ({ score, onChange }) => (
   </div>
 );
 
-// --- COMPOSANT BANDEAU TRIANGLE ---
+// --- COMPOSANT BANDEAU TRIANGLE (Logo Modifiable) ---
 const CornerTriangle = ({ customLogo }) => (
   <div className="absolute top-0 left-0 w-[140px] h-[140px] z-50 pointer-events-none overflow-hidden print:w-[120px] print:h-[120px]">
     <div className="absolute top-0 left-0 w-full h-full bg-[#2E86C1]" style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)' }}></div>
