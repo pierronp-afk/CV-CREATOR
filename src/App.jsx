@@ -7,6 +7,13 @@ import {
   Bold, List, Copy, HelpCircle, RefreshCw, Cloud, Mail
 } from 'lucide-react';
 
+// --- CONFIGURATION API KEY ---
+// POUR VERCEL : Décommentez la ligne ci-dessous quand vous déploierez le site.
+// const apiKey = import.meta.env.VITE_GOOGLE_API_KEY || "";
+
+// POUR L'APERÇU ICI : On laisse vide.
+const apiKey = "";
+
 // --- CHARTE GRAPHIQUE SMILE ---
 const THEME = {
   primary: "#2E86C1", // Smile Blue
@@ -16,9 +23,7 @@ const THEME = {
   bg: "#FFFFFF"
 };
 
-// Helper pour les icônes blanches (Fond bleu)
 const getIconUrl = (slug) => `https://cdn.simpleicons.org/${slug.toLowerCase().replace(/\s+/g, '')}/white`;
-// Helper pour les icônes colorées (Barre d'outils)
 const getBrandIconUrl = (slug) => `https://cdn.simpleicons.org/${slug.toLowerCase().replace(/\s+/g, '')}`;
 
 // --- DONNÉES PAR DÉFAUT ---
@@ -65,14 +70,12 @@ const DEFAULT_CV_DATA = {
 
 // --- HELPER FORMATTING ---
 
-// Nettoie et interprète le texte pour l'affichage (Gras, Puces, Sauts de ligne)
 const formatTextForPreview = (text) => {
   if (!text) return "";
-  // Protection XSS basique : on ne laisse passer que <b>, </b>, <br>, •
   let clean = text
-    .replace(/</g, "&lt;").replace(/>/g, "&gt;") // Escape tout
-    .replace(/&lt;b&gt;/g, "<b>").replace(/&lt;\/b&gt;/g, "</b>") // Restaure le gras
-    .replace(/\n/g, "<br/>"); // Sauts de ligne
+    .replace(/</g, "&lt;").replace(/>/g, "&gt;") 
+    .replace(/&lt;b&gt;/g, "<b>").replace(/&lt;\/b&gt;/g, "</b>") 
+    .replace(/\n/g, "<br/>"); 
   return clean;
 };
 
@@ -105,7 +108,6 @@ const Input = ({ label, value, onChange, placeholder, maxLength, type = "text" }
   </div>
 );
 
-// --- COMPOSANT TEXTAREA RICHE (Boutons + Liens LLM) ---
 const RichTextarea = ({ label, value, onChange, placeholder, maxLength }) => {
   const textareaRef = useRef(null);
 
@@ -147,7 +149,6 @@ const RichTextarea = ({ label, value, onChange, placeholder, maxLength }) => {
     setTimeout(() => { textarea.focus(); textarea.setSelectionRange(start + 2, start + 2); }, 0);
   };
 
-  // Fonction magique : Copie le texte AVEC PROMPT et ouvre l'IA
   const copyAndOpenAI = (url) => {
     if (value) {
       const prompt = "Agis comme un expert en recrutement. Reformule ce texte pour un CV professionnel (Consultant). Ton 'corporate', direct, concis et percutant. Corrige les fautes. PAS de markdown (**), PAS de guillemets, PAS de phrases d'intro. Texte à améliorer : \n";
@@ -159,8 +160,8 @@ const RichTextarea = ({ label, value, onChange, placeholder, maxLength }) => {
   const llmTools = [
     { name: 'ChatGPT', url: 'https://chat.openai.com/', icon: 'openai' },
     { name: 'Gemini', url: 'https://gemini.google.com/', icon: 'googlegemini' },
-    { name: 'Claude', url: 'https://claude.ai/', icon: 'anthropic/000000' }, // Force le noir
-    { name: 'Mistral', url: 'https://chat.mistral.ai/', icon: 'mistral/000000' }, // Force le noir
+    { name: 'Claude', url: 'https://claude.ai/', icon: 'anthropic/000000' }, 
+    { name: 'Mistral', url: 'https://chat.mistral.ai/', icon: 'mistral/000000' }, 
   ];
 
   return (
@@ -168,7 +169,6 @@ const RichTextarea = ({ label, value, onChange, placeholder, maxLength }) => {
       <div className="flex justify-between items-end mb-1">
         <label className="text-xs font-bold text-[#333333] uppercase block">{label}</label>
         
-        {/* Barre d'outils */}
         <div className="flex items-center gap-1 bg-slate-100 rounded-t-lg px-2 py-1 border border-slate-200 border-b-0 absolute right-0 top-0 transform -translate-y-full">
           <Button variant="toolbar" onClick={toggleBold} title="Gras (On/Off)"><Bold size={12}/></Button>
           <Button variant="toolbar" onClick={insertBullet} title="Insérer une puce"><List size={12}/></Button>
@@ -203,7 +203,6 @@ const RichTextarea = ({ label, value, onChange, placeholder, maxLength }) => {
   );
 };
 
-// --- DROPZONE ---
 const DropZone = ({ onFile, label = "Déposez une image", icon = <Upload size={16}/>, className = "" }) => {
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef(null);
@@ -220,7 +219,6 @@ const DropZone = ({ onFile, label = "Déposez une image", icon = <Upload size={1
   );
 };
 
-// --- SELECTEUR LOGO ---
 const LogoSelector = ({ onSelect, label = "Ajouter un logo" }) => {
   const [search, setSearch] = useState("");
   const handleSearch = () => { if (!search.trim()) return; onSelect({ type: 'url', src: getIconUrl(search), name: search }); setSearch(""); };
@@ -241,7 +239,6 @@ const LogoSelector = ({ onSelect, label = "Ajouter un logo" }) => {
   );
 };
 
-// --- HEXAGONES ---
 const MiniHexagon = ({ filled, onClick }) => (
   <svg viewBox="0 0 100 100" onClick={onClick} className={`w-3 h-3 ${onClick ? 'cursor-pointer hover:scale-125 transition-transform' : ''} ${filled ? 'text-[#2E86C1] fill-current' : 'text-slate-200 fill-current'}`}>
     <polygon points="50 0, 100 25, 100 75, 50 100, 0 75, 0 25" />
@@ -253,7 +250,6 @@ const HexagonRating = ({ score, onChange }) => (
   </div>
 );
 
-// --- COMPOSANT BANDEAU TRIANGLE ---
 const CornerTriangle = ({ customLogo }) => (
   <div className="absolute top-0 left-0 w-[140px] h-[140px] z-50 pointer-events-none overflow-hidden print:w-[120px] print:h-[120px]">
     <div className="absolute top-0 left-0 w-full h-full bg-[#2E86C1]" style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)' }}></div>
@@ -269,14 +265,12 @@ const CornerTriangle = ({ customLogo }) => (
   </div>
 );
 
-// --- APP PRINCIPALE ---
-
 export default function App() {
   const [step, setStep] = useState(1);
   const [zoom, setZoom] = useState(0.55);
   const jsonInputRef = useRef(null);
   
-  // --- INITIALISATION ÉTAT AVEC LOCALSTORAGE ---
+  // --- INITIALISATION ÉTAT ---
   const [cvData, setCvData] = useState(() => {
     try {
       const saved = localStorage.getItem('smile_cv_data');
@@ -292,11 +286,23 @@ export default function App() {
     const timer = setTimeout(() => {
       localStorage.setItem('smile_cv_data', JSON.stringify(cvData));
       setLastSaved(new Date());
-    }, 1000); // 1 seconde de délai pour éviter de spammer le stockage
+    }, 1000);
     return () => clearTimeout(timer);
   }, [cvData]);
 
-  // --- UI STATES LOCAUX ---
+  // --- FORMAT NOM FICHIER ---
+  const getFilenameBase = () => {
+    const year = new Date().getFullYear();
+    const clean = (str) => (str || "").replace(/[^a-z0-9]/gi, '_').toUpperCase();
+    return `CV ${year} - ${clean(cvData.profile.lastname)} - ${clean(cvData.profile.firstname)} - ${clean(cvData.profile.current_role)}`;
+  };
+
+  // Met à jour le titre du document pour que l'impression PDF prenne ce nom
+  useEffect(() => {
+    document.title = getFilenameBase();
+  }, [cvData.profile]);
+
+  // --- UI STATES ---
   const [newCategoryName, setNewCategoryName] = useState("");
   const [editingCategory, setEditingCategory] = useState(null); 
   const [newSkillsInput, setNewSkillsInput] = useState({});
@@ -304,7 +310,7 @@ export default function App() {
   // --- ACTIONS ---
   
   const resetCV = () => {
-    if (confirm("Attention : Cela va effacer toutes vos données actuelles et recharger le modèle par défaut. Continuer ?")) {
+    if (confirm("Attention : Cela va effacer toutes vos données actuelles. Continuer ?")) {
       localStorage.removeItem('smile_cv_data');
       setCvData(DEFAULT_CV_DATA);
     }
@@ -314,7 +320,7 @@ export default function App() {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(cvData));
     const a = document.createElement('a');
     a.href = dataStr;
-    a.download = `CV_${cvData.profile.lastname}_Smile.json`;
+    a.download = `${getFilenameBase()}.json`;
     a.click();
   };
 
@@ -328,10 +334,9 @@ export default function App() {
     reader.readAsText(file);
   };
 
-  // MAIL : Ouvre le client mail par défaut
   const handleEmail = () => {
-    const subject = `CV Smile - ${cvData.profile.firstname} ${cvData.profile.lastname}`;
-    const body = `Bonjour,\n\nVeuillez trouver ci-joint mon CV au format Smile.\n\nCordialement,\n${cvData.profile.firstname} ${cvData.profile.lastname}`;
+    const subject = `${getFilenameBase()}`;
+    const body = `Bonjour,\n\nVeuillez trouver ci-joint le CV.\n\nCordialement,`;
     window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 
@@ -389,7 +394,7 @@ export default function App() {
              </div>
            </div>
            <div className="flex gap-1">
-             <Button variant="ghost" className="px-2 py-1 h-7" onClick={resetCV} title="Recommencer à zéro (Reset)"><RefreshCw size={12}/> Reset</Button>
+             <Button variant="ghost" className="px-2 py-1 h-7" onClick={resetCV} title="Recommencer à zéro"><RefreshCw size={12}/> Reset</Button>
              <div className="w-px h-4 bg-slate-300 mx-1 self-center"></div>
              <Button variant="ghost" className="px-2 py-1 h-7" onClick={downloadJSON} title="Sauvegarder JSON"><Save size={12}/></Button>
              <Button variant="ghost" className="px-2 py-1 h-7" onClick={() => jsonInputRef.current.click()} title="Charger JSON"><FolderOpen size={12}/></Button>
@@ -397,7 +402,7 @@ export default function App() {
              <div className="w-px h-4 bg-slate-300 mx-1 self-center"></div>
              <Button variant="ghost" className="px-2 py-1 h-7 text-[#2E86C1]" onClick={handleEmail} title="Préparer Email"><Mail size={12}/> Email</Button>
              <Button variant={cvData.isAnonymous ? "danger" : "secondary"} className="px-2 py-1 h-7" onClick={() => setCvData(p => ({...p, isAnonymous: !p.isAnonymous}))}>
-               {cvData.isAnonymous ? <><Shield size={12}/> Rendre Visible</> : <><Eye size={12}/> Anonymiser</>}
+               {cvData.isAnonymous ? <><Shield size={12}/> Visible</> : <><Eye size={12}/> Anonymiser</>}
              </Button>
            </div>
         </div>
@@ -421,14 +426,12 @@ export default function App() {
             <div className="space-y-6 animate-in slide-in-from-right duration-300">
               <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><User size={24} /><h2 className="text-lg font-bold uppercase">Profil</h2></div>
               
-              {/* Zone Aide IA */}
               <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex gap-3">
                 <div className="text-[#2E86C1] shrink-0 mt-0.5"><HelpCircle size={18} /></div>
                 <div>
                   <h4 className="text-xs font-bold text-[#2E86C1] uppercase mb-1">Comment utiliser l'IA ?</h4>
                   <p className="text-[11px] text-slate-600 leading-tight">
-                    Dans les zones de texte (Résumé, Objectifs...), cliquez sur les petits logos en haut à droite (ChatGPT, Claude, etc.). 
-                    Cela copiera automatiquement votre texte avec une consigne d'amélioration ("Prompt") et ouvrira l'outil pour vous.
+                    Cliquez sur les logos (ChatGPT, etc.) au-dessus des zones de texte pour copier votre contenu avec une consigne d'amélioration automatique.
                   </p>
                 </div>
               </div>
@@ -487,7 +490,7 @@ export default function App() {
             </div>
           )}
 
-          {/* ÉTAPE 3 : FORMATION & COMPETENCES (INVERSÉ) */}
+          {/* ÉTAPE 3 : FORMATION & COMPETENCES (PAGE 2 DU PDF) */}
           {step === 3 && (
              <div className="space-y-8 animate-in slide-in-from-right duration-300">
                <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><GraduationCap size={24} /><h2 className="text-lg font-bold uppercase">Formation</h2></div>
@@ -536,7 +539,7 @@ export default function App() {
              </div>
           )}
 
-          {/* ÉTAPE 4 : EXPÉRIENCES (INVERSÉ) */}
+          {/* ÉTAPE 4 : EXPÉRIENCES (PAGE 3 DU PDF) */}
           {step === 4 && (
             <div className="space-y-8 animate-in slide-in-from-right duration-300">
               <div className="flex justify-between items-center mb-4 text-[#2E86C1]">
@@ -577,6 +580,7 @@ export default function App() {
         </div>
         <div className="flex-1 overflow-auto w-full p-8 flex justify-center custom-scrollbar">
           <div className="print-container flex flex-col origin-top transition-transform duration-300 gap-10" style={{ transform: `scale(${zoom})`, marginBottom: `${zoom * 100}px` }}>
+            
             {/* PAGE 1 */}
             <div className="cv-page relative overflow-hidden flex flex-col shadow-2xl bg-white">
               <CornerTriangle customLogo={cvData.smileLogo} />
@@ -612,14 +616,7 @@ export default function App() {
               <Footer />
             </div>
             
-            {/* PAGE 2 : Formation & Compétences (Maintenant en 2ème position pour l'aperçu, conforme à l'inversion d'étapes ?) 
-               ATTENTION : La demande "inverser 3 et 4" concernait le Wizard (étapes d'édition). 
-               Dois-je aussi inverser l'ordre des pages dans le PDF final ? 
-               Généralement "Expériences" est le coeur du CV et vient après le résumé, mais le prompt demande "les pages 3 et 4 s'inversent aussi".
-               Je vais donc placer la page Formation/Compétences AVANT la page Expériences dans le rendu final.
-            */}
-            
-            {/* PAGE 2 : FORMATION & COMPÉTENCES */}
+            {/* PAGE 2 : Formation & Compétences */}
             <div className="cv-page relative flex flex-col p-12 shadow-2xl bg-white">
                <CornerTriangle customLogo={cvData.smileLogo} />
                <HeaderSmall name={formatName()} role={cvData.profile.current_role} />
@@ -646,10 +643,10 @@ export default function App() {
                </div>
                <div className="flex-1 space-y-10 px-4">
                  {cvData.experiences.map((exp) => (
-                   <div key={exp.id} className="grid grid-cols-12 gap-6">
+                   <div key={exp.id} className="grid grid-cols-12 gap-6 break-inside-avoid">
                       <div className="col-span-2 flex flex-col items-center pt-2">
-                        <div className="w-16 h-16 rounded-full border border-slate-200 overflow-hidden flex items-center justify-center bg-white mb-2">
-                           {exp.client_logo ? <img src={exp.client_logo} className="w-full h-full object-contain p-1" /> : <LayoutTemplate size={24} className="text-slate-300"/>}
+                        <div className="w-16 h-16 rounded-lg border border-slate-200 overflow-hidden flex items-center justify-center bg-white mb-2 p-1">
+                           {exp.client_logo ? <img src={exp.client_logo} className="w-full h-full object-contain" /> : <LayoutTemplate size={24} className="text-slate-300"/>}
                         </div>
                         <span className="text-[10px] font-bold text-[#333333] uppercase text-center leading-tight">{exp.client_name}</span>
                       </div>
@@ -681,13 +678,27 @@ export default function App() {
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&family=Open+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap');
         .font-montserrat { font-family: 'Montserrat', sans-serif; }
         .font-sans { font-family: 'Open Sans', sans-serif; }
-        .cv-page { width: 210mm; height: 297mm; background: white; flex-shrink: 0; box-sizing: border-box; page-break-after: always; position: relative; border: none !important; }
+        .cv-page { 
+           width: 210mm; 
+           min-height: 297mm; /* Permet à la page de s'agrandir */
+           height: auto; /* Hauteur automatique */
+           background: white; 
+           flex-shrink: 0; 
+           box-sizing: border-box; 
+           page-break-after: always; /* Force nouvelle page à la fin du bloc */
+           position: relative; 
+           border: none !important; 
+        }
+        .break-inside-avoid {
+           break-inside: avoid; /* Empêche de couper une expérience en deux */
+           page-break-inside: avoid;
+        }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         @media print {
           @page { size: A4; margin: 0; }
           body { background: white; -webkit-print-color-adjust: exact; margin: 0; padding: 0; }
-          .cv-page { width: 210mm; height: 297mm; margin: 0; page-break-after: always; box-shadow: none; border: none !important; }
+          .cv-page { width: 210mm; min-height: 297mm; height: auto; margin: 0; page-break-after: always; box-shadow: none; border: none !important; }
           .print-hidden { display: none !important; }
           .print-container { box-shadow: none; transform: none !important; margin-bottom: 0 !important; gap: 0 !important; }
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
