@@ -7,6 +7,10 @@ import {
   Bold, List
 } from 'lucide-react';
 
+// --- CONFIGURATION API KEY POUR VERCEL ---
+// Cette ligne récupère la clé sécurisée définie dans les réglages de Vercel.
+const apiKey = import.meta.env.VITE_GOOGLE_API_KEY || "";
+
 // --- CHARTE GRAPHIQUE SMILE ---
 const THEME = {
   primary: "#2E86C1", // Smile Blue
@@ -18,11 +22,12 @@ const THEME = {
 
 const getIconUrl = (slug) => `https://cdn.simpleicons.org/${slug.toLowerCase().replace(/\s+/g, '')}/white`;
 
-// --- HELPER FORMATTING & IA (Appel Sécurisé vers /api/ai) ---
+// --- HELPER FORMATTING & IA ---
 
 // Nettoie et interprète le texte pour l'affichage (Gras, Puces, Sauts de ligne)
 const formatTextForPreview = (text) => {
   if (!text) return "";
+  // Protection XSS basique : on ne laisse passer que <b>, </b>, <br>, •
   let clean = text
     .replace(/</g, "&lt;").replace(/>/g, "&gt;") // Escape tout
     .replace(/&lt;b&gt;/g, "<b>").replace(/&lt;\/b&gt;/g, "</b>") // Restaure le gras
@@ -30,28 +35,36 @@ const formatTextForPreview = (text) => {
   return clean;
 };
 
-// Cette fonction appelle maintenant VOTRE backend Vercel (/api/ai)
-// La clé API reste cachée sur le serveur.
 const improveTextWithAI = async (text, type = "standard") => {
+  if (!apiKey) {
+    console.warn("Clé API manquante. L'IA ne fonctionnera pas.");
+    return text;
+  }
   if (!text || text.length < 5) return text;
+  
+  const contextPrompt = "Reformule ce texte pour un CV professionnel (Consultant). Ton 'corporate', direct et percutant. Corrige les fautes. PAS de markdown (**), PAS de guillemets, PAS de phrases d'intro. Texte :";
 
   try {
-    const response = await fetch('/api/ai', {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, type })
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: `${contextPrompt} "${text}"` }] }]
+      })
     });
-
-    if (!response.ok) {
-      throw new Error('Erreur réseau ou clé API invalide côté serveur');
-    }
-
     const data = await response.json();
-    return data.result || text;
+    let cleanText = data.candidates?.[0]?.content?.parts?.[0]?.text || text;
+    
+    // Nettoyage forcé des artefacts
+    cleanText = cleanText
+      .replace(/\*\*/g, '') 
+      .replace(/^"|"$/g, '') 
+      .replace(/^Voici.*?:\s*/i, '')
+      .trim();
 
+    return cleanText;
   } catch (e) {
-    console.error("Erreur IA (Appel API):", e);
-    // En cas d'erreur (ex: local sans serveur), on renvoie le texte original
+    console.error("Erreur IA", e);
     return text;
   }
 };
@@ -97,29 +110,41 @@ const RichTextarea = ({ label, value, onChange, onAI, loadingAI, placeholder, ma
     const text = textarea.value;
     const selected = text.substring(start, end);
 
-    // Cas 1 : Le texte sélectionné est entouré de <b> et </b>
+    // Cas 1 : Le texte sélectionné est entouré de <b> et </b> juste à l'extérieur
     if (start >= 3 && end <= text.length - 4 && 
         text.substring(start - 3, start) === '<b>' && 
         text.substring(end, end + 4) === '</b>') {
+      
       const newText = text.substring(0, start - 3) + selected + text.substring(end + 4);
       onChange(newText);
-      setTimeout(() => { textarea.focus(); textarea.setSelectionRange(start - 3, end - 3); }, 0);
+      // Restaurer la sélection (décalée de 3 caractères vers la gauche)
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start - 3, end - 3);
+      }, 0);
       return;
     }
 
-    // Cas 2 : La sélection contient déjà les balises
+    // Cas 2 : La sélection contient déjà les balises (ex: "|<b>texte</b>|")
     if (selected.startsWith('<b>') && selected.endsWith('</b>')) {
       const cleanSelected = selected.substring(3, selected.length - 4);
       const newText = text.substring(0, start) + cleanSelected + text.substring(end);
       onChange(newText);
-      setTimeout(() => { textarea.focus(); textarea.setSelectionRange(start, start + cleanSelected.length); }, 0);
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start, start + cleanSelected.length);
+      }, 0);
       return;
     }
 
-    // Cas 3 : Ajout du gras
+    // Cas 3 : Pas de gras, on ajoute
     const newText = text.substring(0, start) + `<b>${selected}</b>` + text.substring(end);
     onChange(newText);
-    setTimeout(() => { textarea.focus(); textarea.setSelectionRange(start + 3, end + 3); }, 0);
+    
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + 3, end + 3);
+    }, 0);
   };
 
   const insertBullet = () => {
@@ -129,15 +154,21 @@ const RichTextarea = ({ label, value, onChange, onAI, loadingAI, placeholder, ma
     const text = textarea.value;
     const before = text.substring(0, start);
     const after = text.substring(start);
+    
+    // Insère une puce
     const newText = `${before}• ${after}`;
     onChange(newText);
-    setTimeout(() => { textarea.focus(); textarea.setSelectionRange(start + 2, start + 2); }, 0);
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + 2, start + 2);
+    }, 0);
   };
 
   return (
     <div className="mb-6 relative">
       <div className="flex justify-between items-end mb-1">
         <label className="text-xs font-bold text-[#333333] uppercase block">{label}</label>
+        {/* Barre d'outils */}
         <div className="flex items-center gap-1 bg-slate-100 rounded-t-lg px-2 py-1 border border-slate-200 border-b-0 absolute right-0 top-0 transform -translate-y-full">
           <Button variant="toolbar" onClick={toggleBold} title="Gras (On/Off)"><Bold size={12}/></Button>
           <Button variant="toolbar" onClick={insertBullet} title="Insérer une puce"><List size={12}/></Button>
@@ -233,7 +264,6 @@ export default function App() {
   const jsonInputRef = useRef(null);
   const [loadingAI, setLoadingAI] = useState(null);
   
-  // --- STATE INITIAL ---
   const [cvData, setCvData] = useState({
     isAnonymous: false,
     smileLogo: null, 
@@ -274,12 +304,10 @@ export default function App() {
     }
   });
 
-  // --- UI STATES ---
   const [newCategoryName, setNewCategoryName] = useState("");
   const [editingCategory, setEditingCategory] = useState(null); 
   const [newSkillsInput, setNewSkillsInput] = useState({});
 
-  // --- IA HANDLERS (Via Backend) ---
   const handleAIBio = async () => {
     setLoadingAI('bio');
     const improved = await improveTextWithAI(cvData.profile.summary, 'bio');
@@ -301,7 +329,6 @@ export default function App() {
     setLoadingAI(null);
   };
 
-  // --- ACTIONS GLOBALES ---
   const downloadJSON = () => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(cvData));
     const a = document.createElement('a');
@@ -320,7 +347,6 @@ export default function App() {
     reader.readAsText(file);
   };
 
-  // --- DATA HANDLERS ---
   const handleProfileChange = (field, value) => setCvData(prev => ({ ...prev, profile: { ...prev.profile, [field]: value } }));
   const addTechLogo = (logoObj) => setCvData(prev => ({ ...prev, profile: { ...prev.profile, tech_logos: [...prev.profile.tech_logos, logoObj] } }));
   const removeTechLogo = (index) => setCvData(prev => ({ ...prev, profile: { ...prev.profile, tech_logos: prev.profile.tech_logos.filter((_, i) => i !== index) } }));
@@ -384,7 +410,6 @@ export default function App() {
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-8 custom-scrollbar">
-          {/* ETAPE 1 */}
           {step === 1 && (
             <div className="space-y-6 animate-in slide-in-from-right duration-300">
               <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><User size={24} /><h2 className="text-lg font-bold uppercase">Profil</h2></div>
@@ -434,7 +459,7 @@ export default function App() {
               </div>
             </div>
           )}
-          {/* ... (Steps 2, 3, 4 : Code inchangé) */}
+          {/* ... (Steps 2, 3, 4 : Code inchangé par rapport aux versions précédentes) */}
           {step === 2 && (
             <div className="space-y-6 animate-in slide-in-from-right duration-300">
                <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><Hexagon size={24} /><h2 className="text-lg font-bold uppercase">Soft Skills</h2></div>
@@ -520,7 +545,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* --- PREVIEW --- */}
       <div className="flex-1 bg-slate-800 overflow-hidden relative flex flex-col items-center">
         <div className="absolute bottom-6 z-50 flex items-center gap-4 bg-white/90 backdrop-blur px-6 py-2 rounded-full shadow-2xl border border-white/20 print:hidden transition-all hover:scale-105">
            <button onClick={() => setZoom(Math.max(0.2, zoom - 0.1))} className="p-2 hover:bg-slate-100 rounded-full"><ZoomOut size={18} /></button>
