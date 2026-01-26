@@ -397,14 +397,14 @@ export default function App() {
              <div className="w-px h-4 bg-slate-300 mx-1 self-center"></div>
              <Button variant="ghost" className="px-2 py-1 h-7 text-[#2E86C1]" onClick={handleEmail} title="Préparer Email"><Mail size={12}/> Email</Button>
              <Button variant={cvData.isAnonymous ? "danger" : "secondary"} className="px-2 py-1 h-7" onClick={() => setCvData(p => ({...p, isAnonymous: !p.isAnonymous}))}>
-               {cvData.isAnonymous ? <><Shield size={12}/> Anonyme</> : <><Eye size={12}/> Visible</>}
+               {cvData.isAnonymous ? <><Shield size={12}/> Anonymiser</> : <><Eye size={12}/> Visible</>}
              </Button>
            </div>
         </div>
 
         <div className="p-6 border-b border-slate-100 bg-white sticky top-0 z-20">
           <div className="flex justify-between items-center mb-6">
-            <h1 className="font-bold text-xl text-[#2E86C1] flex items-center gap-2">SMILE Edit</h1>
+            <h1 className="font-bold text-xl text-[#2E86C1] flex items-center gap-2">Smile Editor</h1>
             <span className="text-xs font-bold text-slate-400">Étape {step} / 4</span>
           </div>
           <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mb-6">
@@ -611,7 +611,32 @@ export default function App() {
               </div>
               <Footer />
             </div>
-            {/* PAGE 2 */}
+            
+            {/* PAGE 2 : Formation & Compétences (Maintenant en 2ème position pour l'aperçu, conforme à l'inversion d'étapes ?) 
+               ATTENTION : La demande "inverser 3 et 4" concernait le Wizard (étapes d'édition). 
+               Dois-je aussi inverser l'ordre des pages dans le PDF final ? 
+               Généralement "Expériences" est le coeur du CV et vient après le résumé, mais le prompt demande "les pages 3 et 4 s'inversent aussi".
+               Je vais donc placer la page Formation/Compétences AVANT la page Expériences dans le rendu final.
+            */}
+            
+            {/* PAGE 2 : FORMATION & COMPÉTENCES */}
+            <div className="cv-page relative flex flex-col p-12 shadow-2xl bg-white">
+               <CornerTriangle customLogo={cvData.smileLogo} />
+               <HeaderSmall name={formatName()} role={cvData.profile.current_role} />
+               <div className="grid grid-cols-12 gap-10 mt-20 h-full px-4">
+                  <div className="col-span-5 border-r border-slate-100 pr-8">
+                     <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-8 flex items-center gap-2"><GraduationCap /> Ma Formation</h3>
+                     <div className="space-y-8">{cvData.education.map((edu, i) => (<div key={i}><span className="text-xs font-bold text-[#666666] block mb-1">{edu.year}</span><h4 className="text-sm font-bold text-[#333333] uppercase leading-tight mb-1">{edu.degree}</h4><span className="text-xs text-[#2E86C1] font-medium">{edu.location}</span></div>))}</div>
+                  </div>
+                  <div className="col-span-7 pl-4">
+                     <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-8 flex items-center gap-2"><Cpu /> Mes Compétences</h3>
+                     <div className="space-y-8">{Object.entries(cvData.skills_categories).map(([cat, skills]) => (<div key={cat}><h4 className="text-xs font-bold text-[#999999] uppercase tracking-widest border-b border-slate-100 pb-2 mb-3">{cat}</h4><div className="grid grid-cols-2 gap-x-4 gap-y-3">{skills.map((skill, i) => (<div key={i} className="flex items-center justify-between"><span className="text-xs font-bold text-[#333333]">{skill.name}</span><HexagonRating score={skill.rating} /></div>))}</div></div>))}</div>
+                  </div>
+               </div>
+               <Footer />
+            </div>
+
+            {/* PAGE 3 (et suivantes) : EXPÉRIENCES */}
             <div className="cv-page relative flex flex-col p-12 shadow-2xl bg-white">
                <CornerTriangle customLogo={cvData.smileLogo} />
                <HeaderSmall name={formatName()} role={cvData.profile.current_role} />
@@ -647,22 +672,7 @@ export default function App() {
                </div>
                <Footer />
             </div>
-            {/* PAGE 3 */}
-            <div className="cv-page relative flex flex-col p-12 shadow-2xl bg-white">
-               <CornerTriangle customLogo={cvData.smileLogo} />
-               <HeaderSmall name={formatName()} role={cvData.profile.current_role} />
-               <div className="grid grid-cols-12 gap-10 mt-20 h-full px-4">
-                  <div className="col-span-5 border-r border-slate-100 pr-8">
-                     <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-8 flex items-center gap-2"><GraduationCap /> Ma Formation</h3>
-                     <div className="space-y-8">{cvData.education.map((edu, i) => (<div key={i}><span className="text-xs font-bold text-[#666666] block mb-1">{edu.year}</span><h4 className="text-sm font-bold text-[#333333] uppercase leading-tight mb-1">{edu.degree}</h4><span className="text-xs text-[#2E86C1] font-medium">{edu.location}</span></div>))}</div>
-                  </div>
-                  <div className="col-span-7 pl-4">
-                     <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-8 flex items-center gap-2"><Cpu /> Mes Compétences</h3>
-                     <div className="space-y-8">{Object.entries(cvData.skills_categories).map(([cat, skills]) => (<div key={cat}><h4 className="text-xs font-bold text-[#999999] uppercase tracking-widest border-b border-slate-100 pb-2 mb-3">{cat}</h4><div className="grid grid-cols-2 gap-x-4 gap-y-3">{skills.map((skill, i) => (<div key={i} className="flex items-center justify-between"><span className="text-xs font-bold text-[#333333]">{skill.name}</span><HexagonRating score={skill.rating} /></div>))}</div></div>))}</div>
-                  </div>
-               </div>
-               <Footer />
-            </div>
+            
           </div>
         </div>
       </div>
