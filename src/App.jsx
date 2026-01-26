@@ -4,7 +4,7 @@ import {
   Upload, X, Briefcase, GraduationCap, User, Hexagon, Cpu, 
   Image as ImageIcon, ZoomIn, ZoomOut, Search, LayoutTemplate, 
   Save, FolderOpen, Eye, EyeOff, Shield, Edit2, Check,
-  Bold, List, Copy
+  Bold, List, Copy, HelpCircle
 } from 'lucide-react';
 
 // --- CHARTE GRAPHIQUE SMILE ---
@@ -23,14 +23,12 @@ const getBrandIconUrl = (slug) => `https://cdn.simpleicons.org/${slug.toLowerCas
 
 // --- HELPER FORMATTING ---
 
-// Nettoie et interprète le texte pour l'affichage (Gras, Puces, Sauts de ligne)
 const formatTextForPreview = (text) => {
   if (!text) return "";
-  // Protection XSS basique : on ne laisse passer que <b>, </b>, <br>, •
   let clean = text
-    .replace(/</g, "&lt;").replace(/>/g, "&gt;") // Escape tout
-    .replace(/&lt;b&gt;/g, "<b>").replace(/&lt;\/b&gt;/g, "</b>") // Restaure le gras
-    .replace(/\n/g, "<br/>"); // Sauts de ligne
+    .replace(/</g, "&lt;").replace(/>/g, "&gt;") 
+    .replace(/&lt;b&gt;/g, "<b>").replace(/&lt;\/b&gt;/g, "</b>") 
+    .replace(/\n/g, "<br/>"); 
   return clean;
 };
 
@@ -110,7 +108,6 @@ const RichTextarea = ({ label, value, onChange, placeholder, maxLength }) => {
     if (value) {
       const prompt = "Agis comme un expert en recrutement. Reformule ce texte pour un CV professionnel (Consultant). Ton 'corporate', direct, concis et percutant. Corrige les fautes. PAS de markdown (**), PAS de guillemets, PAS de phrases d'intro. Texte à améliorer : \n";
       navigator.clipboard.writeText(prompt + value);
-      // On pourrait mettre un petit toast ici "Texte copié !"
     }
     window.open(url, '_blank');
   };
@@ -118,8 +115,8 @@ const RichTextarea = ({ label, value, onChange, placeholder, maxLength }) => {
   const llmTools = [
     { name: 'ChatGPT', url: 'https://chat.openai.com/', icon: 'openai' },
     { name: 'Gemini', url: 'https://gemini.google.com/', icon: 'googlegemini' },
-    { name: 'Claude', url: 'https://claude.ai/', icon: 'anthropic/000000' }, // Force le noir pour Claude
-    { name: 'Mistral', url: 'https://chat.mistral.ai/', icon: 'mistral' },
+    { name: 'Claude', url: 'https://claude.ai/', icon: 'anthropic/000000' }, // Force le noir
+    { name: 'Mistral', url: 'https://chat.mistral.ai/', icon: 'mistral/000000' }, // Force le noir pour visibilité
   ];
 
   return (
@@ -157,7 +154,6 @@ const RichTextarea = ({ label, value, onChange, placeholder, maxLength }) => {
           placeholder={placeholder}
         />
       </div>
-      <p className="text-[9px] text-slate-400 mt-1 italic text-right">Cliquez sur un logo IA pour copier votre texte (avec prompt) et l'améliorer.</p>
     </div>
   );
 };
@@ -212,7 +208,7 @@ const HexagonRating = ({ score, onChange }) => (
   </div>
 );
 
-// --- COMPOSANT BANDEAU TRIANGLE (Logo Modifiable) ---
+// --- COMPOSANT BANDEAU TRIANGLE ---
 const CornerTriangle = ({ customLogo }) => (
   <div className="absolute top-0 left-0 w-[140px] h-[140px] z-50 pointer-events-none overflow-hidden print:w-[120px] print:h-[120px]">
     <div className="absolute top-0 left-0 w-full h-full bg-[#2E86C1]" style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)' }}></div>
@@ -243,6 +239,7 @@ export default function App() {
       current_role: "Poste",
       main_tech: "Techno principale",
       summary: "Forte expérience en gestion de projet Drupal et dans l'accompagnement de nos clients.",
+      photo: null, // Photo de profil
       tech_logos: [
         { type: 'url', src: 'https://cdn.simpleicons.org/php/white', name: 'PHP' },
         { type: 'url', src: 'https://cdn.simpleicons.org/drupal/white', name: 'Drupal' },
@@ -299,11 +296,18 @@ export default function App() {
   const addTechLogo = (logoObj) => setCvData(prev => ({ ...prev, profile: { ...prev.profile, tech_logos: [...prev.profile.tech_logos, logoObj] } }));
   const removeTechLogo = (index) => setCvData(prev => ({ ...prev, profile: { ...prev.profile, tech_logos: prev.profile.tech_logos.filter((_, i) => i !== index) } }));
 
-  // Handler Logo Entreprise
   const handleSmileLogo = (file) => {
     if(file) {
        const reader = new FileReader();
        reader.onload = (ev) => setCvData(prev => ({...prev, smileLogo: ev.target.result}));
+       reader.readAsDataURL(file);
+    }
+  };
+
+  const handlePhotoUpload = (file) => {
+    if(file) {
+       const reader = new FileReader();
+       reader.onload = (ev) => setCvData(prev => ({...prev, profile: { ...prev.profile, photo: ev.target.result }}));
        reader.readAsDataURL(file);
     }
   };
@@ -362,15 +366,29 @@ export default function App() {
             <div className="space-y-6 animate-in slide-in-from-right duration-300">
               <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><User size={24} /><h2 className="text-lg font-bold uppercase">Profil</h2></div>
               
-              <div className="mb-6 p-4 border border-blue-100 bg-blue-50/50 rounded-lg flex items-center gap-3">
-                <div className="w-10 h-10 bg-[#2E86C1] rounded flex items-center justify-center text-white font-bold transform -rotate-45 shrink-0 overflow-hidden">
-                  {cvData.smileLogo ? (
-                    <img src={cvData.smileLogo} className="w-full h-full object-cover brightness-0 invert" alt="Logo" />
-                  ) : "S"}
+              {/* Zone Aide IA */}
+              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex gap-3">
+                <div className="text-[#2E86C1] shrink-0 mt-0.5"><HelpCircle size={18} /></div>
+                <div>
+                  <h4 className="text-xs font-bold text-[#2E86C1] uppercase mb-1">Comment utiliser l'IA ?</h4>
+                  <p className="text-[11px] text-slate-600 leading-tight">
+                    Dans les zones de texte (Résumé, Objectifs...), cliquez sur les petits logos en haut à droite (ChatGPT, Claude, etc.). 
+                    Cela copiera automatiquement votre texte avec une consigne d'amélioration ("Prompt") et ouvrira l'outil pour vous.
+                  </p>
                 </div>
-                <div className="flex-1">
-                  <span className="text-xs font-bold text-[#2E86C1] block uppercase mb-1">Logo Entreprise (Triangle)</span>
-                  <DropZone onFile={handleSmileLogo} label={cvData.smileLogo ? "Changer le logo" : "Glisser votre logo ici"} />
+              </div>
+
+              <div className="flex gap-4 mb-6">
+                <div className="flex-1 p-3 border border-blue-100 bg-blue-50/50 rounded-lg flex flex-col gap-2">
+                  <span className="text-[10px] font-bold text-[#2E86C1] uppercase">Logo Entreprise (Triangle)</span>
+                  <DropZone onFile={handleSmileLogo} label={cvData.smileLogo ? "Changer" : "Logo"} className="h-24 bg-white" />
+                </div>
+                <div className="flex-1 p-3 border border-slate-200 bg-slate-50 rounded-lg flex flex-col gap-2">
+                  <span className="text-[10px] font-bold text-slate-600 uppercase flex items-center justify-between">
+                    Photo Profil
+                    <span className="text-[9px] bg-red-100 text-red-600 px-1 rounded">{cvData.isAnonymous ? "Masquée" : "Visible"}</span>
+                  </span>
+                  <DropZone onFile={handlePhotoUpload} label={cvData.profile.photo ? "Changer" : "Photo"} icon={<User size={16}/>} className="h-24 bg-white" />
                 </div>
               </div>
 
@@ -505,6 +523,14 @@ export default function App() {
             {/* PAGE 1 */}
             <div className="cv-page relative overflow-hidden flex flex-col shadow-2xl bg-white">
               <CornerTriangle customLogo={cvData.smileLogo} />
+              
+              {/* Photo Profil */}
+              {!cvData.isAnonymous && cvData.profile.photo && (
+                <div className="absolute top-12 right-12 w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg z-20">
+                  <img src={cvData.profile.photo} className="w-full h-full object-cover" alt="Portrait" />
+                </div>
+              )}
+
               <div className="pt-24 px-16 pb-0">
                  <h1 className="text-6xl font-bold text-[#333333] uppercase leading-tight mb-2 font-montserrat">{formatName()}</h1>
                  <div className="inline-block bg-[#2E86C1] text-white font-bold text-xl px-4 py-1 rounded-sm uppercase mb-10 tracking-wider">{cvData.profile.years_experience} ans d'expérience</div>
