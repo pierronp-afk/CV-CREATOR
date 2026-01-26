@@ -7,17 +7,16 @@ import {
   Bold, List
 } from 'lucide-react';
 
-// --- CONFIGURATION API KEY ---
-// En local/preview ici, on laisse vide (la clé est injectée automatiquement par l'environnement).
-// POUR VERCEL : Décommentez la ligne ci-dessous et commentez la ligne 'const apiKey = "";'
-// const apiKey = import.meta.env.VITE_GOOGLE_API_KEY || "";
-const apiKey = ""; 
+// --- CONFIGURATION API KEY POUR VERCEL ---
+// Cette ligne récupère la clé sécurisée définie dans les réglages de Vercel.
+const apiKey = import.meta.env.VITE_GOOGLE_API_KEY || "";
 
+// --- CHARTE GRAPHIQUE SMILE ---
 const THEME = {
-  primary: "#2E86C1", 
-  secondary: "#006898", 
-  textDark: "#333333", 
-  textGrey: "#666666", 
+  primary: "#2E86C1", // Smile Blue
+  secondary: "#006898", // Darker Blue
+  textDark: "#333333", // Anthracite
+  textGrey: "#666666", // Grey
   bg: "#FFFFFF"
 };
 
@@ -25,17 +24,22 @@ const getIconUrl = (slug) => `https://cdn.simpleicons.org/${slug.toLowerCase().r
 
 // --- HELPER FORMATTING & IA ---
 
+// Nettoie et interprète le texte pour l'affichage (Gras, Puces, Sauts de ligne)
 const formatTextForPreview = (text) => {
   if (!text) return "";
+  // Protection XSS basique : on ne laisse passer que <b>, </b>, <br>, •
   let clean = text
-    .replace(/</g, "&lt;").replace(/>/g, "&gt;")
-    .replace(/&lt;b&gt;/g, "<b>").replace(/&lt;\/b&gt;/g, "</b>")
-    .replace(/\n/g, "<br/>");
+    .replace(/</g, "&lt;").replace(/>/g, "&gt;") // Escape tout
+    .replace(/&lt;b&gt;/g, "<b>").replace(/&lt;\/b&gt;/g, "</b>") // Restaure le gras
+    .replace(/\n/g, "<br/>"); // Sauts de ligne
   return clean;
 };
 
 const improveTextWithAI = async (text, type = "standard") => {
-  // Note pour Vercel : Si vous déployez, assurez-vous que la clé API est bien configurée dans les variables d'environnement.
+  if (!apiKey) {
+    console.warn("Clé API manquante. L'IA ne fonctionnera pas.");
+    return text;
+  }
   if (!text || text.length < 5) return text;
   
   const contextPrompt = "Reformule ce texte pour un CV professionnel (Consultant). Ton 'corporate', direct et percutant. Corrige les fautes. PAS de markdown (**), PAS de guillemets, PAS de phrases d'intro. Texte :";
@@ -51,7 +55,7 @@ const improveTextWithAI = async (text, type = "standard") => {
     const data = await response.json();
     let cleanText = data.candidates?.[0]?.content?.parts?.[0]?.text || text;
     
-    // Nettoyage strict
+    // Nettoyage forcé des artefacts
     cleanText = cleanText
       .replace(/\*\*/g, '') 
       .replace(/^"|"$/g, '') 
@@ -94,6 +98,7 @@ const Input = ({ label, value, onChange, placeholder, maxLength, type = "text" }
   </div>
 );
 
+// --- COMPOSANT TEXTAREA RICHE (Boutons + IA) ---
 const RichTextarea = ({ label, value, onChange, onAI, loadingAI, placeholder, maxLength }) => {
   const textareaRef = useRef(null);
 
@@ -105,22 +110,41 @@ const RichTextarea = ({ label, value, onChange, onAI, loadingAI, placeholder, ma
     const text = textarea.value;
     const selected = text.substring(start, end);
 
-    if (start >= 3 && end <= text.length - 4 && text.substring(start - 3, start) === '<b>' && text.substring(end, end + 4) === '</b>') {
+    // Cas 1 : Le texte sélectionné est entouré de <b> et </b> juste à l'extérieur
+    if (start >= 3 && end <= text.length - 4 && 
+        text.substring(start - 3, start) === '<b>' && 
+        text.substring(end, end + 4) === '</b>') {
+      
       const newText = text.substring(0, start - 3) + selected + text.substring(end + 4);
       onChange(newText);
-      setTimeout(() => { textarea.focus(); textarea.setSelectionRange(start - 3, end - 3); }, 0);
+      // Restaurer la sélection (décalée de 3 caractères vers la gauche)
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start - 3, end - 3);
+      }, 0);
       return;
     }
+
+    // Cas 2 : La sélection contient déjà les balises (ex: "|<b>texte</b>|")
     if (selected.startsWith('<b>') && selected.endsWith('</b>')) {
       const cleanSelected = selected.substring(3, selected.length - 4);
       const newText = text.substring(0, start) + cleanSelected + text.substring(end);
       onChange(newText);
-      setTimeout(() => { textarea.focus(); textarea.setSelectionRange(start, start + cleanSelected.length); }, 0);
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start, start + cleanSelected.length);
+      }, 0);
       return;
     }
+
+    // Cas 3 : Pas de gras, on ajoute
     const newText = text.substring(0, start) + `<b>${selected}</b>` + text.substring(end);
     onChange(newText);
-    setTimeout(() => { textarea.focus(); textarea.setSelectionRange(start + 3, end + 3); }, 0);
+    
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + 3, end + 3);
+    }, 0);
   };
 
   const insertBullet = () => {
@@ -130,15 +154,21 @@ const RichTextarea = ({ label, value, onChange, onAI, loadingAI, placeholder, ma
     const text = textarea.value;
     const before = text.substring(0, start);
     const after = text.substring(start);
+    
+    // Insère une puce
     const newText = `${before}• ${after}`;
     onChange(newText);
-    setTimeout(() => { textarea.focus(); textarea.setSelectionRange(start + 2, start + 2); }, 0);
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + 2, start + 2);
+    }, 0);
   };
 
   return (
     <div className="mb-6 relative">
       <div className="flex justify-between items-end mb-1">
         <label className="text-xs font-bold text-[#333333] uppercase block">{label}</label>
+        {/* Barre d'outils */}
         <div className="flex items-center gap-1 bg-slate-100 rounded-t-lg px-2 py-1 border border-slate-200 border-b-0 absolute right-0 top-0 transform -translate-y-full">
           <Button variant="toolbar" onClick={toggleBold} title="Gras (On/Off)"><Bold size={12}/></Button>
           <Button variant="toolbar" onClick={insertBullet} title="Insérer une puce"><List size={12}/></Button>
@@ -158,30 +188,63 @@ const RichTextarea = ({ label, value, onChange, onAI, loadingAI, placeholder, ma
           placeholder={placeholder}
         />
       </div>
+      <p className="text-[9px] text-slate-400 mt-1 italic text-right">Sélectionnez le texte et cliquez sur B pour mettre en gras/enlever le gras.</p>
     </div>
   );
 };
 
+// --- DROPZONE ---
 const DropZone = ({ onFile, label = "Déposez une image", icon = <Upload size={16}/>, className = "" }) => {
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef(null);
+
   const handleDragOver = (e) => { e.preventDefault(); setIsDragging(true); };
   const handleDragLeave = (e) => { e.preventDefault(); setIsDragging(false); };
-  const handleDrop = (e) => { e.preventDefault(); setIsDragging(false); if (e.dataTransfer.files[0]) onFile(e.dataTransfer.files[0]); };
-  const handleChange = (e) => { if (e.target.files[0]) onFile(e.target.files[0]); };
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      onFile(e.dataTransfer.files[0]);
+    }
+  };
+  const handleChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      onFile(e.target.files[0]);
+    }
+  };
+
   return (
-    <div className={`border-2 border-dashed rounded-lg p-3 text-center cursor-pointer transition-all duration-200 flex flex-col items-center justify-center gap-1 ${isDragging ? 'border-[#2E86C1] bg-blue-50 scale-[1.02]' : 'border-slate-300 bg-white hover:border-[#2E86C1] hover:bg-slate-50'} ${className}`} onClick={() => inputRef.current.click()} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
+    <div 
+      className={`border-2 border-dashed rounded-lg p-3 text-center cursor-pointer transition-all duration-200 flex flex-col items-center justify-center gap-1 ${isDragging ? 'border-[#2E86C1] bg-blue-50 scale-[1.02]' : 'border-slate-300 bg-white hover:border-[#2E86C1] hover:bg-slate-50'} ${className}`}
+      onClick={() => inputRef.current.click()}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       <input type="file" ref={inputRef} className="hidden" accept="image/*" onChange={handleChange} />
       <div className={`transition-colors ${isDragging ? 'text-[#2E86C1]' : 'text-slate-400'}`}>{icon}</div>
-      <span className={`text-[10px] font-bold uppercase transition-colors ${isDragging ? 'text-[#2E86C1]' : 'text-slate-500'}`}>{isDragging ? "Lâchez l'image !" : label}</span>
+      <span className={`text-[10px] font-bold uppercase transition-colors ${isDragging ? 'text-[#2E86C1]' : 'text-slate-500'}`}>
+        {isDragging ? "Lâchez l'image !" : label}
+      </span>
     </div>
   );
 };
 
+// --- SELECTEUR LOGO ---
 const LogoSelector = ({ onSelect, label = "Ajouter un logo" }) => {
   const [search, setSearch] = useState("");
-  const handleSearch = () => { if (!search.trim()) return; onSelect({ type: 'url', src: getIconUrl(search), name: search }); setSearch(""); };
-  const handleFile = (file) => { if (file) { const reader = new FileReader(); reader.onload = (ev) => onSelect({ type: 'file', src: ev.target.result, name: file.name }); reader.readAsDataURL(file); }};
+  const handleSearch = () => {
+    if (!search.trim()) return;
+    onSelect({ type: 'url', src: getIconUrl(search), name: search });
+    setSearch("");
+  };
+  const handleFile = (file) => {
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => onSelect({ type: 'file', src: ev.target.result, name: file.name });
+      reader.readAsDataURL(file);
+    }
+  };
   return (
     <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
       {label && <label className="text-[10px] font-bold text-[#333333] uppercase block mb-2">{label}</label>}
@@ -198,6 +261,7 @@ const LogoSelector = ({ onSelect, label = "Ajouter un logo" }) => {
   );
 };
 
+// --- HEXAGONES ---
 const MiniHexagon = ({ filled, onClick }) => (
   <svg viewBox="0 0 100 100" onClick={onClick} className={`w-3 h-3 ${onClick ? 'cursor-pointer hover:scale-125 transition-transform' : ''} ${filled ? 'text-[#2E86C1] fill-current' : 'text-slate-200 fill-current'}`}>
     <polygon points="50 0, 100 25, 100 75, 50 100, 0 75, 0 25" />
@@ -209,7 +273,7 @@ const HexagonRating = ({ score, onChange }) => (
   </div>
 );
 
-// --- LOGO FIGÉ SMILE (CSS) ---
+// --- COMPOSANT BANDEAU TRIANGLE (Logo Modifiable) ---
 const CornerTriangle = ({ customLogo }) => (
   <div className="absolute top-0 left-0 w-[140px] h-[140px] z-50 pointer-events-none overflow-hidden print:w-[120px] print:h-[120px]">
     <div className="absolute top-0 left-0 w-full h-full bg-[#2E86C1]" style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)' }}></div>
@@ -225,12 +289,15 @@ const CornerTriangle = ({ customLogo }) => (
   </div>
 );
 
+// --- APP PRINCIPALE ---
+
 export default function App() {
   const [step, setStep] = useState(1);
   const [zoom, setZoom] = useState(0.55);
   const jsonInputRef = useRef(null);
   const [loadingAI, setLoadingAI] = useState(null);
   
+  // --- STATE ---
   const [cvData, setCvData] = useState({
     isAnonymous: false,
     smileLogo: null, 
@@ -271,10 +338,12 @@ export default function App() {
     }
   });
 
+  // --- UI STATES ---
   const [newCategoryName, setNewCategoryName] = useState("");
   const [editingCategory, setEditingCategory] = useState(null); 
   const [newSkillsInput, setNewSkillsInput] = useState({});
 
+  // --- IA HANDLERS ---
   const handleAIBio = async () => {
     setLoadingAI('bio');
     const improved = await improveTextWithAI(cvData.profile.summary);
@@ -296,6 +365,7 @@ export default function App() {
     setLoadingAI(null);
   };
 
+  // --- ACTIONS GLOBALES ---
   const downloadJSON = () => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(cvData));
     const a = document.createElement('a');
@@ -314,11 +384,12 @@ export default function App() {
     reader.readAsText(file);
   };
 
+  // --- DATA HANDLERS ---
   const handleProfileChange = (field, value) => setCvData(prev => ({ ...prev, profile: { ...prev.profile, [field]: value } }));
   const addTechLogo = (logoObj) => setCvData(prev => ({ ...prev, profile: { ...prev.profile, tech_logos: [...prev.profile.tech_logos, logoObj] } }));
   const removeTechLogo = (index) => setCvData(prev => ({ ...prev, profile: { ...prev.profile, tech_logos: prev.profile.tech_logos.filter((_, i) => i !== index) } }));
 
-  // Correction: Gestion du logo entreprise custom
+  // Handler Logo Entreprise
   const handleSmileLogo = (file) => {
     if(file) {
        const reader = new FileReader();
@@ -348,6 +419,8 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col md:flex-row h-screen overflow-hidden font-sans">
+      
+      {/* --- WIZARD --- */}
       <div className="w-full md:w-[500px] bg-white border-r border-slate-200 flex flex-col h-full z-10 shadow-xl print:hidden">
         <div className="bg-slate-50 border-b border-slate-200 p-2 flex justify-between items-center px-4">
            <div className="flex gap-2">
@@ -359,6 +432,7 @@ export default function App() {
              {cvData.isAnonymous ? <><Shield size={12}/> Anonyme ON</> : <><Eye size={12}/> Anonyme OFF</>}
            </Button>
         </div>
+
         <div className="p-6 border-b border-slate-100 bg-white sticky top-0 z-20">
           <div className="flex justify-between items-center mb-6">
             <h1 className="font-bold text-xl text-[#2E86C1] flex items-center gap-2">SMILE Edit</h1>
@@ -372,6 +446,7 @@ export default function App() {
             {step < 4 ? <Button onClick={() => setStep(s => Math.min(4, s + 1))} className="flex-[2]">Suivant <ArrowRight size={16} /></Button> : <Button onClick={() => window.print()} className="flex-[2] bg-slate-900 hover:bg-black">Exporter PDF <Download size={16} /></Button>}
           </div>
         </div>
+
         <div className="flex-1 overflow-y-auto px-6 py-8 custom-scrollbar">
           {step === 1 && (
             <div className="space-y-6 animate-in slide-in-from-right duration-300">
@@ -398,7 +473,16 @@ export default function App() {
                 <Input label="Techno Principale" value={cvData.profile.main_tech} onChange={(v) => handleProfileChange('main_tech', v)} />
               </div>
               <Input label="Poste Actuel" value={cvData.profile.current_role} onChange={(v) => handleProfileChange('current_role', v)} />
-              <RichTextarea label="Bio / Résumé" value={cvData.profile.summary} onChange={(val) => handleProfileChange('summary', val)} onAI={handleAIBio} loadingAI={loadingAI === 'bio'} maxLength={400} />
+              
+              <RichTextarea 
+                label="Bio / Résumé" 
+                value={cvData.profile.summary} 
+                onChange={(val) => handleProfileChange('summary', val)} 
+                onAI={handleAIBio} 
+                loadingAI={loadingAI === 'bio'}
+                maxLength={400}
+              />
+
               <div className="bg-white p-4 rounded-xl border border-slate-200">
                 <label className="text-xs font-bold text-[#333333] uppercase block mb-3">Bandeau Technos</label>
                 <LogoSelector onSelect={addTechLogo} label="Ajouter une techno" />
@@ -413,7 +497,8 @@ export default function App() {
               </div>
             </div>
           )}
-          {/* ... (Le reste des étapes reste inchangé) */}
+          
+          {/* ... (Steps 2, 3, 4 : Code inchangé par rapport aux versions précédentes) */}
           {step === 2 && (
             <div className="space-y-6 animate-in slide-in-from-right duration-300">
                <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><Hexagon size={24} /><h2 className="text-lg font-bold uppercase">Soft Skills</h2></div>
@@ -499,12 +584,15 @@ export default function App() {
         </div>
       </div>
 
+      {/* --- PREVIEW --- */}
       <div className="flex-1 bg-slate-800 overflow-hidden relative flex flex-col items-center">
+        {/* Zoom Controls */}
         <div className="absolute bottom-6 z-50 flex items-center gap-4 bg-white/90 backdrop-blur px-6 py-2 rounded-full shadow-2xl border border-white/20 print:hidden transition-all hover:scale-105">
            <button onClick={() => setZoom(Math.max(0.2, zoom - 0.1))} className="p-2 hover:bg-slate-100 rounded-full"><ZoomOut size={18} /></button>
            <span className="text-xs font-bold text-slate-600 min-w-[3rem] text-center">{Math.round(zoom * 100)}%</span>
            <button onClick={() => setZoom(Math.min(1.5, zoom + 0.1))} className="p-2 hover:bg-slate-100 rounded-full"><ZoomIn size={18} /></button>
         </div>
+
         <div className="flex-1 overflow-auto w-full p-8 flex justify-center custom-scrollbar">
           <div className="print-container flex flex-col origin-top transition-transform duration-300 gap-10" style={{ transform: `scale(${zoom})`, marginBottom: `${zoom * 100}px` }}>
             {/* PAGE 1 */}
@@ -533,7 +621,8 @@ export default function App() {
               </div>
               <Footer />
             </div>
-            {/* PAGE 2 */}
+            
+            {/* ... (Pages 2 et 3 sont les mêmes que dans la version précédente, inchangées) */}
             <div className="cv-page relative flex flex-col p-12 shadow-2xl bg-white">
                <CornerTriangle customLogo={cvData.smileLogo} />
                <HeaderSmall name={formatName()} role={cvData.profile.current_role} />
@@ -569,7 +658,7 @@ export default function App() {
                </div>
                <Footer />
             </div>
-            {/* PAGE 3 */}
+            
             <div className="cv-page relative flex flex-col p-12 shadow-2xl bg-white">
                <CornerTriangle customLogo={cvData.smileLogo} />
                <HeaderSmall name={formatName()} role={cvData.profile.current_role} />
