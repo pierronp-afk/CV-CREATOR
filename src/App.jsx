@@ -3,14 +3,11 @@ import {
   ArrowRight, ArrowLeft, Download, Plus, Trash2, MoveUp, MoveDown, 
   Upload, X, Briefcase, GraduationCap, User, Hexagon, Cpu, 
   Image as ImageIcon, ZoomIn, ZoomOut, Search, LayoutTemplate, 
-  Save, FolderOpen, Eye, EyeOff, Shield, Edit2, Check,
+  Save, FolderOpen, Eye, Shield, Check, Edit2,
   Bold, List, Copy, HelpCircle, RefreshCw, Cloud, Mail, Printer
 } from 'lucide-react';
 
-// --- CONFIGURATION ---
-const apiKey = ""; 
-
-// --- CHARTE GRAPHIQUE SMILE ---
+// --- THEME ---
 const THEME = {
   primary: "#2E86C1", 
   secondary: "#006898", 
@@ -64,17 +61,7 @@ const DEFAULT_CV_DATA = {
   }
 };
 
-// --- HELPER PAGINATION (Découpage manuel strict pour éviter les sauts de page auto) ---
-const chunkArray = (array, size) => {
-  if (!array.length) return [];
-  const chunked = [];
-  for (let i = 0; i < array.length; i += size) {
-    chunked.push(array.slice(i, i + size));
-  }
-  return chunked;
-};
-
-// --- HELPER FORMATTING ---
+// --- HELPERS ---
 const formatTextForPreview = (text) => {
   if (!text) return "";
   let clean = text
@@ -199,25 +186,9 @@ const HexagonRating = ({ score, onChange }) => (
   </div>
 );
 
-// --- COMPOSANTS DE STRUCTURE PDF (PAGE A4) ---
-// Ces composants définissent la structure fixe d'une page A4.
-const PDFPage = ({ children, className = "" }) => (
-  <div 
-    className={`cv-page-export bg-white shadow-2xl relative overflow-hidden mx-auto ${className}`}
-    style={{ 
-      width: '210mm', 
-      height: '297mm', // HAUTEUR FIXE POUR GARANTIR LE FORMAT A4
-      position: 'relative',
-      pageBreakAfter: 'always', // FORCE LE SAUT DE PAGE A L'IMPRESSION
-      marginBottom: '20px'
-    }}
-  >
-    {children}
-  </div>
-);
-
+// --- COMPOSANTS DE STRUCTURE PRINT ---
 const CornerTriangle = ({ customLogo }) => (
-  <div className="absolute top-0 left-0 w-[120px] h-[120px] z-20 pointer-events-none">
+  <div className="absolute top-0 left-0 w-[140px] h-[140px] z-50 pointer-events-none">
     <div className="absolute top-0 left-0 w-full h-full bg-[#2E86C1]" style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)' }}></div>
     {customLogo ? (
       <div className="absolute top-[10px] left-[10px] w-[60px] h-[60px]"><img src={customLogo} className="w-full h-full object-contain brightness-0 invert" style={{ transform: 'rotate(-45deg)' }} /></div>
@@ -228,7 +199,7 @@ const CornerTriangle = ({ customLogo }) => (
 );
 
 const HeaderSmall = ({ name, role }) => (
-  <div className="flex justify-between items-start border-b-2 border-[#2E86C1] pb-4 pt-10 px-12 mt-8">
+  <div className="flex justify-between items-start border-b-2 border-[#2E86C1] pb-4 pt-4 px-12 mt-8">
     <div><div className="w-10 h-10"></div></div>
     <div className="text-right">
       <h3 className="text-sm font-bold text-[#333333] uppercase">{name}</h3>
@@ -238,7 +209,7 @@ const HeaderSmall = ({ name, role }) => (
 );
 
 const Footer = () => (
-  <div className="absolute bottom-8 left-12 right-12 border-t border-slate-100 pt-4 flex justify-between items-center">
+  <div className="w-full mx-12 border-t border-slate-100 pt-2 flex justify-between items-center bg-white pb-4">
     <div className="text-[8px] font-bold text-[#999999] uppercase tracking-widest">Smile - IT is Open <span className="text-[#2E86C1] ml-1">CRÉATEUR D'EXPÉRIENCE DIGITALE OUVERTE</span></div>
     <div className="text-[8px] font-bold text-[#333333]">#MadeWithSmile</div>
   </div>
@@ -283,16 +254,15 @@ export default function App() {
   const [editingCategory, setEditingCategory] = useState(null); 
   const [newSkillsInput, setNewSkillsInput] = useState({});
 
-  const resetCV = () => { if (confirm("Attention : Cela va effacer toutes vos données actuelles. Continuer ?")) { localStorage.removeItem('smile_cv_data'); setCvData(DEFAULT_CV_DATA); } };
+  const resetCV = () => { if (confirm("Attention : Reset ?")) { localStorage.removeItem('smile_cv_data'); setCvData(DEFAULT_CV_DATA); } };
   const downloadJSON = () => { const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(cvData)); a.download = `${getFilenameBase()}.json`; a.click(); };
   const uploadJSON = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (ev) => { try { setCvData(JSON.parse(ev.target.result)); } catch (err) { alert("Invalide"); } }; reader.readAsText(file); };
   const handleEmail = () => { window.location.href = `mailto:?subject=${encodeURIComponent(getFilenameBase())}&body=Bonjour,`; };
 
-  // --- IMPRESSION NATIVE ROBUSTE ---
+  // PRINT NATIVE
   const handlePrint = () => {
-    // On laisse le navigateur gérer l'impression, mais le CSS @media print fera le travail de nettoyage
     window.print();
-    setTimeout(() => handleEmail(), 500); // Propose l'email après
+    setTimeout(() => handleEmail(), 500);
   };
 
   const handleProfileChange = (f, v) => setCvData(p => ({ ...p, profile: { ...p.profile, [f]: v } }));
@@ -312,12 +282,7 @@ export default function App() {
   const updateEducation = (i, f, v) => { const n = [...cvData.education]; n[i][f] = v; setCvData(p => ({ ...p, education: n })); };
   const addEducation = () => setCvData(p => ({ ...p, education: [...p.education, { year: "", degree: "", location: "" }] }));
   const removeEducation = (i) => setCvData(p => ({ ...p, education: p.education.filter((_, idx) => idx !== i) }));
-
   const formatName = () => cvData.isAnonymous ? `${cvData.profile.firstname[0]}. ${cvData.profile.lastname[0]}.` : `${cvData.profile.firstname} ${cvData.profile.lastname}`;
-
-  // Decoupage des experiences : On met 2 grosses expériences par page (environ la moitié de la page)
-  // Cela force la création d'une nouvelle page physique dans le DOM
-  const experienceChunks = chunkArray(cvData.experiences, 2);
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col md:flex-row h-screen overflow-hidden font-sans">
@@ -332,7 +297,7 @@ export default function App() {
              <Button variant="ghost" className="px-2 py-1 h-7" onClick={() => jsonInputRef.current.click()} title="Load"><FolderOpen size={12}/></Button>
              <input type="file" ref={jsonInputRef} className="hidden" accept=".json" onChange={uploadJSON} />
              <Button variant="ghost" className="px-2 py-1 h-7 text-[#2E86C1]" onClick={handleEmail} title="Email"><Mail size={12}/></Button>
-             <Button variant={cvData.isAnonymous ? "danger" : "secondary"} className="px-2 py-1 h-7" onClick={() => setCvData(p => ({...p, isAnonymous: !p.isAnonymous}))}>{cvData.isAnonymous ? "Visible" : "Anonymiser"}</Button>
+             <Button variant={cvData.isAnonymous ? "danger" : "secondary"} className="px-2 py-1 h-7" onClick={() => setCvData(p => ({...p, isAnonymous: !p.isAnonymous}))}>{cvData.isAnonymous ? "Rendre Visible" : "Anonymiser"}</Button>
            </div>
         </div>
         <div className="p-6 border-b border-slate-100 bg-white sticky top-0 z-20">
@@ -395,7 +360,7 @@ export default function App() {
         </div>
       </div>
 
-      {/* --- PREVIEW & PRINT AREA --- */}
+      {/* --- PRINT AREA --- */}
       <div className="flex-1 bg-slate-800 overflow-hidden relative flex flex-col items-center">
         {/* Zoom Controls */}
         <div className="absolute bottom-6 z-50 flex items-center gap-4 bg-white/90 backdrop-blur px-6 py-2 rounded-full shadow-2xl border border-white/20 print:hidden">
@@ -405,14 +370,13 @@ export default function App() {
         </div>
 
         <div className="flex-1 overflow-auto w-full p-8 flex justify-center custom-scrollbar">
-          
           <div 
-            className="print-container flex flex-col origin-top transition-transform duration-300 gap-8" 
+            className="print-container flex flex-col origin-top transition-transform duration-300" 
             style={{ transform: `scale(${zoom})`, marginBottom: `${zoom * 100}px` }}
           >
             
             {/* ELEMENT 1 : PAGE DE GARDE */}
-            <PDFPage>
+            <div className="cv-page cv-cover relative bg-white shadow-2xl overflow-hidden">
               <CornerTriangle customLogo={cvData.smileLogo} />
               {!cvData.isAnonymous && cvData.profile.photo && (
                 <div className="absolute top-12 right-12 w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg z-20">
@@ -440,13 +404,13 @@ export default function App() {
                 ))}
               </div>
               <Footer />
-            </PDFPage>
+            </div>
 
-            {/* ELEMENT 2 : FORMATION & COMPÉTENCES */}
-            <PDFPage>
+            {/* ELEMENT 2 : FORMATION & COMPETENCES */}
+            <div className="cv-page relative bg-white shadow-2xl overflow-hidden mt-8">
               <CornerTriangle customLogo={cvData.smileLogo} />
               <HeaderSmall name={formatName()} role={cvData.profile.current_role} />
-              <div className="grid grid-cols-12 gap-10 mt-20 h-full px-4 flex-1">
+              <div className="grid grid-cols-12 gap-10 mt-20 h-full px-12 flex-1 pb-24">
                   <div className="col-span-5 border-r border-slate-100 pr-8">
                     <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-8 flex items-center gap-2"><GraduationCap /> Ma Formation</h3>
                     <div className="space-y-8">{cvData.education.map((edu, i) => (<div key={i}><span className="text-xs font-bold text-[#666666] block mb-1">{edu.year}</span><h4 className="text-sm font-bold text-[#333333] uppercase leading-tight mb-1">{edu.degree}</h4><span className="text-xs text-[#2E86C1] font-medium">{edu.location}</span></div>))}</div>
@@ -457,47 +421,65 @@ export default function App() {
                   </div>
               </div>
               <Footer />
-            </PDFPage>
+            </div>
 
-            {/* ELEMENT 3+ : EXPÉRIENCES (Pagination Automatique via chunks) */}
-            {experienceChunks.map((chunk, pageIndex) => (
-              <PDFPage key={pageIndex}>
-                <CornerTriangle customLogo={cvData.smileLogo} />
-                <HeaderSmall name={formatName()} role={cvData.profile.current_role} />
-                <div className="flex justify-between items-end border-b border-slate-200 pb-2 mb-8 mt-16 px-4">
-                  <h3 className="text-xl font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat">{pageIndex === 0 ? "Mes dernières expériences" : "Expériences (Suite)"}</h3>
-                  <span className="text-[10px] font-bold text-[#666666] uppercase">Références</span>
-                </div>
-                <div className="flex-1 space-y-10 px-4">
-                  {chunk.map((exp) => (
-                    <div key={exp.id} className="grid grid-cols-12 gap-6 break-inside-avoid">
-                        <div className="col-span-2 flex flex-col items-center pt-2">
-                          <div className="w-16 h-16 rounded-lg border border-slate-200 overflow-hidden flex items-center justify-center bg-white mb-2 p-1">
-                              {exp.client_logo ? <img src={exp.client_logo} className="w-full h-full object-contain" /> : <LayoutTemplate size={24} className="text-slate-300"/>}
-                          </div>
-                          <span className="text-[10px] font-bold text-[#333333] uppercase text-center leading-tight">{exp.client_name}</span>
+            {/* ELEMENT 3 (TABLEAU CONTINU) : EXPERIENCES */}
+            <table className="cv-table-flow mt-8 w-full bg-white shadow-2xl relative">
+              <thead className="cv-thead">
+                 <tr>
+                   <td>
+                     <div className="h-[150px] relative">
+                       <CornerTriangle customLogo={cvData.smileLogo} />
+                       <HeaderSmall name={formatName()} role={cvData.profile.current_role} />
+                     </div>
+                     <div className="flex justify-between items-end border-b border-slate-200 pb-2 mb-8 px-12">
+                        <h3 className="text-xl font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat">Mes dernières expériences</h3>
+                        <span className="text-[10px] font-bold text-[#666666] uppercase">Références</span>
+                     </div>
+                   </td>
+                 </tr>
+              </thead>
+              
+              <tbody className="cv-tbody">
+                 {cvData.experiences.map((exp) => (
+                   <tr key={exp.id} className="break-inside-avoid">
+                     <td className="px-12 pb-10">
+                        <div className="grid grid-cols-12 gap-6">
+                           <div className="col-span-2 flex flex-col items-center pt-2">
+                             <div className="w-16 h-16 rounded-lg border border-slate-200 overflow-hidden flex items-center justify-center bg-white mb-2 p-1">
+                                {exp.client_logo ? <img src={exp.client_logo} className="w-full h-full object-contain" /> : <LayoutTemplate size={24} className="text-slate-300"/>}
+                             </div>
+                             <span className="text-[10px] font-bold text-[#333333] uppercase text-center leading-tight">{exp.client_name}</span>
+                           </div>
+                           <div className="col-span-10 border-l border-slate-100 pl-6 pb-6">
+                             <div className="flex justify-between items-baseline mb-3">
+                                <h4 className="text-lg font-bold text-[#333333] uppercase">{exp.client_name} <span className="font-normal text-[#666666]">| {exp.role}</span></h4>
+                                <span className="text-xs font-bold text-[#2E86C1] uppercase">{exp.period}</span>
+                             </div>
+                             <div className="mb-4">
+                                <h5 className="text-[10px] font-bold text-[#2E86C1] uppercase mb-1">Objectif</h5>
+                                <p className="text-sm text-[#333333] leading-relaxed" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.objective)}}></p>
+                             </div>
+                             <div className="flex gap-8 mt-4 pt-4 border-t border-slate-50">
+                                <div className="flex-1"><h5 className="text-[10px] font-bold text-[#999999] uppercase mb-1">Réalisation</h5><p className="text-xs font-medium text-[#333333]" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.phases)}}></p></div>
+                                <div className="flex-[2]"><h5 className="text-[10px] font-bold text-[#999999] uppercase mb-1">Environnement</h5><div className="flex flex-wrap gap-1">{exp.tech_stack.map((t, i) => <span key={i} className="text-xs font-bold text-[#2E86C1] bg-blue-50 px-2 py-0.5 rounded">{t}</span>)}</div></div>
+                             </div>
+                           </div>
                         </div>
-                        <div className="col-span-10 border-l border-slate-100 pl-6 pb-6">
-                          <div className="flex justify-between items-baseline mb-3">
-                              <h4 className="text-lg font-bold text-[#333333] uppercase">{exp.client_name} <span className="font-normal text-[#666666]">| {exp.role}</span></h4>
-                              <span className="text-xs font-bold text-[#2E86C1] uppercase">{exp.period}</span>
-                          </div>
-                          <div className="mb-4">
-                              <h5 className="text-[10px] font-bold text-[#2E86C1] uppercase mb-1">Objectif</h5>
-                              <p className="text-sm text-[#333333] leading-relaxed" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.objective)}}></p>
-                          </div>
-                          <div className="flex gap-8 mt-4 pt-4 border-t border-slate-50">
-                              <div className="flex-1"><h5 className="text-[10px] font-bold text-[#999999] uppercase mb-1">Réalisation</h5><p className="text-xs font-medium text-[#333333]" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.phases)}}></p></div>
-                              <div className="flex-[2]"><h5 className="text-[10px] font-bold text-[#999999] uppercase mb-1">Environnement</h5><div className="flex flex-wrap gap-1">{exp.tech_stack.map((t, i) => <span key={i} className="text-xs font-bold text-[#2E86C1] bg-blue-50 px-2 py-0.5 rounded">{t}</span>)}</div></div>
-                          </div>
-                        </div>
-                    </div>
-                  ))}
-                </div>
-                <Footer />
-              </PDFPage>
-            ))}
-            
+                     </td>
+                   </tr>
+                 ))}
+              </tbody>
+
+              <tfoot className="cv-tfoot">
+                 <tr>
+                   <td className="h-[80px] relative">
+                     <Footer />
+                   </td>
+                 </tr>
+              </tfoot>
+            </table>
+
           </div>
         </div>
       </div>
@@ -507,58 +489,46 @@ export default function App() {
         .font-montserrat { font-family: 'Montserrat', sans-serif; }
         .font-sans { font-family: 'Open Sans', sans-serif; }
         
-        .cv-page-export { 
-           width: 210mm; 
-           min-height: 297mm; 
-           background: white; 
-           flex-shrink: 0; 
-           box-sizing: border-box; 
-           position: relative; 
-        }
-
+        /* Styles de base pour l'aperçu */
+        .cv-page { width: 210mm; min-height: 297mm; background: white; box-sizing: border-box; position: relative; }
+        .cv-table-flow { width: 210mm; background: white; border-collapse: collapse; }
+        
+        .break-inside-avoid { break-inside: avoid; page-break-inside: avoid; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
         @media print {
-          /* RESET TOTAL */
-          @page { margin: 0; size: A4; }
+          @page { size: A4; margin: 0; }
           body { margin: 0; padding: 0; background: white; }
           
-          /* CACHER UI */
+          /* Cacher l'UI */
           .print-hidden, div[class*="w-[550px]"], div[class*="absolute bottom-6"] { display: none !important; }
           
-          /* CONTENEUR PRINCIPAL */
-          .flex-1.bg-slate-800 { 
-            display: block !important; 
-            overflow: visible !important; 
-            height: auto !important; 
-            background: white !important; 
-            padding: 0 !important;
+          /* Conteneur principal */
+          .flex-1.bg-slate-800 { display: block !important; height: auto !important; overflow: visible !important; background: white !important; padding: 0 !important; }
+          .print-container { transform: none !important; margin: 0 !important; width: 100% !important; display: block !important; gap: 0 !important; }
+
+          /* Page 1 et 2 forcées */
+          .cv-cover, .cv-page:nth-child(2) { 
+             height: 297mm !important; 
+             page-break-after: always; 
+             break-after: page; 
+             box-shadow: none !important;
+          }
+
+          /* Tableau Flux Continu pour les expériences */
+          .cv-table-flow {
+             display: table !important;
+             box-shadow: none !important;
+             margin-top: 0 !important;
           }
           
-          .print-container {
-             transform: none !important;
-             margin: 0 !important;
-             width: 100% !important;
-             display: block !important;
-             gap: 0 !important;
-          }
-
-          /* STYLE DES PAGES */
-          .cv-page-export {
-            width: 100% !important;
-            height: 297mm !important; /* Force la hauteur A4 */
-            margin: 0 !important;
-            page-break-after: always; /* Force le saut de page */
-            box-shadow: none !important;
-            border: none !important;
-            overflow: hidden; /* Empêche tout dépassement */
-          }
-
-          /* Empêcher les coupures bizarres à l'intérieur des blocs */
-          .break-inside-avoid {
-             page-break-inside: avoid;
-          }
+          /* Répétition des en-têtes et pieds de page */
+          .cv-thead { display: table-header-group; }
+          .cv-tfoot { display: table-footer-group; }
+          
+          /* Ajustements visuels */
+          tr { page-break-inside: avoid; }
         }
       `}</style>
     </div>
@@ -566,12 +536,6 @@ export default function App() {
 }
 
 // --- SOUS-COMPOSANTS ---
-const PDFPage = ({ children, className = "" }) => (
-  <div className={`cv-page-export bg-white shadow-2xl relative overflow-hidden mx-auto ${className}`} style={{ width: '210mm', height: '297mm', position: 'relative', pageBreakAfter: 'always', marginBottom: '20px' }}>
-    {children}
-  </div>
-);
-
 const CornerTriangle = ({ customLogo }) => (
   <div className="absolute top-0 left-0 w-[120px] h-[120px] z-20 pointer-events-none">
     <div className="absolute top-0 left-0 w-full h-full bg-[#2E86C1]" style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)', printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' }}></div>
@@ -590,7 +554,7 @@ const HeaderSmall = ({ name, role }) => (
 );
 
 const Footer = () => (
-  <div className="absolute bottom-8 left-12 right-12 border-t border-slate-100 pt-4 flex justify-between items-center">
+  <div className="absolute bottom-8 left-12 right-12 border-t border-slate-100 pt-4 flex justify-between items-center bg-white">
     <div className="text-[8px] font-bold text-[#999999] uppercase tracking-widest">Smile - IT is Open <span className="text-[#2E86C1] ml-1">CRÉATEUR D'EXPÉRIENCE DIGITALE OUVERTE</span></div>
     <div className="text-[8px] font-bold text-[#333333]">#MadeWithSmile</div>
   </div>
