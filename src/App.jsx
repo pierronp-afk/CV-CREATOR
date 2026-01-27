@@ -5,7 +5,7 @@ import {
   Image as ImageIcon, ZoomIn, ZoomOut, Search, LayoutTemplate, 
   Save, FolderOpen, Eye, Shield, Check, Edit2,
   Bold, List, Copy, HelpCircle, RefreshCw, Cloud, Mail, Printer,
-  ChevronUp, ChevronDown, Award, Factory, ToggleLeft, ToggleRight
+  ChevronUp, ChevronDown, Award, Factory, ToggleLeft, ToggleRight, FilePlus
 } from 'lucide-react';
 
 // --- CONFIGURATION & THÈME ---
@@ -53,9 +53,10 @@ const DEFAULT_CV_DATA = {
       period: "Jan 2023 - Présent",
       role: "Développeur Frontend",
       objective: "Développer la partie frontend de l'outil Castresa...",
-      achievements: ["Participation à la phase de conception", "Adaptation de l'interface"],
+      achievements: [],
       tech_stack: ["Drupal", "Twig"],
-      phases: "Conception, Développement"
+      phases: "Conception, Développement",
+      forceNewPage: false
     }
   ],
   education: [
@@ -78,16 +79,30 @@ const formatTextForPreview = (text) => {
   return clean;
 };
 
-const chunkArray = (array, size) => {
-  if (!array.length) return [];
-  const chunked = [];
-  for (let i = 0; i < array.length; i += size) {
-    chunked.push(array.slice(i, i + size));
-  }
-  return chunked;
+// Logique de découpage personnalisée prenant en compte les sauts de page forcés
+const paginateExperiences = (experiences) => {
+  if (!experiences.length) return [];
+  const pages = [];
+  let currentPage = [];
+
+  experiences.forEach((exp, index) => {
+    // Si la mission doit être sur une nouvelle page ou si on a déjà 2 missions
+    if (exp.forceNewPage && currentPage.length > 0) {
+      pages.push(currentPage);
+      currentPage = [exp];
+    } else if (currentPage.length === 2) {
+      pages.push(currentPage);
+      currentPage = [exp];
+    } else {
+      currentPage.push(exp);
+    }
+  });
+
+  if (currentPage.length > 0) pages.push(currentPage);
+  return pages;
 };
 
-// --- SOUS-COMPOSANTS DE STRUCTURE PDF (DÉFINITIONS UNIQUES) ---
+// --- SOUS-COMPOSANTS DE STRUCTURE PDF ---
 
 const A4Page = ({ children, className = "" }) => (
   <div 
@@ -109,13 +124,9 @@ const A4Page = ({ children, className = "" }) => (
 const CornerTriangle = ({ customLogo }) => (
   <div className="absolute top-0 left-0 w-[170px] h-[170px] z-50 pointer-events-none print:w-[150px] print:h-[150px]">
     <div className="absolute top-0 left-0 w-full h-full bg-[#2E86C1]" style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)', printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' }}></div>
-    {customLogo ? (
+    {customLogo && (
       <div className="absolute top-[12px] left-[12px] w-[100px] h-[100px] flex items-center justify-center">
          <img src={customLogo} className="max-w-full max-h-full object-contain brightness-0 invert" style={{ transform: 'rotate(-45deg)' }} alt="Logo" />
-      </div>
-    ) : (
-      <div className="absolute top-[40px] left-[30px] transform -rotate-45 origin-center">
-        <span className="text-white font-black text-2xl tracking-tighter italic block drop-shadow-md">SMILE</span>
       </div>
     )}
   </div>
@@ -151,7 +162,6 @@ const HexagonRating = ({ score, onChange }) => (
 const ExperienceItem = ({ exp }) => (
   <div className="grid grid-cols-12 gap-6 mb-8 break-inside-avoid">
     <div className="col-span-2 flex flex-col items-center pt-2">
-      {/* Si pas de logo, on n'affiche même pas le cadre blanc */}
       {exp.client_logo && (
         <div className="w-16 h-16 rounded-lg border border-slate-200 overflow-hidden flex items-center justify-center bg-white mb-2 p-1">
           <img src={exp.client_logo} className="max-w-full max-h-full object-contain" alt="Logo Client" />
@@ -159,7 +169,7 @@ const ExperienceItem = ({ exp }) => (
       )}
       <span className="text-[10px] font-bold text-[#333333] uppercase text-center leading-tight">{exp.client_name}</span>
     </div>
-    <div className="col-span-10 border-l border-slate-100 pl-6 pb-6">
+    <div className="col-span-10 border-l border-slate-100 pl-6 pb-4">
       <div className="flex justify-between items-baseline mb-3">
          <h4 className="text-lg font-bold text-[#333333] uppercase">{exp.client_name} <span className="font-normal text-[#666666]">| {exp.role}</span></h4>
          <span className="text-xs font-bold text-[#2E86C1] uppercase">{exp.period}</span>
@@ -238,7 +248,7 @@ const RichTextareaUI = ({ label, value, onChange, placeholder, maxLength }) => {
 
   const copyToClipboard = (url) => {
     if (value) {
-      const prompt = "Agis comme un expert. Reformule ce texte pour un CV de consultant. Ton 'corporate', direct. Corrige les fautes. PAS de markdown. Texte : \n";
+      const prompt = "Agis comme un expert Smile. Reformule ce texte pour un CV de consultant. Ton 'corporate', direct. Corrige les fautes. PAS de markdown. Texte : \n";
       navigator.clipboard.writeText(prompt + value);
     }
     window.open(url, '_blank');
@@ -253,10 +263,10 @@ const RichTextareaUI = ({ label, value, onChange, placeholder, maxLength }) => {
   return (
     <div className="mb-6">
       <label className="text-xs font-bold text-[#333333] uppercase block mb-1">{label}</label>
-      <div className="bg-slate-50 border border-slate-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-[#2E86C1] transition-all">
+      <div className="bg-slate-50 border border-slate-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-[#2E86C1] transition-all shadow-sm">
         <div className="flex items-center gap-1 bg-white px-2 py-1.5 border-b border-slate-200">
           <ButtonUI variant="toolbar" onClick={() => insertTag('b')} title="Gras"><Bold size={12}/></ButtonUI>
-          <ButtonUI variant="toolbar" onClick={() => insertTag('list')} title="Puce"><List size={12}/></ButtonUI>
+          <ButtonUI variant="toolbar" onClick={() => insertTag('list')} title="Puce (Sélection ou curseur)"><List size={12}/></ButtonUI>
           <div className="w-px h-3 bg-slate-300 mx-1"></div>
           <span className="text-[9px] text-slate-400 font-bold mr-1 uppercase">IA:</span>
           {llmTools.map((tool) => (
@@ -267,7 +277,7 @@ const RichTextareaUI = ({ label, value, onChange, placeholder, maxLength }) => {
         </div>
         <textarea 
           ref={textareaRef} 
-          className="w-full px-4 py-3 bg-transparent text-sm h-32 resize-none focus:outline-none border-none" 
+          className="w-full px-4 py-3 bg-transparent text-sm h-32 resize-none focus:outline-none border-none shadow-inner" 
           value={value} 
           onChange={(e) => onChange(e.target.value)} 
           maxLength={maxLength} 
@@ -295,7 +305,7 @@ const LogoSelectorUI = ({ onSelect, label = "Ajouter un logo" }) => {
   const handleSearch = () => { if (!search.trim()) return; onSelect({ type: 'url', src: getIconUrl(search), name: search }); setSearch(""); };
   const handleFile = (file) => { if (file) { const reader = new FileReader(); reader.onload = (ev) => onSelect({ type: 'file', src: ev.target.result, name: file.name }); reader.readAsDataURL(file); }};
   return (
-    <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+    <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 shadow-inner">
       {label && <label className="text-[10px] font-bold text-[#333333] uppercase block mb-2">{label}</label>}
       <div className="flex gap-2 mb-2">
         <div className="relative flex-1"><input className="w-full pl-7 pr-2 py-1.5 bg-white border border-slate-300 rounded text-xs" placeholder="Recherche (ex: Java)" value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} /><Search className="absolute left-2 top-2 text-slate-400" size={12} /></div>
@@ -317,7 +327,7 @@ export default function App() {
   
   const [cvData, setCvData] = useState(() => {
     try {
-      const saved = localStorage.getItem('smile_cv_data_final_v5');
+      const saved = localStorage.getItem('smile_cv_data_final_stable_v7');
       if (saved) return JSON.parse(saved);
     } catch(e) { console.error(e); }
     return DEFAULT_CV_DATA;
@@ -327,7 +337,7 @@ export default function App() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      localStorage.setItem('smile_cv_data_final_v5', JSON.stringify(cvData));
+      localStorage.setItem('smile_cv_data_final_stable_v7', JSON.stringify(cvData));
       setLastSaved(new Date());
     }, 1000);
     return () => clearTimeout(timer);
@@ -344,10 +354,9 @@ export default function App() {
   }, [cvData.profile]);
 
   const [newCategoryName, setNewCategoryName] = useState("");
-  const [editingCategory, setEditingCategory] = useState(null); 
   const [newSkillsInput, setNewSkillsInput] = useState({});
 
-  const resetCV = () => { if (confirm("Réinitialiser tout le CV ?")) { localStorage.removeItem('smile_cv_data_final_v5'); setCvData(DEFAULT_CV_DATA); } };
+  const resetCV = () => { if (confirm("Réinitialiser tout le CV ?")) { localStorage.removeItem('smile_cv_data_final_stable_v7'); setCvData(DEFAULT_CV_DATA); } };
   const downloadJSON = () => { const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(cvData)); a.download = `${getFilenameBase()}.json`; a.click(); };
   const uploadJSON = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (ev) => { try { setCvData(JSON.parse(ev.target.result)); } catch (err) { alert("Invalide"); } }; reader.readAsText(file); };
   
@@ -367,11 +376,11 @@ export default function App() {
   };
 
   const updateExperience = (id, f, v) => setCvData(p => ({ ...p, experiences: p.experiences.map(e => e.id === id ? { ...e, [f]: v } : e) }));
-  const addExperience = () => setCvData(p => ({ ...p, experiences: [{ id: Date.now(), client_name: "", client_logo: null, period: "", role: "", objective: "", achievements: [], tech_stack: [], phases: "" }, ...p.experiences] }));
+  const addExperience = () => setCvData(p => ({ ...p, experiences: [{ id: Date.now(), client_name: "", client_logo: null, period: "", role: "", objective: "", achievements: [], tech_stack: [], phases: "", forceNewPage: false }, ...p.experiences] }));
   const removeExperience = (id) => setCvData(p => ({ ...p, experiences: p.experiences.filter(e => e.id !== id) }));
   
   const addSkillCategory = () => { if (newCategoryName) { setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [newCategoryName]: [] } })); setNewCategoryName(""); } };
-  const deleteCategory = (n) => setCvData(p => { const newC = { ...p.skills_categories }; delete n[editingCategory?.oldName || n]; return { ...p, skills_categories: newC }; });
+  const deleteCategory = (n) => setCvData(p => { const newC = { ...p.skills_categories }; delete newC[n]; return { ...p, skills_categories: newC }; });
   const updateSkillInCategory = (cat, idx, f, v) => setCvData(p => { const s = [...p.skills_categories[cat]]; s[idx] = { ...s[idx], [f]: v }; return { ...p, skills_categories: { ...p.skills_categories, [cat]: s } }; });
   const addSkillToCategory = (cat) => { const i = newSkillsInput[cat] || { name: '', rating: 3 }; if (i.name) { setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [cat]: [...p.skills_categories[cat], { name: i.name, rating: i.rating }] } })); setNewSkillsInput(p => ({ ...p, [cat]: { name: '', rating: 3 } })); } };
   const updateNewSkillInput = (cat, field, val) => { setNewSkillsInput(p => ({ ...p, [cat]: { ...(p[cat] || { name: '', rating: 3 }), [field]: val } })); };
@@ -388,23 +397,22 @@ export default function App() {
   const removeEducation = (i) => setCvData(p => ({ ...p, education: p.education.filter((_, idx) => idx !== i) }));
   const formatName = () => cvData.isAnonymous ? `${cvData.profile.firstname[0]}. ${cvData.profile.lastname[0]}.` : `${cvData.profile.firstname} ${cvData.profile.lastname}`;
 
-  const experienceChunks = chunkArray(cvData.experiences, 2);
+  const experiencePages = paginateExperiences(cvData.experiences);
   const handlePrint = () => window.print();
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col md:flex-row h-screen overflow-hidden font-sans">
       
-      {/* --- FORMULAIRE --- */}
+      {/* --- WIZARD --- */}
       <div className="w-full md:w-[500px] bg-white border-r border-slate-200 flex flex-col h-full z-10 shadow-xl print:hidden">
-        <div className="bg-slate-50 border-b border-slate-200 p-2 flex justify-between items-center px-4">
-           <div className="flex gap-2">
-             <ButtonUI variant="ghost" className="px-2 py-1 text-xs" onClick={downloadJSON}><Save size={14}/> Save</ButtonUI>
-             <ButtonUI variant="ghost" className="px-2 py-1 text-xs" onClick={() => jsonInputRef.current.click()}><FolderOpen size={14}/> Load</ButtonUI>
+        <div className="bg-slate-50 border-b border-slate-200 p-2 flex justify-between items-center px-4 text-xs">
+           <div className="flex gap-1">
+             <ButtonUI variant="ghost" className="px-2 py-1 h-7 text-slate-400" onClick={resetCV} title="Reset"><RefreshCw size={14}/></ButtonUI>
+             <ButtonUI variant="ghost" className="px-2 py-1 h-7 text-slate-400" onClick={downloadJSON} title="Save"><Save size={14}/></ButtonUI>
+             <ButtonUI variant="ghost" className="px-2 py-1 h-7 text-slate-400" onClick={() => jsonInputRef.current.click()} title="Load"><FolderOpen size={14}/></ButtonUI>
              <input type="file" ref={jsonInputRef} className="hidden" accept=".json" onChange={uploadJSON} />
+             <ButtonUI variant={cvData.isAnonymous ? "danger" : "secondary"} className="px-2 py-1 h-7" onClick={() => setCvData(p => ({...p, isAnonymous: !p.isAnonymous}))}>{cvData.isAnonymous ? "Visible" : "Anonymiser"}</ButtonUI>
            </div>
-           <ButtonUI variant={cvData.isAnonymous ? "danger" : "secondary"} className="px-2 py-1 text-xs" onClick={() => setCvData(p => ({...p, isAnonymous: !p.isAnonymous}))}>
-             {cvData.isAnonymous ? <Shield size={12}/> : <Eye size={12}/>} Anonyme
-           </ButtonUI>
         </div>
 
         <div className="p-6 border-b border-slate-100 bg-white sticky top-0 z-20">
@@ -416,6 +424,7 @@ export default function App() {
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-8 custom-scrollbar">
+           {/* STEP 1 */}
            {step === 1 && (
             <div className="space-y-6 animate-in slide-in-from-right transition-all">
               <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><User size={24} /><h2 className="text-lg font-bold uppercase">Profil</h2></div>
@@ -427,12 +436,14 @@ export default function App() {
               <div className="bg-white p-4 rounded-xl border border-slate-200"><label className="text-xs font-bold text-[#333333] uppercase block mb-3 text-left">Bandeau Technos</label><LogoSelectorUI onSelect={addTechLogo} label="Ajouter" /><div className="flex flex-wrap gap-2 mt-4">{cvData.profile.tech_logos.map((logo, i) => (<div key={i} className="relative group bg-slate-100 p-2 rounded-md border border-slate-200"><img src={logo.src} className="w-6 h-6 object-contain" alt={logo.name} /><button onClick={() => removeTechLogo(i)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100"><X size={10} /></button></div>))}</div></div>
             </div>
            )}
+           {/* STEP 2 */}
            {step === 2 && (
             <div className="space-y-6 animate-in slide-in-from-right transition-all">
                <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><Hexagon size={24} /><h2 className="text-lg font-bold uppercase">Soft Skills</h2></div>
                {[0, 1, 2].map(i => (<InputUI key={i} label={`Hexagone #${i+1}`} value={cvData.soft_skills[i]} onChange={(v) => {const s = [...cvData.soft_skills]; s[i] = v; setCvData(p => ({...p, soft_skills: s}));}} />))}
             </div>
            )}
+           {/* STEP 3 (Compétences & Formation) */}
            {step === 3 && (
              <div className="space-y-8 animate-in slide-in-from-right transition-all">
                <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><Cpu size={24} /><h2 className="text-lg font-bold uppercase">Compétences & Formation</h2></div>
@@ -459,7 +470,7 @@ export default function App() {
                    <div className="mt-2 space-y-1">{cvData.certifications.map((c, i) => (
                      <div key={i} className="flex flex-col bg-white p-2 rounded border border-slate-100 group shadow-sm">
                        <div className="flex justify-between items-center mb-1">
-                         <div className="w-6 h-6 border rounded overflow-hidden flex items-center justify-center bg-slate-50">
+                         <div className="w-6 h-6 overflow-hidden flex items-center justify-center">
                             {c.logo ? <img src={c.logo} className="max-w-full max-h-full object-contain" /> : null}
                          </div>
                          <button onClick={() => removeCertification(i)} className="text-red-300 hover:text-red-500"><X size={10}/></button>
@@ -499,25 +510,36 @@ export default function App() {
                </div>
              </div>
            )}
+           {/* STEP 4 (Expériences) */}
            {step === 4 && (
             <div className="space-y-8 animate-in slide-in-from-right transition-all">
               <div className="flex justify-between items-center mb-4 text-[#2E86C1]"><div className="flex items-center gap-3"><Briefcase size={24} /><h2 className="text-lg font-bold uppercase">Expériences</h2></div><ButtonUI onClick={addExperience} variant="outline" className="px-3 py-1 text-xs"><Plus size={14} /> Ajouter</ButtonUI></div>
               {cvData.experiences.map((exp, index) => (
                 <div key={exp.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm relative group mb-4">
                   <div className="absolute top-4 right-4 flex gap-1">
-                    <button onClick={() => moveExperience(index, 'up')} disabled={index === 0} className="p-1 hover:bg-slate-100 rounded disabled:opacity-20"><ChevronUp size={14}/></button>
-                    <button onClick={() => moveExperience(index, 'down')} disabled={index === cvData.experiences.length - 1} className="p-1 hover:bg-slate-100 rounded disabled:opacity-20"><ChevronDown size={14}/></button>
+                    <button onClick={() => moveExperience(index, 'up')} disabled={index === 0} className="p-1 hover:bg-slate-100 rounded disabled:opacity-20" title="Monter"><ChevronUp size={14}/></button>
+                    <button onClick={() => moveExperience(index, 'down')} disabled={index === cvData.experiences.length - 1} className="p-1 hover:bg-slate-100 rounded disabled:opacity-20" title="Descendre"><ChevronDown size={14}/></button>
                     <button onClick={() => removeExperience(exp.id)} className="p-1 text-red-400 hover:bg-red-50 rounded ml-2"><Trash2 size={14}/></button>
                   </div>
                   <div className="mb-4">
                     <span className="text-xs font-bold text-[#333333] uppercase block mb-2 text-left">Logo Client</span>
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 flex items-center justify-center overflow-hidden shrink-0">
-                        {exp.client_logo && <img src={exp.client_logo} className="w-full h-full object-contain" alt="Logo" />}
-                      </div>
-                      <div className="flex-1"><LogoSelectorUI label="" onSelect={(logo) => updateExperience(exp.id, 'client_logo', logo.src)} /></div>
-                    </div>
+                    <LogoSelectorUI label="" onSelect={(logo) => updateExperience(exp.id, 'client_logo', logo.src)} />
                   </div>
+                  
+                  {/* Option de saut de page pour gérer le débordement */}
+                  <div className="mb-4 flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-100">
+                    <div className="flex items-center gap-2">
+                       <FilePlus size={16} className="text-[#2E86C1]"/>
+                       <span className="text-xs font-bold text-slate-600">Texte trop long ?</span>
+                    </div>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <span className="text-[10px] font-black uppercase text-slate-400">Forcer une nouvelle page après cette mission</span>
+                      <button onClick={() => updateExperience(exp.id, 'forceNewPage', !exp.forceNewPage)}>
+                        {exp.forceNewPage ? <ToggleRight className="text-green-500"/> : <ToggleLeft className="text-slate-300"/>}
+                      </button>
+                    </label>
+                  </div>
+
                   <InputUI label="Client" value={exp.client_name} onChange={(v) => updateExperience(exp.id, 'client_name', v)} />
                   <InputUI label="Rôle" value={exp.role} onChange={(v) => updateExperience(exp.id, 'role', v)} />
                   <InputUI label="Période" value={exp.period} onChange={(v) => updateExperience(exp.id, 'period', v)} />
@@ -539,9 +561,9 @@ export default function App() {
         </div>
 
         <div className="flex-1 overflow-auto w-full p-8 flex justify-center custom-scrollbar">
-          <div className="print-container flex flex-col origin-top transition-transform duration-300 gap-8" style={{ transform: `scale(${zoom})`, marginBottom: `${zoom * 100}px` }}>
+          <div className="print-container flex flex-col origin-top transition-transform duration-300 gap-10" style={{ transform: `scale(${zoom})`, marginBottom: `${zoom * 100}px` }}>
             
-            {/* PAGE 1 : COVER */}
+            {/* ELEMENT 1 : PAGE DE GARDE */}
             <A4Page>
               <CornerTriangle customLogo={cvData.smileLogo} />
               {!cvData.isAnonymous && cvData.profile.photo && (
@@ -555,7 +577,7 @@ export default function App() {
                  <h2 className="text-3xl font-bold text-[#333333] uppercase mb-4 tracking-wide font-montserrat">{cvData.profile.current_role}</h2>
                  <div className="text-xl text-[#666666] font-medium uppercase tracking-widest mb-10 border-l-4 border-[#2E86C1] pl-4">{cvData.profile.main_tech}</div>
               </div>
-              <div className="px-16 mb-4 relative z-10 flex-1 overflow-hidden">
+              <div className="px-16 mb-16 relative z-10 flex-1 overflow-hidden pb-32">
                  <p className="text-lg text-[#333333] leading-relaxed italic border-t border-slate-100 pt-8" dangerouslySetInnerHTML={{__html: formatTextForPreview(`"${cvData.profile.summary}"`)}}></p>
               </div>
               <div className="w-full bg-[#2E86C1] py-6 px-16 mb-8 flex items-center justify-center gap-10 shadow-inner relative z-10 flex-shrink-0">
@@ -572,11 +594,11 @@ export default function App() {
               <Footer />
             </A4Page>
 
-            {/* PAGE 2 : COMPETENCES, SECTEUR, CERTIFS, FORMATION */}
+            {/* ELEMENT 2 : FORMATION & COMPETENCES */}
             <A4Page>
               <CornerTriangle customLogo={cvData.smileLogo} />
               <HeaderSmall name={formatName()} role={cvData.profile.current_role} />
-              <div className="grid grid-cols-12 gap-10 mt-20 h-full px-12 flex-1 pb-24 overflow-hidden">
+              <div className="grid grid-cols-12 gap-10 mt-20 h-full px-12 flex-1 pb-32 overflow-hidden">
                   <div className="col-span-5 border-r border-slate-100 pr-8">
                     <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-8 flex items-center gap-2"><Cpu size={20}/> Mes Compétences</h3>
                     <div className="space-y-8">{Object.entries(cvData.skills_categories).map(([cat, skills]) => (<div key={cat}><h4 className="text-[10px] font-bold text-[#999999] uppercase tracking-widest border-b border-slate-100 pb-2 mb-3">{cat}</h4><div className="space-y-3">{skills.map((skill, i) => (<div key={i} className="flex items-center justify-between"><span className="text-xs font-bold text-[#333333] uppercase">{skill.name}</span><HexagonRating score={skill.rating} /></div>))}</div></div>))}</div>
@@ -599,13 +621,17 @@ export default function App() {
               <Footer />
             </A4Page>
 
-            {/* PAGE 3+ : EXPÉRIENCES */}
-            {experienceChunks.map((chunk, pageIndex) => (
+            {/* ELEMENT 3+ : EXPÉRIENCES (Pagination intelligente) */}
+            {experiencePages.map((chunk, pageIndex) => (
               <A4Page key={pageIndex}>
                 <CornerTriangle customLogo={cvData.smileLogo} />
                 <HeaderSmall name={formatName()} role={cvData.profile.current_role} />
                 <div className="flex justify-between items-end border-b border-slate-200 pb-2 mb-8 mt-16 px-12 flex-shrink-0"><h3 className="text-xl font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat">{pageIndex === 0 ? "Mes dernières expériences" : "Expériences (Suite)"}</h3><span className="text-[10px] font-bold text-[#666666] uppercase">Références</span></div>
-                <div className={`flex-1 px-12 overflow-hidden`}>{chunk.map((exp) => (<ExperienceItem key={exp.id} exp={exp} />))}</div>
+                <div className="flex-1 px-12 pb-32 overflow-hidden">
+                  {chunk.map((exp) => (
+                    <ExperienceItem key={exp.id} exp={exp} />
+                  ))}
+                </div>
                 <Footer />
               </A4Page>
             ))}
@@ -622,51 +648,15 @@ export default function App() {
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
-        /* Style des pages A4 pour l'aperçu */
-        .A4-page { 
-           width: 210mm; 
-           height: 297mm; 
-           background: white; 
-           flex-shrink: 0; 
-           box-sizing: border-box; 
-           position: relative; 
-        }
+        .A4-page { width: 210mm; height: 297mm; background: white; flex-shrink: 0; box-sizing: border-box; position: relative; }
 
         @media print {
-          /* Reset total pour forcer le format A4 pur sans marges navigateur */
           @page { size: A4; margin: 0; }
           body { margin: 0; padding: 0; background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          
           .print-hidden, div[class*="w-[550px]"], div[class*="absolute bottom-6"] { display: none !important; }
-          
-          .flex-1.bg-slate-800 { 
-            display: block !important; 
-            height: auto !important; 
-            overflow: visible !important; 
-            background: white !important; 
-            padding: 0 !important; 
-          }
-          
-          .print-container { 
-            transform: none !important; 
-            margin: 0 !important; 
-            width: 100% !important; 
-            display: block !important; 
-            gap: 0 !important; 
-          }
-          
-          .A4-page { 
-            margin: 0 !important; 
-            box-shadow: none !important; 
-            page-break-after: always !important; 
-            break-after: page !important; 
-            width: 210mm !important; 
-            height: 297mm !important; 
-            display: flex !important;
-            flex-direction: column !important;
-          }
-
-          /* On s'assure que le contenu ne déborde pas */
+          .flex-1.bg-slate-800 { display: block !important; height: auto !important; overflow: visible !important; background: white !important; padding: 0 !important; }
+          .print-container { transform: none !important; margin: 0 !important; width: 100% !important; display: block !important; gap: 0 !important; }
+          .A4-page { margin: 0 !important; box-shadow: none !important; page-break-after: always !important; break-after: page !important; width: 210mm !important; height: 297mm !important; display: flex !important; flex-direction: column !important; }
           .A4-page * { overflow: visible !important; }
         }
       `}</style>
