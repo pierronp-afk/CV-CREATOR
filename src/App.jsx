@@ -98,7 +98,7 @@ const chunkArray = (array, size) => {
 
 const A4Page = ({ children, className = "" }) => (
   <div 
-    className={`cv-page bg-white relative overflow-hidden mx-auto shadow-2xl ${className}`}
+    className={`A4-page bg-white relative overflow-hidden mx-auto shadow-2xl flex-shrink-0 ${className}`}
     style={{ 
       width: '210mm', 
       height: '297mm',
@@ -346,7 +346,6 @@ export default function App() {
   const removeEducation = (i) => setCvData(p => ({ ...p, education: p.education.filter((_, idx) => idx !== i) }));
   const formatName = () => cvData.isAnonymous ? `${cvData.profile.firstname[0]}. ${cvData.profile.lastname[0]}.` : `${cvData.profile.firstname} ${cvData.profile.lastname}`;
 
-  // Decoupage des experiences pour la pagination (2 par page pour sécurité A4)
   const experienceChunks = chunkArray(cvData.experiences, 2);
 
   const handlePrint = () => window.print();
@@ -526,6 +525,16 @@ export default function App() {
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
+        /* Style des pages A4 pour l'aperçu */
+        .A4-page { 
+           width: 210mm; 
+           height: 297mm; 
+           background: white; 
+           flex-shrink: 0; 
+           box-sizing: border-box; 
+           position: relative; 
+        }
+
         @media print {
           /* Reset total pour forcer le format A4 pur sans marges navigateur */
           @page { size: A4; margin: 0; }
@@ -549,7 +558,7 @@ export default function App() {
             gap: 0 !important; 
           }
           
-          .cv-page { 
+          .A4-page { 
             margin: 0 !important; 
             box-shadow: none !important; 
             page-break-after: always !important; 
@@ -561,7 +570,7 @@ export default function App() {
           }
 
           /* On s'assure que le contenu ne déborde pas */
-          .cv-page * { overflow: visible !important; }
+          .A4-page * { overflow: visible !important; }
         }
       `}</style>
     </div>
