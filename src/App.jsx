@@ -4,7 +4,7 @@ import {
   Upload, X, Briefcase, GraduationCap, User, Hexagon, Cpu, 
   Image as ImageIcon, ZoomIn, ZoomOut, Search, LayoutTemplate, 
   Save, FolderOpen, Eye, Shield, Check, Edit2,
-  Bold, List, Copy, HelpCircle, RefreshCw, Cloud, Mail, Printer
+  Bold, List, Copy, HelpCircle, RefreshCw, Cloud, Mail, Printer, Wand2, Loader2
 } from 'lucide-react';
 
 // --- CONFIGURATION & THÈME ---
@@ -51,6 +51,17 @@ const DEFAULT_CV_DATA = {
       achievements: ["Participation à la phase de conception", "Adaptation de l'interface"],
       tech_stack: ["Drupal", "Twig"],
       phases: "Conception, Développement"
+    },
+    {
+      id: 2,
+      client_name: "L'Oréal",
+      client_logo: null,
+      period: "2021 - 2022",
+      role: "Tech Lead",
+      objective: "Refonte du site e-commerce B2B...",
+      achievements: ["Audit de performance", "Mise en place CI/CD", "Formation équipe"],
+      tech_stack: ["React", "NodeJS", "AWS"],
+      phases: "Audit, Dev, Run"
     }
   ],
   education: [
@@ -82,7 +93,7 @@ const chunkArray = (array, size) => {
   return chunked;
 };
 
-// --- SOUS-COMPOSANTS DE STRUCTURE PDF ---
+// --- SOUS-COMPOSANTS DE STRUCTURE PDF (DÉCLARÉS UNE SEULE FOIS) ---
 
 const A4Page = ({ children, className = "" }) => (
   <div 
@@ -92,7 +103,9 @@ const A4Page = ({ children, className = "" }) => (
       height: '297mm',
       marginBottom: '40px',
       boxSizing: 'border-box',
-      position: 'relative'
+      position: 'relative',
+      display: 'flex',
+      flexDirection: 'column'
     }}
   >
     {children}
@@ -120,7 +133,7 @@ const CornerTriangle = ({ customLogo }) => (
 );
 
 const HeaderSmall = ({ name, role }) => (
-  <div className="flex justify-between items-start border-b-2 border-[#2E86C1] pb-4 pt-10 px-12 mt-8">
+  <div className="flex justify-between items-start border-b-2 border-[#2E86C1] pb-4 pt-10 px-12 mt-8 flex-shrink-0">
     <div><div className="w-10 h-10"></div></div>
     <div className="text-right">
       <h3 className="text-sm font-bold text-[#333333] uppercase">{name}</h3>
@@ -130,7 +143,7 @@ const HeaderSmall = ({ name, role }) => (
 );
 
 const Footer = () => (
-  <div className="absolute bottom-8 left-12 right-12 border-t border-slate-100 pt-4 flex justify-between items-center bg-white">
+  <div className="absolute bottom-8 left-12 right-12 border-t border-slate-100 pt-4 flex justify-between items-center bg-white flex-shrink-0">
     <div className="text-[8px] font-bold text-[#999999] uppercase tracking-widest">Smile - IT is Open <span className="text-[#2E86C1] ml-1">CRÉATEUR D'EXPÉRIENCE DIGITALE OUVERTE</span></div>
     <div className="text-[8px] font-bold text-[#333333]">#MadeWithSmile</div>
   </div>
@@ -204,6 +217,7 @@ const InputUI = ({ label, value, onChange, placeholder, maxLength, type = "text"
 
 const RichTextareaUI = ({ label, value, onChange, placeholder, maxLength }) => {
   const textareaRef = useRef(null);
+
   const insertTag = (tag) => {
     const textarea = textareaRef.current;
     if (!textarea) return;
@@ -213,11 +227,29 @@ const RichTextareaUI = ({ label, value, onChange, placeholder, maxLength }) => {
     const selected = text.substring(start, end);
     const before = text.substring(0, start);
     const after = text.substring(end);
-    let newText = "";
-    if (tag === 'b') newText = `${before}<b>${selected}</b>${after}`;
-    if (tag === 'list') newText = `${before}• ${after}`;
-    onChange(newText);
+
+    if (tag === 'b') {
+      const newText = `${before}<b>${selected}</b>${after}`;
+      onChange(newText);
+    } 
+    
+    if (tag === 'list') {
+      if (start !== end) {
+        // Transforme chaque ligne sélectionnée en puce
+        const lines = selected.split('\n');
+        const bulletedLines = lines.map(line => 
+          line.trim() === "" ? line : (line.startsWith('• ') ? line : `• ${line}`)
+        ).join('\n');
+        const newText = before + bulletedLines + after;
+        onChange(newText);
+      } else {
+        // Simple insertion de puce
+        const newText = `${before}• ${after}`;
+        onChange(newText);
+      }
+    }
   };
+
   const copyAndOpenAI = (url) => {
     if (value) {
       const prompt = "Agis comme un expert. Reformule ce texte pour un CV. Ton 'corporate', direct. Corrige les fautes. PAS de markdown. Texte : \n";
@@ -225,18 +257,20 @@ const RichTextareaUI = ({ label, value, onChange, placeholder, maxLength }) => {
     }
     window.open(url, '_blank');
   };
+
   const llmTools = [
     { name: 'ChatGPT', url: 'https://chat.openai.com/', icon: 'openai' },
     { name: 'Gemini', url: 'https://gemini.google.com/', icon: 'googlegemini' },
     { name: 'Claude', url: 'https://claude.ai/', icon: 'anthropic/000000' }
   ];
+
   return (
     <div className="mb-6 relative">
       <div className="flex justify-between items-end mb-1">
         <label className="text-xs font-bold text-[#333333] uppercase block">{label}</label>
         <div className="flex items-center gap-1 bg-slate-100 rounded-t-lg px-2 py-1 border border-slate-200 border-b-0 absolute right-0 top-0 transform -translate-y-full">
           <ButtonUI variant="toolbar" onClick={() => insertTag('b')} title="Gras"><Bold size={12}/></ButtonUI>
-          <ButtonUI variant="toolbar" onClick={() => insertTag('list')} title="Puce"><List size={12}/></ButtonUI>
+          <ButtonUI variant="toolbar" onClick={() => insertTag('list')} title="Puce (Sélection ou curseur)"><List size={12}/></ButtonUI>
           <div className="w-px h-3 bg-slate-300 mx-1"></div>
           <span className="text-[9px] text-slate-400 font-bold mr-1">IA:</span>
           {llmTools.map((tool) => (
@@ -291,7 +325,7 @@ export default function App() {
   
   const [cvData, setCvData] = useState(() => {
     try {
-      const saved = localStorage.getItem('smile_cv_data_stable_final');
+      const saved = localStorage.getItem('smile_cv_data_stable_final_fixed');
       if (saved) return JSON.parse(saved);
     } catch(e) { console.error(e); }
     return DEFAULT_CV_DATA;
@@ -301,7 +335,7 @@ export default function App() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      localStorage.setItem('smile_cv_data_stable_final', JSON.stringify(cvData));
+      localStorage.setItem('smile_cv_data_stable_final_fixed', JSON.stringify(cvData));
       setLastSaved(new Date());
     }, 1000);
     return () => clearTimeout(timer);
@@ -321,10 +355,10 @@ export default function App() {
   const [editingCategory, setEditingCategory] = useState(null); 
   const [newSkillsInput, setNewSkillsInput] = useState({});
 
-  const resetCV = () => { if (confirm("Reset ?")) { localStorage.removeItem('smile_cv_data_stable_final'); setCvData(DEFAULT_CV_DATA); } };
+  const resetCV = () => { if (confirm("Voulez-vous vraiment réinitialiser tout le CV ?")) { localStorage.removeItem('smile_cv_data_stable_final_fixed'); setCvData(DEFAULT_CV_DATA); } };
   const downloadJSON = () => { const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(cvData)); a.download = `${getFilenameBase()}.json`; a.click(); };
   const uploadJSON = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (ev) => { try { setCvData(JSON.parse(ev.target.result)); } catch (err) { alert("Invalide"); } }; reader.readAsText(file); };
-  const handleEmail = () => { window.location.href = `mailto:?subject=${encodeURIComponent(getFilenameBase())}&body=Bonjour,`; };
+  const handleEmail = () => { window.location.href = `mailto:?subject=${encodeURIComponent(getFilenameBase())}&body=Bonjour, veuillez trouver ci-joint mon CV édité avec Smile Editor.`; };
 
   // --- HANDLERS DATA ---
   const handleProfileChange = (f, v) => setCvData(p => ({ ...p, profile: { ...p.profile, [f]: v } }));
@@ -400,7 +434,7 @@ export default function App() {
                {[0, 1, 2].map(i => (<InputUI key={i} label={`Hexagone #${i+1}`} value={cvData.soft_skills[i]} onChange={(v) => {const s = [...cvData.soft_skills]; s[i] = v; setCvData(p => ({...p, soft_skills: s}));}} />))}
             </div>
            )}
-           {/* STEP 3 (Formation) */}
+           {/* STEP 3 (Formation & Compétences - INVERSÉ) */}
            {step === 3 && (
              <div className="space-y-8 animate-in slide-in-from-right transition-all">
                <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><GraduationCap size={24} /><h2 className="text-lg font-bold uppercase">Formation & Compétences</h2></div>
@@ -413,7 +447,7 @@ export default function App() {
                </div>
              </div>
            )}
-           {/* STEP 4 */}
+           {/* STEP 4 (Expériences - INVERSÉ) */}
            {step === 4 && (
             <div className="space-y-8 animate-in slide-in-from-right transition-all">
               <div className="flex justify-between items-center mb-4 text-[#2E86C1]"><div className="flex items-center gap-3"><Briefcase size={24} /><h2 className="text-lg font-bold uppercase">Expériences</h2></div><ButtonUI onClick={addExperience} variant="outline" className="px-3 py-1 text-xs"><Plus size={14} /> Ajouter</ButtonUI></div>
@@ -456,23 +490,22 @@ export default function App() {
                   <img src={cvData.profile.photo} className="w-full h-full object-cover" alt="Portrait" />
                 </div>
               )}
-              <div className="pt-24 px-16 pb-0">
+              <div className="pt-24 px-16 pb-0 flex-shrink-0">
                  <h1 className="text-6xl font-bold text-[#333333] uppercase leading-tight mb-2 font-montserrat">{formatName()}</h1>
                  <div className="inline-block bg-[#2E86C1] text-white font-bold text-xl px-4 py-1 rounded-sm uppercase mb-10 tracking-wider">{cvData.profile.years_experience} ans d'expérience</div>
                  <h2 className="text-3xl font-bold text-[#333333] uppercase mb-4 tracking-wide font-montserrat">{cvData.profile.current_role}</h2>
                  <div className="text-xl text-[#666666] font-medium uppercase tracking-widest mb-10 border-l-4 border-[#2E86C1] pl-4">{cvData.profile.main_tech}</div>
               </div>
-              <div className="px-16 mb-4 relative z-10 flex-1">
+              
+              {/* Le corps de la page 1 : on autorise l'extension si le résumé est très long */}
+              <div className="px-16 mb-4 relative z-10 flex-1 overflow-hidden">
                  <p className="text-lg text-[#333333] leading-relaxed italic border-t border-slate-100 pt-8" dangerouslySetInnerHTML={{__html: formatTextForPreview(`"${cvData.profile.summary}"`)}}></p>
               </div>
-              <div className="w-full bg-[#2E86C1] py-6 px-16 mb-8 flex items-center justify-center gap-10 shadow-inner relative z-10">
-                {cvData.profile.tech_logos.map((logo, i) => (
-                  <div key={i} className="h-14 w-auto flex items-center justify-center">
-                    <img src={logo.src} className="h-full w-full object-contain brightness-0 invert opacity-95 transition-transform hover:scale-110" alt={logo.name} />
-                  </div>
-                ))}
+
+              <div className="w-full bg-[#2E86C1] py-6 px-16 mb-8 flex items-center justify-center gap-10 shadow-inner relative z-10 flex-shrink-0">
+                {cvData.profile.tech_logos.map((logo, i) => (<img key={i} src={logo.src} className="h-14 w-auto object-contain brightness-0 invert opacity-95 hover:scale-110 transition-transform" alt={logo.name} />))}
               </div>
-              <div className="flex justify-center gap-12 relative z-10 px-10 mb-24">
+              <div className="flex justify-center gap-12 relative z-10 px-10 mb-24 flex-shrink-0">
                 {cvData.soft_skills.map((skill, i) => (
                   <div key={i} className="relative w-40 h-44 flex items-center justify-center">
                     <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full text-[#2E86C1] fill-current drop-shadow-xl"><polygon points="50 0, 100 25, 100 75, 50 100, 0 75, 0 25" /></svg>
@@ -500,16 +533,16 @@ export default function App() {
               <Footer />
             </A4Page>
 
-            {/* ELEMENT 3+ : EXPÉRIENCES (Pagination Automatique via chunks) */}
+            {/* ELEMENT 3+ : EXPÉRIENCES (Pagination avec continuité lisible) */}
             {experienceChunks.map((chunk, pageIndex) => (
               <A4Page key={pageIndex}>
                 <CornerTriangle customLogo={cvData.smileLogo} />
                 <HeaderSmall name={formatName()} role={cvData.profile.current_role} />
-                <div className="flex justify-between items-end border-b border-slate-200 pb-2 mb-8 mt-16 px-12">
+                <div className="flex justify-between items-end border-b border-slate-200 pb-2 mb-8 mt-16 px-12 flex-shrink-0">
                   <h3 className="text-xl font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat">{pageIndex === 0 ? "Mes dernières expériences" : "Expériences (Suite)"}</h3>
                   <span className="text-[10px] font-bold text-[#666666] uppercase">Références</span>
                 </div>
-                <div className={`flex-1 px-12 ${pageIndex === experienceChunks.length - 1 && chunk.length === 1 ? 'flex flex-col justify-center' : ''}`}>
+                <div className={`flex-1 px-12 overflow-hidden ${pageIndex === experienceChunks.length - 1 && chunk.length === 1 ? 'flex flex-col justify-center' : ''}`}>
                   {chunk.map((exp) => (
                     <ExperienceItem key={exp.id} exp={exp} />
                   ))}
@@ -529,16 +562,6 @@ export default function App() {
         .font-sans { font-family: 'Open Sans', sans-serif; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-
-        /* Style des pages A4 pour l'aperçu */
-        .A4-page { 
-           width: 210mm; 
-           height: 297mm; 
-           background: white; 
-           flex-shrink: 0; 
-           box-sizing: border-box; 
-           position: relative; 
-        }
 
         @media print {
           /* Reset total pour forcer le format A4 pur sans marges navigateur */
