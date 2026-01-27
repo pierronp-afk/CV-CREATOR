@@ -94,17 +94,19 @@ const chunkArray = (array, size) => {
   return chunked;
 };
 
-// --- COMPOSANTS DE STRUCTURE PDF (PAGE A4) ---
+// --- COMPOSANTS DE STRUCTURE PDF (PAGE A4 STRICT) ---
 const A4Page = ({ children, className = "" }) => (
   <div 
-    className={`A4-page bg-white relative overflow-hidden mx-auto ${className}`}
+    className={`cv-page bg-white relative overflow-hidden mx-auto shadow-2xl ${className}`}
     style={{ 
       width: '210mm', 
       height: '297mm',
-      marginBottom: '20px',
-      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+      minHeight: '297mm',
+      maxHeight: '297mm',
+      marginBottom: '40px',
       pageBreakAfter: 'always',
-      breakAfter: 'page'
+      breakAfter: 'page',
+      boxSizing: 'border-box'
     }}
   >
     {children}
@@ -346,7 +348,6 @@ export default function App() {
   const removeEducation = (i) => setCvData(p => ({ ...p, education: p.education.filter((_, idx) => idx !== i) }));
   const formatName = () => cvData.isAnonymous ? `${cvData.profile.firstname[0]}. ${cvData.profile.lastname[0]}.` : `${cvData.profile.firstname} ${cvData.profile.lastname}`;
 
-  // Decoupage des experiences pour la pagination (2 par page pour sécurité)
   const experienceChunks = chunkArray(cvData.experiences, 2);
 
   const handlePrint = () => window.print();
@@ -400,7 +401,7 @@ export default function App() {
                {[0, 1, 2].map(i => (<Input key={i} label={`Hexagone #${i+1}`} value={cvData.soft_skills[i]} onChange={(v) => {const s = [...cvData.soft_skills]; s[i] = v; setCvData(p => ({...p, soft_skills: s}));}} />))}
             </div>
            )}
-           {/* STEP 3 (Formation) */}
+           {/* STEP 3 */}
            {step === 3 && (
              <div className="space-y-8 animate-in slide-in-from-right">
                <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><GraduationCap size={24} /><h2 className="text-lg font-bold uppercase">Formation & Compétences</h2></div>
@@ -517,7 +518,7 @@ export default function App() {
                  <p className="text-lg text-[#333333] leading-relaxed italic border-t border-slate-100 pt-8" dangerouslySetInnerHTML={{__html: formatTextForPreview(`"${cvData.profile.summary}"`)}}></p>
               </div>
               <div className="w-full bg-[#2E86C1] py-6 px-16 mb-8 flex items-center justify-center gap-10 shadow-inner relative z-10">
-                {cvData.profile.tech_logos.map((logo, i) => (<img key={i} src={logo.src} className="h-14 w-auto object-contain brightness-0 invert opacity-95 hover:scale-110 transition-transform" />))}
+                {cvData.profile.tech_logos.map((logo, i) => (<img key={i} src={logo.src} className="h-14 w-auto object-contain brightness-0 invert opacity-95 hover:scale-110 transition-transform" alt={logo.name} />))}
               </div>
               <div className="flex justify-center gap-12 relative z-10 px-10 mb-24">
                 {cvData.soft_skills.map((skill, i) => (
@@ -577,13 +578,23 @@ export default function App() {
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
+        .cv-page { 
+           width: 210mm; 
+           height: 297mm; 
+           background: white; 
+           flex-shrink: 0; 
+           box-sizing: border-box; 
+           position: relative; 
+        }
+
         @media print {
           /* Reset total pour forcer le format A4 pur */
           @page { margin: 0; size: A4; }
           body { margin: 0; padding: 0; background: white; -webkit-print-color-adjust: exact; }
           .print-hidden, div[class*="w-[550px]"], div[class*="absolute bottom-6"] { display: none !important; }
           .flex-1.bg-slate-800 { display: block !important; height: auto !important; overflow: visible !important; background: white !important; padding: 0 !important; }
-          .A4-page { margin: 0 !important; box-shadow: none !important; page-break-after: always; break-after: page; }
+          .print-container { transform: none !important; margin: 0 !important; width: 100% !important; display: block !important; gap: 0 !important; }
+          .cv-page { margin: 0 !important; box-shadow: none !important; page-break-after: always; break-after: page; width: 100% !important; height: 297mm !important; }
         }
       `}</style>
     </div>
