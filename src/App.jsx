@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   ArrowRight, ArrowLeft, Download, Plus, Trash2, MoveUp, MoveDown, 
   Upload, X, Briefcase, GraduationCap, User, Hexagon, Cpu, 
@@ -52,17 +52,6 @@ const DEFAULT_CV_DATA = {
       achievements: ["Participation à la phase de conception", "Adaptation de l'interface"],
       tech_stack: ["Drupal", "Twig"],
       phases: "Conception, Développement"
-    },
-    {
-      id: 2,
-      client_name: "L'Oréal",
-      client_logo: null,
-      period: "2021 - 2022",
-      role: "Tech Lead",
-      objective: "Refonte du site e-commerce B2B...",
-      achievements: ["Audit de performance", "Mise en place CI/CD", "Formation équipe"],
-      tech_stack: ["React", "NodeJS", "AWS"],
-      phases: "Audit, Dev, Run"
     }
   ],
   education: [
@@ -73,16 +62,6 @@ const DEFAULT_CV_DATA = {
     "Outils": [{ name: "Jira", rating: 5 }, { name: "AWS", rating: 3 }],
     "Méthodologies": [{ name: "Agile", rating: 5 }, { name: "Scrum", rating: 5 }]
   }
-};
-
-// --- HELPER PAGINATION (Découpage manuel strict pour éviter les sauts de page auto) ---
-const chunkArray = (array, size) => {
-  if (!array.length) return [];
-  const chunked = [];
-  for (let i = 0; i < array.length; i += size) {
-    chunked.push(array.slice(i, i + size));
-  }
-  return chunked;
 };
 
 // --- HELPER FORMATTING ---
@@ -210,23 +189,7 @@ const HexagonRating = ({ score, onChange }) => (
   </div>
 );
 
-// --- COMPOSANTS DE STRUCTURE PDF (PAGE A4) ---
-const A4Page = ({ children, className = "" }) => (
-  <div 
-    className={`A4-page bg-white relative overflow-hidden mx-auto ${className}`}
-    style={{ 
-      width: '210mm', 
-      height: '297mm',
-      marginBottom: '20px',
-      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-      pageBreakAfter: 'always',
-      breakAfter: 'page'
-    }}
-  >
-    {children}
-  </div>
-);
-
+// --- COMPOSANTS DE STRUCTURE ---
 const CornerTriangle = ({ customLogo }) => (
   <div className="absolute top-0 left-0 w-[120px] h-[120px] z-20 pointer-events-none">
     <div className="absolute top-0 left-0 w-full h-full bg-[#2E86C1]" style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)', printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' }}></div>
@@ -252,34 +215,6 @@ const Footer = () => (
   <div className="absolute bottom-8 left-12 right-12 border-t border-slate-100 pt-4 flex justify-between items-center bg-white">
     <div className="text-[8px] font-bold text-[#999999] uppercase tracking-widest">Smile - IT is Open <span className="text-[#2E86C1] ml-1">CRÉATEUR D'EXPÉRIENCE DIGITALE OUVERTE</span></div>
     <div className="text-[8px] font-bold text-[#333333]">#MadeWithSmile</div>
-  </div>
-);
-
-// --- COMPOSANT EXPERIENCE (Item) ---
-const ExperienceItem = ({ exp }) => (
-  <div className="grid grid-cols-12 gap-6 mb-8 break-inside-avoid">
-    <div className="col-span-2 flex flex-col items-center pt-2">
-      <div className="w-16 h-16 rounded-lg border border-slate-200 overflow-hidden flex items-center justify-center bg-white mb-2 p-1">
-         {exp.client_logo ? <img src={exp.client_logo} className="w-full h-full object-contain" /> : <LayoutTemplate size={24} className="text-slate-300"/>}
-      </div>
-      <span className="text-[10px] font-bold text-[#333333] uppercase text-center leading-tight">{exp.client_name}</span>
-    </div>
-    <div className="col-span-10 border-l border-slate-100 pl-6 pb-6">
-      <div className="flex justify-between items-baseline mb-3">
-         <h4 className="text-lg font-bold text-[#333333] uppercase">{exp.client_name} <span className="font-normal text-[#666666]">| {exp.role}</span></h4>
-         <span className="text-xs font-bold text-[#2E86C1] uppercase">{exp.period}</span>
-      </div>
-      {exp.objective && (
-        <div className="mb-4">
-           <h5 className="text-[10px] font-bold text-[#2E86C1] uppercase mb-1">Objectif</h5>
-           <p className="text-sm text-[#333333] leading-relaxed" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.objective)}}></p>
-        </div>
-      )}
-      <div className="flex gap-8 mt-4 pt-4 border-t border-slate-50">
-         <div className="flex-1"><h5 className="text-[10px] font-bold text-[#999999] uppercase mb-1">Réalisation</h5><p className="text-xs font-medium text-[#333333]" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.phases)}}></p></div>
-         <div className="flex-[2]"><h5 className="text-[10px] font-bold text-[#999999] uppercase mb-1">Environnement</h5><div className="flex flex-wrap gap-1">{exp.tech_stack.map((t, i) => <span key={i} className="text-xs font-bold text-[#2E86C1] bg-blue-50 px-2 py-0.5 rounded">{t}</span>)}</div></div>
-      </div>
-    </div>
   </div>
 );
 
@@ -347,9 +282,6 @@ export default function App() {
   const removeEducation = (i) => setCvData(p => ({ ...p, education: p.education.filter((_, idx) => idx !== i) }));
   const formatName = () => cvData.isAnonymous ? `${cvData.profile.firstname[0]}. ${cvData.profile.lastname[0]}.` : `${cvData.profile.firstname} ${cvData.profile.lastname}`;
 
-  // Decoupage des experiences pour la pagination (3 par page)
-  const experienceChunks = chunkArray(cvData.experiences, 3);
-
   const handlePrint = () => window.print();
 
   return (
@@ -378,7 +310,6 @@ export default function App() {
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-8 custom-scrollbar">
-           {/* STEP 1 */}
            {step === 1 && (
             <div className="space-y-6 animate-in slide-in-from-right">
               <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><User size={24} /><h2 className="text-lg font-bold uppercase">Profil</h2></div>
@@ -394,14 +325,12 @@ export default function App() {
               <div className="bg-white p-4 rounded-xl border border-slate-200"><label className="text-xs font-bold text-[#333333] uppercase block mb-3">Bandeau Technos</label><LogoSelector onSelect={addTechLogo} label="Ajouter" /><div className="flex flex-wrap gap-2 mt-4">{cvData.profile.tech_logos.map((logo, i) => (<div key={i} className="relative group bg-slate-100 p-2 rounded-md border border-slate-200"><img src={logo.src} className="w-6 h-6 object-contain" alt={logo.name} /><button onClick={() => removeTechLogo(i)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100"><X size={10} /></button></div>))}</div></div>
             </div>
            )}
-           {/* STEP 2 */}
            {step === 2 && (
             <div className="space-y-6 animate-in slide-in-from-right">
                <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><Hexagon size={24} /><h2 className="text-lg font-bold uppercase">Soft Skills</h2></div>
                {[0, 1, 2].map(i => (<Input key={i} label={`Hexagone #${i+1}`} value={cvData.soft_skills[i]} onChange={(v) => {const s = [...cvData.soft_skills]; s[i] = v; setCvData(p => ({...p, soft_skills: s}));}} />))}
             </div>
            )}
-           {/* STEP 3 (Formation) */}
            {step === 3 && (
              <div className="space-y-8 animate-in slide-in-from-right">
                <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><GraduationCap size={24} /><h2 className="text-lg font-bold uppercase">Formation & Compétences</h2></div>
@@ -449,7 +378,7 @@ export default function App() {
           >
             
             {/* ELEMENT 1 : PAGE DE GARDE */}
-            <A4Page>
+            <div className="cv-page cv-page-fixed relative bg-white shadow-2xl overflow-hidden">
               <CornerTriangle customLogo={cvData.smileLogo} />
               {!cvData.isAnonymous && cvData.profile.photo && (
                 <div className="absolute top-12 right-12 w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg z-20">
@@ -477,10 +406,10 @@ export default function App() {
                 ))}
               </div>
               <Footer />
-            </A4Page>
+            </div>
 
             {/* ELEMENT 2 : FORMATION & COMPETENCES */}
-            <A4Page>
+            <div className="cv-page cv-page-fixed relative bg-white shadow-2xl overflow-hidden">
               <CornerTriangle customLogo={cvData.smileLogo} />
               <HeaderSmall name={formatName()} role={cvData.profile.current_role} />
               <div className="grid grid-cols-12 gap-10 mt-20 h-full px-12 flex-1 pb-24">
@@ -494,49 +423,48 @@ export default function App() {
                   </div>
               </div>
               <Footer />
-            </A4Page>
+            </div>
 
-            {/* ELEMENT 3+ : EXPÉRIENCES (Pagination Automatique via chunks) */}
-            {experienceChunks.map((chunk, pageIndex) => (
-              <A4Page key={pageIndex}>
-                <CornerTriangle customLogo={cvData.smileLogo} />
-                <HeaderSmall name={formatName()} role={cvData.profile.current_role} />
-                <div className="flex justify-between items-end border-b border-slate-200 pb-2 mb-8 mt-16 px-12">
-                  <h3 className="text-xl font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat">{pageIndex === 0 ? "Mes dernières expériences" : "Expériences (Suite)"}</h3>
-                  <span className="text-[10px] font-bold text-[#666666] uppercase">Références</span>
-                </div>
-                {/* Centrage vertical si c'est la dernière page et qu'il n'y a qu'une seule expérience */}
-                <div className={`flex-1 px-12 ${pageIndex === experienceChunks.length - 1 && chunk.length === 1 ? 'flex flex-col justify-center' : ''}`}>
-                  {chunk.map((exp) => (
-                    <div key={exp.id} className="grid grid-cols-12 gap-6 mb-8 break-inside-avoid">
-                        <div className="col-span-2 flex flex-col items-center pt-2">
-                          <div className="w-16 h-16 rounded-lg border border-slate-200 overflow-hidden flex items-center justify-center bg-white mb-2 p-1">
-                              {exp.client_logo ? <img src={exp.client_logo} className="w-full h-full object-contain" /> : <LayoutTemplate size={24} className="text-slate-300"/>}
-                          </div>
-                          <span className="text-[10px] font-bold text-[#333333] uppercase text-center leading-tight">{exp.client_name}</span>
+            {/* ELEMENT 3+ : EXPÉRIENCES (Flux continu) */}
+            <div className="cv-page-flow relative bg-white shadow-2xl flex flex-col">
+              <CornerTriangle customLogo={cvData.smileLogo} />
+              <HeaderSmall name={formatName()} role={cvData.profile.current_role} />
+              
+              <div className="flex justify-between items-end border-b border-slate-200 pb-2 mb-8 mt-16 px-12">
+                 <h3 className="text-xl font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat">Mes dernières expériences</h3>
+                 <span className="text-[10px] font-bold text-[#666666] uppercase">Références</span>
+              </div>
+
+              <div className="flex-1 space-y-10 px-12 pb-24">
+                {cvData.experiences.map((exp) => (
+                  <div key={exp.id} className="grid grid-cols-12 gap-6 break-inside-avoid">
+                      <div className="col-span-2 flex flex-col items-center pt-2">
+                        <div className="w-16 h-16 rounded-lg border border-slate-200 overflow-hidden flex items-center justify-center bg-white mb-2 p-1">
+                            {exp.client_logo ? <img src={exp.client_logo} className="w-full h-full object-contain" /> : <LayoutTemplate size={24} className="text-slate-300"/>}
                         </div>
-                        <div className="col-span-10 border-l border-slate-100 pl-6 pb-6">
-                          <div className="flex justify-between items-baseline mb-3">
-                              <h4 className="text-lg font-bold text-[#333333] uppercase">{exp.client_name} <span className="font-normal text-[#666666]">| {exp.role}</span></h4>
-                              <span className="text-xs font-bold text-[#2E86C1] uppercase">{exp.period}</span>
-                          </div>
-                          {exp.objective && (
-                            <div className="mb-4">
-                                <h5 className="text-[10px] font-bold text-[#2E86C1] uppercase mb-1">Objectif</h5>
-                                <p className="text-sm text-[#333333] leading-relaxed" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.objective)}}></p>
-                            </div>
-                          )}
-                          <div className="flex gap-8 mt-4 pt-4 border-t border-slate-50">
-                              <div className="flex-1"><h5 className="text-[10px] font-bold text-[#999999] uppercase mb-1">Réalisation</h5><p className="text-xs font-medium text-[#333333]" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.phases)}}></p></div>
-                              <div className="flex-[2]"><h5 className="text-[10px] font-bold text-[#999999] uppercase mb-1">Environnement</h5><div className="flex flex-wrap gap-1">{exp.tech_stack.map((t, i) => <span key={i} className="text-xs font-bold text-[#2E86C1] bg-blue-50 px-2 py-0.5 rounded">{t}</span>)}</div></div>
-                          </div>
+                        <span className="text-[10px] font-bold text-[#333333] uppercase text-center leading-tight">{exp.client_name}</span>
+                      </div>
+                      <div className="col-span-10 border-l border-slate-100 pl-6 pb-6">
+                        <div className="flex justify-between items-baseline mb-3">
+                            <h4 className="text-lg font-bold text-[#333333] uppercase">{exp.client_name} <span className="font-normal text-[#666666]">| {exp.role}</span></h4>
+                            <span className="text-xs font-bold text-[#2E86C1] uppercase">{exp.period}</span>
                         </div>
-                    </div>
-                  ))}
-                </div>
-                <Footer />
-              </A4Page>
-            ))}
+                        {exp.objective && (
+                          <div className="mb-4">
+                              <h5 className="text-[10px] font-bold text-[#2E86C1] uppercase mb-1">Objectif</h5>
+                              <p className="text-sm text-[#333333] leading-relaxed" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.objective)}}></p>
+                          </div>
+                        )}
+                        <div className="flex gap-8 mt-4 pt-4 border-t border-slate-50">
+                            <div className="flex-1"><h5 className="text-[10px] font-bold text-[#999999] uppercase mb-1">Réalisation</h5><p className="text-xs font-medium text-[#333333]" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.phases)}}></p></div>
+                            <div className="flex-[2]"><h5 className="text-[10px] font-bold text-[#999999] uppercase mb-1">Environnement</h5><div className="flex flex-wrap gap-1">{exp.tech_stack.map((t, i) => <span key={i} className="text-xs font-bold text-[#2E86C1] bg-blue-50 px-2 py-0.5 rounded">{t}</span>)}</div></div>
+                        </div>
+                      </div>
+                  </div>
+                ))}
+              </div>
+              <Footer />
+            </div>
             
           </div>
         </div>
@@ -550,13 +478,58 @@ export default function App() {
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
+        /* Style des pages pour l'aperçu */
+        .cv-page { 
+           width: 210mm; 
+           background: white; 
+           flex-shrink: 0; 
+           box-sizing: border-box; 
+           position: relative; 
+        }
+        
+        .cv-page-fixed {
+           height: 297mm;
+        }
+
+        .cv-page-flow {
+           min-height: 297mm;
+           height: auto;
+        }
+
+        .break-inside-avoid { 
+           page-break-inside: avoid; 
+           break-inside: avoid; 
+        }
+
         @media print {
           /* Reset total pour forcer le format A4 pur */
           @page { margin: 0; size: A4; }
           body { margin: 0; padding: 0; background: white; -webkit-print-color-adjust: exact; }
+          
           .print-hidden, div[class*="w-[550px]"], div[class*="absolute bottom-6"] { display: none !important; }
           .flex-1.bg-slate-800 { display: block !important; height: auto !important; overflow: visible !important; background: white !important; padding: 0 !important; }
-          .A4-page { margin: 0 !important; box-shadow: none !important; page-break-after: always; break-after: page; }
+          
+          .print-container { 
+             transform: none !important; 
+             margin: 0 !important; 
+             width: 100% !important; 
+             display: block !important; 
+             gap: 0 !important;
+          }
+
+          /* Force le saut de page après chaque bloc .cv-page */
+          .cv-page { 
+             margin: 0 !important; 
+             box-shadow: none !important; 
+             page-break-after: always; 
+             break-after: page; 
+             width: 100% !important;
+          }
+
+          /* La page d'expérience peut couler sur plusieurs pages si elle est longue */
+          .cv-page-flow {
+             page-break-after: auto;
+          }
         }
       `}</style>
     </div>
@@ -564,22 +537,6 @@ export default function App() {
 }
 
 // --- SOUS-COMPOSANTS ---
-const A4Page = ({ children, className = "" }) => (
-  <div 
-    className={`A4-page bg-white relative overflow-hidden mx-auto ${className}`}
-    style={{ 
-      width: '210mm', 
-      height: '297mm',
-      marginBottom: '20px',
-      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-      pageBreakAfter: 'always',
-      breakAfter: 'page'
-    }}
-  >
-    {children}
-  </div>
-);
-
 const CornerTriangle = ({ customLogo }) => (
   <div className="absolute top-0 left-0 w-[120px] h-[120px] z-20 pointer-events-none">
     <div className="absolute top-0 left-0 w-full h-full bg-[#2E86C1]" style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)', printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' }}></div>
