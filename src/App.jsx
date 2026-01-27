@@ -100,7 +100,7 @@ const paginateExperiences = (experiences) => {
   return pages;
 };
 
-// --- SOUS-COMPOSANTS DE STRUCTURE PDF ---
+// --- SOUS-COMPOSANTS DE STRUCTURE PDF (DÉFINITIONS UNIQUES) ---
 
 const A4Page = ({ children, className = "" }) => (
   <div 
@@ -327,7 +327,7 @@ export default function App() {
   
   const [cvData, setCvData] = useState(() => {
     try {
-      const saved = localStorage.getItem('smile_cv_data_final_stable_v11');
+      const saved = localStorage.getItem('smile_cv_data_final_stable_v12');
       if (saved) return JSON.parse(saved);
     } catch(e) { console.error(e); }
     return DEFAULT_CV_DATA;
@@ -337,7 +337,7 @@ export default function App() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      localStorage.setItem('smile_cv_data_final_stable_v11', JSON.stringify(cvData));
+      localStorage.setItem('smile_cv_data_final_stable_v12', JSON.stringify(cvData));
       setLastSaved(new Date());
     }, 1000);
     return () => clearTimeout(timer);
@@ -354,7 +354,7 @@ export default function App() {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newSkillsInput, setNewSkillsInput] = useState({});
 
-  const resetCV = () => { if (confirm("Réinitialiser tout le CV ?")) { localStorage.removeItem('smile_cv_data_final_stable_v11'); setCvData(DEFAULT_CV_DATA); } };
+  const resetCV = () => { if (confirm("Réinitialiser tout le CV ?")) { localStorage.removeItem('smile_cv_data_final_stable_v12'); setCvData(DEFAULT_CV_DATA); } };
   const downloadJSON = () => { const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(cvData)); a.download = `${getFilenameBase()}.json`; a.click(); };
   const uploadJSON = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (ev) => { try { setCvData(JSON.parse(ev.target.result)); } catch (err) { alert("Invalide"); } }; reader.readAsText(file); };
   
@@ -378,7 +378,7 @@ export default function App() {
   const removeExperience = (id) => setCvData(p => ({ ...p, experiences: p.experiences.filter(e => e.id !== id) }));
   
   const addSkillCategory = () => { if (newCategoryName) { setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [newCategoryName]: [] } })); setNewCategoryName(""); } };
-  const deleteCategory = (n) => setCvData(p => { const newC = { ...p.skills_categories }; delete newC[n]; return { ...p, skills_categories: newC }; });
+  const deleteCategory = (n) => setCvData(p => { const newC = { ...p.skills_categories }; delete n[editingCategory?.oldName || n]; return { ...p, skills_categories: newC }; });
   const updateSkillInCategory = (cat, idx, f, v) => setCvData(p => { const s = [...p.skills_categories[cat]]; s[idx] = { ...s[idx], [f]: v }; return { ...p, skills_categories: { ...p.skills_categories, [cat]: s } }; });
   const addSkillToCategory = (cat) => { const i = newSkillsInput[cat] || { name: '', rating: 3 }; if (i.name) { setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [cat]: [...p.skills_categories[cat], { name: i.name, rating: i.rating }] } })); setNewSkillsInput(p => ({ ...p, [cat]: { name: '', rating: 3 } })); } };
   const updateNewSkillInput = (cat, field, val) => { setNewSkillsInput(p => ({ ...p, [cat]: { ...(p[cat] || { name: '', rating: 3 }), [field]: val } })); };
@@ -422,10 +422,18 @@ export default function App() {
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-8 custom-scrollbar">
-           {/* STEP 1 */}
            {step === 1 && (
             <div className="space-y-6 animate-in slide-in-from-right transition-all">
               <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><User size={24} /><h2 className="text-lg font-bold uppercase">Profil</h2></div>
+              
+              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex gap-3">
+                <div className="text-[#2E86C1] shrink-0 mt-0.5"><HelpCircle size={18} /></div>
+                <div>
+                  <h4 className="text-xs font-bold text-[#2E86C1] uppercase mb-1 text-left">Aide IA</h4>
+                  <p className="text-[11px] text-slate-600 leading-tight text-left">Cliquez sur les logos IA au-dessus des champs de texte pour copier votre texte avec une consigne d'amélioration et ouvrir l'outil dans un nouvel onglet.</p>
+                </div>
+              </div>
+
               <div className="mb-6 p-4 border border-blue-100 bg-blue-50/50 rounded-lg flex flex-col gap-2"><span className="text-[10px] font-bold text-[#2E86C1] uppercase text-left">Logo Entreprise</span><DropZoneUI onFile={handleSmileLogo} label={cvData.smileLogo ? "Changer" : "Logo"} className="h-24 bg-white" /></div>
               <div className="grid grid-cols-2 gap-4"><InputUI label="Prénom" value={cvData.profile.firstname} onChange={(v) => handleProfileChange('firstname', v)} /><InputUI label="NOM" value={cvData.profile.lastname} onChange={(v) => handleProfileChange('lastname', v)} /></div>
               <div className="grid grid-cols-2 gap-4"><InputUI label="Années XP" value={cvData.profile.years_experience} onChange={(v) => handleProfileChange('years_experience', v)} /><InputUI label="Techno Principale" value={cvData.profile.main_tech} onChange={(v) => handleProfileChange('main_tech', v)} /></div>
@@ -434,14 +442,12 @@ export default function App() {
               <div className="bg-white p-4 rounded-xl border border-slate-200"><label className="text-xs font-bold text-[#333333] uppercase block mb-3 text-left">Bandeau Technos</label><LogoSelectorUI onSelect={addTechLogo} label="Ajouter" /><div className="flex flex-wrap gap-2 mt-4">{cvData.profile.tech_logos.map((logo, i) => (<div key={i} className="relative group bg-slate-100 p-2 rounded-md border border-slate-200"><img src={logo.src} className="w-6 h-6 object-contain" alt={logo.name} /><button onClick={() => removeTechLogo(i)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100"><X size={10} /></button></div>))}</div></div>
             </div>
            )}
-           {/* STEP 2 */}
            {step === 2 && (
             <div className="space-y-6 animate-in slide-in-from-right transition-all">
                <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><Hexagon size={24} /><h2 className="text-lg font-bold uppercase">Soft Skills</h2></div>
                {[0, 1, 2].map(i => (<InputUI key={i} label={`Hexagone #${i+1}`} value={cvData.soft_skills[i]} onChange={(v) => {const s = [...cvData.soft_skills]; s[i] = v; setCvData(p => ({...p, soft_skills: s}));}} />))}
             </div>
            )}
-           {/* STEP 3 (Formation & Compétences) */}
            {step === 3 && (
              <div className="space-y-8 animate-in slide-in-from-right transition-all">
                <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><Cpu size={24} /><h2 className="text-lg font-bold uppercase">Compétences & Formation</h2></div>
@@ -483,11 +489,14 @@ export default function App() {
                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                  <h3 className="text-[10px] font-black uppercase text-slate-400 mb-4">Compétences Notées</h3>
                  <div className="flex gap-2 mb-6"><input className="flex-1 px-3 py-2 bg-slate-50 border rounded text-xs" placeholder="Nouvelle Catégorie" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addSkillCategory()} /><ButtonUI variant="outline" className="px-3 py-1 text-xs" onClick={addSkillCategory}><Plus size={12}/></ButtonUI></div>
-                 {Object.entries(cvData.skills_categories).map(([cat, skills]) => (<div key={cat} className="mb-4 p-3 bg-slate-50/50 rounded-lg border border-slate-100"><div className="flex justify-between items-center mb-2"><h4 className="text-xs font-bold text-slate-700 uppercase">{cat}</h4><button onClick={() => deleteCategory(cat)} className="text-red-300 hover:text-red-500"><Trash2 size={12}/></button></div><div className="space-y-1">{skills.map((skill, idx) => (<div key={idx} className="flex items-center justify-between text-xs bg-white p-1.5 rounded shadow-sm"><input className="font-medium text-slate-600 bg-transparent border-none p-0 focus:ring-0 w-1/2" value={skill.name} onChange={(e) => updateSkillInCategory(cat, idx, 'name', e.target.value)} /><HexagonRating score={skill.rating} onChange={(r) => updateSkillInCategory(cat, idx, 'rating', r)} /></div>))}</div><div className="mt-2 flex gap-1"><input className="flex-1 px-2 py-1 text-[10px] border border-slate-200 rounded" placeholder="Add..." value={newSkillsInput[cat]?.name || ''} onChange={(e) => updateNewSkillInput(cat, 'name', e.target.value)} /><ButtonUI variant="primary" className="p-1 h-auto" onClick={() => addSkillToCategory(cat)}><Plus size={10}/></ButtonUI></div></div>))}
+                 {Object.entries(cvData.skills_categories).map(([cat, skills]) => (<div key={cat} className="mb-4 p-3 bg-slate-50/50 rounded-lg border border-slate-100"><div className="flex justify-between items-center mb-2"><h4 className="text-xs font-bold text-slate-700 uppercase">{cat}</h4><button onClick={() => deleteCategory(cat)} className="text-red-300 hover:text-red-500"><Trash2 size={12}/></button></div><div className="space-y-1">{skills.map((skill, idx) => (
+                       <div key={idx} className="flex items-center justify-between text-xs bg-white p-1.5 rounded shadow-sm">
+                         <input className="font-medium text-slate-600 bg-transparent border-none p-0 focus:ring-0 w-1/2" value={skill.name} onChange={(e) => updateSkillInCategory(cat, idx, 'name', e.target.value)} /><HexagonRating score={skill.rating} onChange={(r) => updateSkillInCategory(cat, idx, 'rating', r)} />
+                       </div>
+                     ))}</div><div className="mt-2 flex gap-1"><input className="flex-1 px-2 py-1 text-[10px] border border-slate-200 rounded" placeholder="Add..." value={newSkillsInput[cat]?.name || ''} onChange={(e) => updateNewSkillInput(cat, 'name', e.target.value)} /><ButtonUI variant="primary" className="p-1 h-auto" onClick={() => addSkillToCategory(cat)}><Plus size={10}/></ButtonUI></div></div>))}
                </div>
              </div>
            )}
-           {/* STEP 4 (Expériences) */}
            {step === 4 && (
             <div className="space-y-8 animate-in slide-in-from-right transition-all">
               <div className="flex justify-between items-center mb-4 text-[#2E86C1]"><div className="flex items-center gap-3"><Briefcase size={24} /><h2 className="text-lg font-bold uppercase">Expériences</h2></div><ButtonUI onClick={addExperience} variant="outline" className="px-3 py-1 text-xs"><Plus size={14} /> Ajouter</ButtonUI></div>
@@ -556,7 +565,12 @@ export default function App() {
               <div className="grid grid-cols-12 gap-10 mt-20 h-full px-12 flex-1 pb-32 overflow-hidden print:overflow-visible">
                   <div className="col-span-5 border-r border-slate-100 pr-8">
                     <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-8 flex items-center gap-2"><Cpu size={20}/> Mes Compétences</h3>
-                    <div className="space-y-8">{Object.entries(cvData.skills_categories).map(([cat, skills]) => (<div key={cat}><h4 className="text-[10px] font-bold text-[#999999] uppercase tracking-widest border-b border-slate-100 pb-2 mb-3">{cat}</h4><div className="space-y-3">{skills.map((skill, i) => (<div key={i} className="flex items-center justify-between"><span className="text-xs font-bold text-[#333333] uppercase">{skill.name}</span><HexagonRating score={skill.rating} /></div>))}</div></div>))}</div>
+                    <div className="space-y-8">{Object.entries(cvData.skills_categories).map(([cat, skills]) => (<div key={cat}><h4 className="text-[10px] font-bold text-[#999999] uppercase tracking-widest border-b border-slate-100 pb-2 mb-3">{cat}</h4><div className="space-y-3">{skills.map((skill, i) => (
+                                 <div key={i} className="flex items-center justify-between">
+                                    <span className="text-xs font-bold text-[#333333] uppercase">{skill.name}</span>
+                                    <HexagonRating score={skill.rating} />
+                                 </div>
+                               ))}</div></div>))}</div>
                   </div>
                   <div className="col-span-7 flex flex-col gap-10">
                     {cvData.showSecteur && cvData.connaissances_sectorielles.length > 0 && (<section><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2"><Factory size={20}/> Connaissances Sectorielles</h3><div className="flex flex-wrap gap-2">{cvData.connaissances_sectorielles.map((s, i) => (<span key={i} className="border-2 border-[#2E86C1] text-[#2E86C1] text-[10px] font-black px-3 py-1 rounded uppercase tracking-wider">{s}</span>))}</div></section>)}
