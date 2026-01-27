@@ -175,11 +175,11 @@ const ExperienceItem = ({ exp }) => (
       {exp.objective && (
         <div className="mb-4">
            <h5 className="text-[10px] font-bold text-[#2E86C1] uppercase mb-1">Objectif</h5>
-           <p className="text-sm text-[#333333] leading-relaxed" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.objective)}}></p>
+           <p className="text-sm text-[#333333] leading-relaxed break-words" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.objective)}}></p>
         </div>
       )}
       <div className="flex gap-8 mt-4 pt-4 border-t border-slate-50">
-         <div className="flex-1"><h5 className="text-[10px] font-bold text-[#999999] uppercase mb-1">Réalisation</h5><p className="text-xs font-medium text-[#333333]" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.phases)}}></p></div>
+         <div className="flex-1"><h5 className="text-[10px] font-bold text-[#999999] uppercase mb-1">Réalisation</h5><p className="text-xs font-medium text-[#333333] break-words" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.phases)}}></p></div>
          <div className="flex-[2]"><h5 className="text-[10px] font-bold text-[#999999] uppercase mb-1">Environnement</h5><div className="flex flex-wrap gap-1">{(exp.tech_stack || []).map((t, i) => <span key={i} className="text-xs font-bold text-[#2E86C1] bg-blue-50 px-2 py-0.5 rounded">{t}</span>)}</div></div>
       </div>
     </div>
@@ -217,10 +217,7 @@ const RichTextareaUI = ({ label, value, onChange, placeholder, maxLength }) => {
   const handleTextChange = (e) => {
     const val = e.target.value;
     const lines = val.split('\n');
-    if (lines.length > 30) {
-      // On bloque à 30 lignes
-      return;
-    }
+    if (lines.length > 30) return; 
     onChange(val);
   };
 
@@ -235,21 +232,15 @@ const RichTextareaUI = ({ label, value, onChange, placeholder, maxLength }) => {
     const after = text.substring(end);
 
     if (tag === 'b') {
-      const newText = `${before}<b>${selected}</b>${after}`;
-      onChange(newText);
-    } 
-    
-    if (tag === 'list') {
+      onChange(`${before}<b>${selected}</b>${after}`);
+    } else if (tag === 'list') {
       if (start !== end) {
-        const lines = selected.split('\n');
-        const bulletedLines = lines.map(line => 
+        const bulletedLines = selected.split('\n').map(line => 
           line.trim() === "" ? line : (line.startsWith('• ') ? line : `• ${line}`)
         ).join('\n');
-        const newText = before + bulletedLines + after;
-        onChange(newText);
+        onChange(before + bulletedLines + after);
       } else {
-        const newText = `${before}• ${after}`;
-        onChange(newText);
+        onChange(`${before}• ${after}`);
       }
     }
   };
@@ -261,12 +252,6 @@ const RichTextareaUI = ({ label, value, onChange, placeholder, maxLength }) => {
     }
     window.open(url, '_blank');
   };
-
-  const llmTools = [
-    { name: 'ChatGPT', url: 'https://chat.openai.com/', icon: 'openai' },
-    { name: 'Gemini', url: 'https://gemini.google.com/', icon: 'googlegemini' },
-    { name: 'Claude', url: 'https://claude.ai/', icon: 'anthropic/000000' }
-  ];
 
   const currentLines = value?.split('\n').length || 0;
 
@@ -281,8 +266,10 @@ const RichTextareaUI = ({ label, value, onChange, placeholder, maxLength }) => {
           <ButtonUI variant="toolbar" onClick={() => insertTag('b')} title="Gras"><Bold size={12}/></ButtonUI>
           <ButtonUI variant="toolbar" onClick={() => insertTag('list')} title="Puce"><List size={12}/></ButtonUI>
           <div className="w-px h-3 bg-slate-300 mx-1"></div>
-          <span className="text-[9px] text-slate-400 font-bold mr-1 uppercase">IA:</span>
-          {llmTools.map((tool) => (
+          <span className="text-[9px] text-slate-400 font-bold mr-1 uppercase tracking-tighter">IA:</span>
+          {[{ name: 'ChatGPT', url: 'https://chat.openai.com/', icon: 'openai' },
+            { name: 'Gemini', url: 'https://gemini.google.com/', icon: 'googlegemini' },
+            { name: 'Claude', url: 'https://claude.ai/', icon: 'anthropic/000000' }].map((tool) => (
             <button key={tool.name} onClick={() => copyToClipboard(tool.url)} className="p-1 hover:bg-slate-100 rounded transition-all hover:scale-110 grayscale hover:grayscale-0 opacity-70 hover:opacity-100" title={`Copier & Ouvrir ${tool.name}`}>
               <img src={getBrandIconUrl(tool.icon)} className="w-4 h-4" alt={tool.name} />
             </button>
@@ -340,7 +327,7 @@ export default function App() {
   
   const [cvData, setCvData] = useState(() => {
     try {
-      const saved = localStorage.getItem('smile_cv_data_v8_stable');
+      const saved = localStorage.getItem('smile_cv_data_final_stable_v9');
       if (saved) return JSON.parse(saved);
     } catch(e) { console.error(e); }
     return DEFAULT_CV_DATA;
@@ -350,7 +337,7 @@ export default function App() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      localStorage.setItem('smile_cv_data_v8_stable', JSON.stringify(cvData));
+      localStorage.setItem('smile_cv_data_final_stable_v9', JSON.stringify(cvData));
       setLastSaved(new Date());
     }, 1000);
     return () => clearTimeout(timer);
@@ -362,14 +349,12 @@ export default function App() {
     return `CV ${year} - ${clean(cvData.profile.lastname)} - ${clean(cvData.profile.firstname)} - ${clean(cvData.profile.current_role)}`;
   };
 
-  useEffect(() => {
-    document.title = getFilenameBase();
-  }, [cvData.profile]);
+  useEffect(() => { document.title = getFilenameBase(); }, [cvData.profile]);
 
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newSkillsInput, setNewSkillsInput] = useState({});
 
-  const resetCV = () => { if (confirm("Réinitialiser tout le CV ?")) { localStorage.removeItem('smile_cv_data_v8_stable'); setCvData(DEFAULT_CV_DATA); } };
+  const resetCV = () => { if (confirm("Réinitialiser tout le CV ?")) { localStorage.removeItem('smile_cv_data_final_stable_v9'); setCvData(DEFAULT_CV_DATA); } };
   const downloadJSON = () => { const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(cvData)); a.download = `${getFilenameBase()}.json`; a.click(); };
   const uploadJSON = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (ev) => { try { setCvData(JSON.parse(ev.target.result)); } catch (err) { alert("Invalide"); } }; reader.readAsText(file); };
   
@@ -416,7 +401,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col md:flex-row h-screen overflow-hidden font-sans">
       
-      {/* --- WIZARD --- */}
+      {/* FORMULAIRE */}
       <div className="w-full md:w-[500px] bg-white border-r border-slate-200 flex flex-col h-full z-10 shadow-xl print:hidden">
         <div className="bg-slate-50 border-b border-slate-200 p-2 flex justify-between items-center px-4 text-xs">
            <div className="flex gap-1">
@@ -424,8 +409,8 @@ export default function App() {
              <ButtonUI variant="ghost" className="px-2 py-1 h-7 text-slate-400" onClick={downloadJSON} title="Save"><Save size={14}/></ButtonUI>
              <ButtonUI variant="ghost" className="px-2 py-1 h-7 text-slate-400" onClick={() => jsonInputRef.current.click()} title="Load"><FolderOpen size={14}/></ButtonUI>
              <input type="file" ref={jsonInputRef} className="hidden" accept=".json" onChange={uploadJSON} />
-             <ButtonUI variant={cvData.isAnonymous ? "danger" : "secondary"} className="px-2 py-1 h-7" onClick={() => setCvData(p => ({...p, isAnonymous: !p.isAnonymous}))}>{cvData.isAnonymous ? "Visible" : "Anonymiser"}</ButtonUI>
            </div>
+           <ButtonUI variant={cvData.isAnonymous ? "danger" : "secondary"} className="px-2 py-1 h-7" onClick={() => setCvData(p => ({...p, isAnonymous: !p.isAnonymous}))}>{cvData.isAnonymous ? "Visible" : "Anonymiser"}</ButtonUI>
         </div>
 
         <div className="p-6 border-b border-slate-100 bg-white sticky top-0 z-20">
@@ -437,7 +422,6 @@ export default function App() {
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-8 custom-scrollbar">
-           {/* Étape 1 : Profil */}
            {step === 1 && (
             <div className="space-y-6 animate-in slide-in-from-right transition-all">
               <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><User size={24} /><h2 className="text-lg font-bold uppercase">Profil</h2></div>
@@ -449,18 +433,15 @@ export default function App() {
               <div className="bg-white p-4 rounded-xl border border-slate-200"><label className="text-xs font-bold text-[#333333] uppercase block mb-3 text-left">Bandeau Technos</label><LogoSelectorUI onSelect={addTechLogo} label="Ajouter" /><div className="flex flex-wrap gap-2 mt-4">{cvData.profile.tech_logos.map((logo, i) => (<div key={i} className="relative group bg-slate-100 p-2 rounded-md border border-slate-200"><img src={logo.src} className="w-6 h-6 object-contain" alt={logo.name} /><button onClick={() => removeTechLogo(i)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100"><X size={10} /></button></div>))}</div></div>
             </div>
            )}
-           {/* Étape 2 : Soft Skills */}
            {step === 2 && (
             <div className="space-y-6 animate-in slide-in-from-right transition-all">
                <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><Hexagon size={24} /><h2 className="text-lg font-bold uppercase">Soft Skills</h2></div>
                {[0, 1, 2].map(i => (<InputUI key={i} label={`Hexagone #${i+1}`} value={cvData.soft_skills[i]} onChange={(v) => {const s = [...cvData.soft_skills]; s[i] = v; setCvData(p => ({...p, soft_skills: s}));}} />))}
             </div>
            )}
-           {/* Étape 3 : Compétences & Formation */}
            {step === 3 && (
              <div className="space-y-8 animate-in slide-in-from-right transition-all">
                <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><Cpu size={24} /><h2 className="text-lg font-bold uppercase">Compétences & Formation</h2></div>
-               
                <div className="grid grid-cols-2 gap-4">
                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm">
                    <div className="flex justify-between items-center mb-3">
@@ -473,77 +454,34 @@ export default function App() {
                    </div>
                    <div className="flex flex-wrap gap-1">{cvData.connaissances_sectorielles.map((s, i) => (<span key={i} className="bg-white text-[9px] font-bold px-2 py-0.5 rounded border border-slate-200 flex items-center gap-1 uppercase">{s} <X size={10} className="cursor-pointer text-red-300" onClick={() => removeSecteur(i)}/></span>))}</div>
                  </div>
-
                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm">
                    <div className="flex justify-between items-center mb-3">
                      <h3 className="text-[10px] font-black uppercase text-slate-400">Certifs</h3>
                      <button onClick={() => setCvData(p => ({...p, showCertif: !p.showCertif}))}>{cvData.showCertif ? <ToggleRight className="text-green-500"/> : <ToggleLeft className="text-slate-300"/>}</button>
                    </div>
-                   <LogoSelectorUI onSelect={addCertification} label="" />
-                   <div className="mt-2 space-y-1">{cvData.certifications.map((c, i) => (
-                     <div key={i} className="flex flex-col bg-white p-2 rounded border border-slate-100 group shadow-sm">
-                       <div className="flex justify-between items-center mb-1">
-                         <div className="w-6 h-6 border rounded overflow-hidden flex items-center justify-center bg-slate-50">
-                            {c.logo ? <img src={c.logo} className="max-w-full max-h-full object-contain" /> : null}
-                         </div>
-                         <button onClick={() => removeCertification(i)} className="text-red-300 hover:text-red-500"><X size={10}/></button>
-                       </div>
-                       <input className="w-full text-[10px] font-bold bg-transparent outline-none focus:text-blue-500 border-b border-transparent focus:border-blue-200 uppercase" value={c.name} onChange={(e) => updateCertification(i, 'name', e.target.value)} />
-                     </div>
-                   ))}</div>
+                   <LogoSelectorUI onSelect={addCertification} label="" /><div className="mt-2 space-y-1">{cvData.certifications.map((c, i) => (<div key={i} className="flex flex-col bg-white p-2 rounded border border-slate-100 group shadow-sm"><div className="flex justify-between items-center mb-1"><div className="w-6 h-6 overflow-hidden flex items-center justify-center">{c.logo ? <img src={c.logo} className="max-w-full max-h-full object-contain" /> : null}</div><button onClick={() => removeCertification(i)} className="text-red-300 hover:text-red-500"><X size={10}/></button></div><input className="w-full text-[10px] font-bold bg-transparent outline-none focus:text-blue-500 border-b border-transparent focus:border-blue-200 uppercase" value={c.name} onChange={(e) => updateCertification(i, 'name', e.target.value)} /></div>))}</div>
                  </div>
                </div>
-
                <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 shadow-sm">
                  <h3 className="text-[10px] font-black uppercase text-slate-400 mb-4">Formation Académique</h3>
-                 {cvData.education.map((edu, i) => (
-                   <div key={i} className="bg-white p-3 rounded-lg border border-slate-200 mb-3 relative group shadow-sm">
-                     <button onClick={() => removeEducation(i)} className="absolute top-2 right-2 text-slate-300 hover:text-red-500"><Trash2 size={12}/></button>
-                     <InputUI label="Diplôme" value={edu.degree} onChange={v => updateEducation(i, 'degree', v)} />
-                     <div className="grid grid-cols-2 gap-2"><InputUI label="Année" value={edu.year} onChange={v => updateEducation(i, 'year', v)} /><InputUI label="Lieu" value={edu.location} onChange={v => updateEducation(i, 'location', v)} /></div>
-                   </div>
-                 ))}
+                 {cvData.education.map((edu, i) => (<div key={i} className="bg-white p-3 rounded-lg border border-slate-200 mb-3 relative group shadow-sm"><button onClick={() => removeEducation(i)} className="absolute top-2 right-2 text-slate-300 hover:text-red-500"><Trash2 size={12}/></button><InputUI label="Diplôme" value={edu.degree} onChange={v => updateEducation(i, 'degree', v)} /><div className="grid grid-cols-2 gap-2"><InputUI label="Année" value={edu.year} onChange={v => updateEducation(i, 'year', v)} /><InputUI label="Lieu" value={edu.location} onChange={v => updateEducation(i, 'location', v)} /></div></div>))}
                  <ButtonUI onClick={addEducation} variant="secondary" className="w-full text-xs py-2">Ajouter Formation</ButtonUI>
                </div>
-               
                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                  <h3 className="text-[10px] font-black uppercase text-slate-400 mb-4">Compétences Notées</h3>
                  <div className="flex gap-2 mb-6"><input className="flex-1 px-3 py-2 bg-slate-50 border rounded text-xs" placeholder="Nouvelle Catégorie" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addSkillCategory()} /><ButtonUI variant="outline" className="px-3 py-1 text-xs" onClick={addSkillCategory}><Plus size={12}/></ButtonUI></div>
-                 {Object.entries(cvData.skills_categories).map(([cat, skills]) => (
-                   <div key={cat} className="mb-4 p-3 bg-slate-50/50 rounded-lg border border-slate-100">
-                     <div className="flex justify-between items-center mb-2"><h4 className="text-xs font-bold text-slate-700 uppercase">{cat}</h4><button onClick={() => deleteCategory(cat)} className="text-red-300 hover:text-red-500"><Trash2 size={12}/></button></div>
-                     <div className="space-y-1">{skills.map((skill, idx) => (
-                       <div key={idx} className="flex items-center justify-between text-xs bg-white p-1.5 rounded shadow-sm">
-                         <input className="font-medium text-slate-600 bg-transparent border-none p-0 focus:ring-0 w-1/2" value={skill.name} onChange={(e) => updateSkillInCategory(cat, idx, 'name', e.target.value)} /><HexagonRating score={skill.rating} onChange={(r) => updateSkillInCategory(cat, idx, 'rating', r)} />
-                       </div>
-                     ))}</div>
-                     <div className="mt-2 flex gap-1"><input className="flex-1 px-2 py-1 text-[10px] border border-slate-200 rounded" placeholder="Add..." value={newSkillsInput[cat]?.name || ''} onChange={(e) => updateNewSkillInput(cat, 'name', e.target.value)} /><ButtonUI variant="primary" className="p-1 h-auto" onClick={() => addSkillToCategory(cat)}><Plus size={10}/></ButtonUI></div>
-                   </div>
-                 ))}
+                 {Object.entries(cvData.skills_categories).map(([cat, skills]) => (<div key={cat} className="mb-4 p-3 bg-slate-50/50 rounded-lg border border-slate-100"><div className="flex justify-between items-center mb-2"><h4 className="text-xs font-bold text-slate-700 uppercase">{cat}</h4><button onClick={() => deleteCategory(cat)} className="text-red-300 hover:text-red-500"><Trash2 size={12}/></button></div><div className="space-y-1">{skills.map((skill, idx) => (<div key={idx} className="flex items-center justify-between text-xs bg-white p-1.5 rounded shadow-sm"><input className="font-medium text-slate-600 bg-transparent border-none p-0 focus:ring-0 w-1/2" value={skill.name} onChange={(e) => updateSkillInCategory(cat, idx, 'name', e.target.value)} /><HexagonRating score={skill.rating} onChange={(r) => updateSkillInCategory(cat, idx, 'rating', r)} /></div>))}</div><div className="mt-2 flex gap-1"><input className="flex-1 px-2 py-1 text-[10px] border border-slate-200 rounded" placeholder="Add..." value={newSkillsInput[cat]?.name || ''} onChange={(e) => updateNewSkillInput(cat, 'name', e.target.value)} /><ButtonUI variant="primary" className="p-1 h-auto" onClick={() => addSkillToCategory(cat)}><Plus size={10}/></ButtonUI></div></div>))}
                </div>
              </div>
            )}
-           {/* Étape 4 : Expériences */}
            {step === 4 && (
             <div className="space-y-8 animate-in slide-in-from-right transition-all">
               <div className="flex justify-between items-center mb-4 text-[#2E86C1]"><div className="flex items-center gap-3"><Briefcase size={24} /><h2 className="text-lg font-bold uppercase">Expériences</h2></div><ButtonUI onClick={addExperience} variant="outline" className="px-3 py-1 text-xs"><Plus size={14} /> Ajouter</ButtonUI></div>
               {cvData.experiences.map((exp, index) => (
                 <div key={exp.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm relative group mb-4">
-                  <div className="absolute top-4 right-4 flex gap-1">
-                    <button onClick={() => moveExperience(index, 'up')} disabled={index === 0} className="p-1 hover:bg-slate-100 rounded disabled:opacity-20" title="Monter"><ChevronUp size={14}/></button>
-                    <button onClick={() => moveExperience(index, 'down')} disabled={index === cvData.experiences.length - 1} className="p-1 hover:bg-slate-100 rounded disabled:opacity-20" title="Descendre"><ChevronDown size={14}/></button>
-                    <button onClick={() => removeExperience(exp.id)} className="p-1 text-red-400 hover:bg-red-50 rounded ml-2"><Trash2 size={14}/></button>
-                  </div>
-                  <div className="mb-4">
-                    <span className="text-xs font-bold text-[#333333] uppercase block mb-2 text-left">Logo Client</span>
-                    <LogoSelectorUI label="" onSelect={(logo) => updateExperience(exp.id, 'client_logo', logo.src)} />
-                  </div>
-                  
-                  <div className="mb-4 flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-100">
-                    <div className="flex items-center gap-2"><FilePlus size={16} className="text-[#2E86C1]"/><span className="text-xs font-bold text-slate-600">Saut de page manuel</span></div>
-                    <button onClick={() => updateExperience(exp.id, 'forceNewPage', !exp.forceNewPage)}>{exp.forceNewPage ? <ToggleRight className="text-green-500"/> : <ToggleLeft className="text-slate-300"/>}</button>
-                  </div>
-
+                  <div className="absolute top-4 right-4 flex gap-1"><button onClick={() => moveExperience(index, 'up')} disabled={index === 0} className="p-1 hover:bg-slate-100 rounded disabled:opacity-20" title="Monter"><ChevronUp size={14}/></button><button onClick={() => moveExperience(index, 'down')} disabled={index === cvData.experiences.length - 1} className="p-1 hover:bg-slate-100 rounded disabled:opacity-20" title="Descendre"><ChevronDown size={14}/></button><button onClick={() => removeExperience(exp.id)} className="p-1 text-red-400 hover:bg-red-50 rounded ml-2"><Trash2 size={14}/></button></div>
+                  <div className="mb-4"><span className="text-xs font-bold text-[#333333] uppercase block mb-2 text-left">Logo Client</span><LogoSelectorUI label="" onSelect={(logo) => updateExperience(exp.id, 'client_logo', logo.src)} /></div>
+                  <div className="mb-4 flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-100"><div className="flex items-center gap-2"><FilePlus size={16} className="text-[#2E86C1]"/><span className="text-xs font-bold text-slate-600">Saut de page manuel</span></div><button onClick={() => updateExperience(exp.id, 'forceNewPage', !exp.forceNewPage)}>{exp.forceNewPage ? <ToggleRight className="text-green-500"/> : <ToggleLeft className="text-slate-300"/>}</button></div>
                   <InputUI label="Client" value={exp.client_name} onChange={(v) => updateExperience(exp.id, 'client_name', v)} />
                   <InputUI label="Rôle" value={exp.role} onChange={(v) => updateExperience(exp.id, 'role', v)} />
                   <InputUI label="Période" value={exp.period} onChange={(v) => updateExperience(exp.id, 'period', v)} />
@@ -556,7 +494,7 @@ export default function App() {
         </div>
       </div>
 
-      {/* --- PREVIEW AREA --- */}
+      {/* PREVIEW */}
       <div className="flex-1 bg-slate-800 overflow-hidden relative flex flex-col items-center">
         <div className="absolute bottom-6 z-50 flex items-center gap-4 bg-white/90 backdrop-blur px-6 py-2 rounded-full shadow-2xl border border-white/20 print:hidden transition-all hover:scale-105">
            <button onClick={() => setZoom(Math.max(0.2, zoom - 0.1))} className="p-2 hover:bg-slate-100 rounded-full"><ZoomOut size={18} /></button>
@@ -565,12 +503,8 @@ export default function App() {
         </div>
 
         <div className="flex-1 overflow-auto w-full p-8 flex justify-center custom-scrollbar">
-          <div 
-            className="print-container flex flex-col origin-top transition-transform duration-300 gap-10" 
-            style={{ transform: `scale(${zoom})`, marginBottom: `${zoom * 100}px` }}
-          >
-            
-            {/* ELEMENT 1 : PAGE DE GARDE */}
+          <div className="print-container flex flex-col origin-top transition-transform duration-300 gap-10" style={{ transform: `scale(${zoom})`, marginBottom: `${zoom * 100}px` }}>
+            {/* PAGE 1 */}
             <A4Page>
               <CornerTriangle customLogo={cvData.smileLogo} />
               <div className="pt-24 px-16 pb-0 flex-shrink-0">
@@ -579,24 +513,29 @@ export default function App() {
                  <h2 className="text-3xl font-bold text-[#333333] uppercase mb-4 tracking-wide font-montserrat">{cvData.profile.current_role}</h2>
                  <div className="text-xl text-[#666666] font-medium uppercase tracking-widest mb-10 border-l-4 border-[#2E86C1] pl-4">{cvData.profile.main_tech}</div>
               </div>
-              <div className="px-16 mb-16 relative z-10 flex-1 overflow-hidden pb-32">
-                 <p className="text-lg text-[#333333] leading-relaxed italic border-t border-slate-100 pt-8" dangerouslySetInnerHTML={{__html: formatTextForPreview(`"${cvData.profile.summary}"`)}}></p>
-              </div>
-              <div className="w-full bg-[#2E86C1] py-6 px-16 mb-8 flex items-center justify-center gap-10 shadow-inner relative z-10 flex-shrink-0">
-                {cvData.profile.tech_logos.map((logo, i) => (<img key={i} src={logo.src} className="h-14 w-auto object-contain brightness-0 invert opacity-95 transition-transform hover:scale-110" alt={logo.name} />))}
-              </div>
-              <div className="flex justify-center gap-12 relative z-10 px-10 mb-24 flex-shrink-0">
-                {cvData.soft_skills.map((skill, i) => (
-                  <div key={i} className="relative w-40 h-44 flex items-center justify-center">
-                    <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full text-[#2E86C1] fill-current drop-shadow-xl"><polygon points="50 0, 100 25, 100 75, 50 100, 0 75, 0 25" /></svg>
-                    <span className="relative z-10 text-white font-bold text-sm uppercase text-center px-4 leading-tight font-montserrat">{skill || "Soft Skill"}</span>
+              
+              <div className="flex-1 flex flex-col justify-center pb-12 overflow-hidden">
+                  <div className="px-24 mb-10 relative z-10 flex flex-col items-center">
+                     <p className="text-lg text-[#333333] leading-relaxed italic border-t border-slate-100 pt-8 text-center break-words w-full max-w-[160mm]" 
+                        style={{ whiteSpace: 'normal' }}
+                        dangerouslySetInnerHTML={{__html: formatTextForPreview(`"${cvData.profile.summary}"`)}}></p>
                   </div>
-                ))}
+                  <div className="w-full bg-[#2E86C1] py-6 px-16 mb-10 flex items-center justify-center gap-10 shadow-inner relative z-10 flex-shrink-0">
+                    {cvData.profile.tech_logos.map((logo, i) => (<img key={i} src={logo.src} className="h-14 w-auto object-contain brightness-0 invert opacity-95 transition-transform hover:scale-110" alt={logo.name} />))}
+                  </div>
+                  <div className="flex justify-center gap-12 relative z-10 px-10 flex-shrink-0">
+                    {cvData.soft_skills.map((skill, i) => (
+                      <div key={i} className="relative w-40 h-44 flex items-center justify-center">
+                        <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full text-[#2E86C1] fill-current drop-shadow-xl"><polygon points="50 0, 100 25, 100 75, 50 100, 0 75, 0 25" /></svg>
+                        <span className="relative z-10 text-white font-bold text-sm uppercase text-center px-4 leading-tight font-montserrat">{skill || "Soft Skill"}</span>
+                      </div>
+                    ))}
+                  </div>
               </div>
               <Footer />
             </A4Page>
 
-            {/* ELEMENT 2 : FORMATION & COMPETENCES */}
+            {/* PAGE 2 */}
             <A4Page>
               <CornerTriangle customLogo={cvData.smileLogo} />
               <HeaderSmall name={formatName()} role={cvData.profile.current_role} />
@@ -606,63 +545,41 @@ export default function App() {
                     <div className="space-y-8">{Object.entries(cvData.skills_categories).map(([cat, skills]) => (<div key={cat}><h4 className="text-[10px] font-bold text-[#999999] uppercase tracking-widest border-b border-slate-100 pb-2 mb-3">{cat}</h4><div className="space-y-3">{skills.map((skill, i) => (<div key={i} className="flex items-center justify-between"><span className="text-xs font-bold text-[#333333] uppercase">{skill.name}</span><HexagonRating score={skill.rating} /></div>))}</div></div>))}</div>
                   </div>
                   <div className="col-span-7 flex flex-col gap-10">
-                    {cvData.showSecteur && cvData.connaissances_sectorielles.length > 0 && (
-                      <section><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2"><Factory size={20}/> Connaissances Sectorielles</h3><div className="flex flex-wrap gap-2">{cvData.connaissances_sectorielles.map((s, i) => (<span key={i} className="border-2 border-[#2E86C1] text-[#2E86C1] text-[10px] font-black px-3 py-1 rounded uppercase tracking-wider">{s}</span>))}</div></section>
-                    )}
-                    {cvData.showCertif && cvData.certifications.length > 0 && (
-                      <section><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2"><Award size={20}/> Certifications</h3><div className="grid grid-cols-2 gap-4">{cvData.certifications.map((c, i) => (
-                        <div key={i} className="flex items-center gap-3 bg-slate-50 p-2 rounded">
-                          {c.logo && <img src={c.logo} className="w-8 h-8 object-contain" alt={c.name} />}
-                          <span className="text-[10px] font-bold text-slate-700 uppercase leading-tight">{c.name}</span>
-                        </div>
-                      ))}</div></section>
-                    )}
-                    {/* Bloc Formation remonté */}
+                    {cvData.showSecteur && cvData.connaissances_sectorielles.length > 0 && (<section><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2"><Factory size={20}/> Connaissances Sectorielles</h3><div className="flex flex-wrap gap-2">{cvData.connaissances_sectorielles.map((s, i) => (<span key={i} className="border-2 border-[#2E86C1] text-[#2E86C1] text-[10px] font-black px-3 py-1 rounded uppercase tracking-wider">{s}</span>))}</div></section>)}
+                    {cvData.showCertif && cvData.certifications.length > 0 && (<section><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2"><Award size={20}/> Certifications</h3><div className="grid grid-cols-2 gap-4">{cvData.certifications.map((c, i) => (<div key={i} className="flex items-center gap-3 bg-slate-50 p-2 rounded">{c.logo && <img src={c.logo} className="w-8 h-8 object-contain" alt={c.name} />}<span className="text-[10px] font-bold text-slate-700 uppercase leading-tight">{c.name}</span></div>))}</div></section>)}
                     <section><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-6 flex items-center gap-2"><GraduationCap size={20}/> Ma Formation</h3><div className="space-y-4">{cvData.education.map((edu, i) => (<div key={i} className="border-l-2 border-slate-100 pl-4"><span className="text-[10px] font-bold text-[#999999] block mb-1">{edu.year}</span><h4 className="text-xs font-bold text-[#333333] uppercase leading-tight">{edu.degree}</h4><span className="text-[9px] text-[#2E86C1] font-medium uppercase">{edu.location}</span></div>))}</div></section>
                   </div>
               </div>
               <Footer />
             </A4Page>
 
-            {/* ELEMENT 3+ : EXPÉRIENCES (Pagination avec continuité lisible) */}
+            {/* EXPÉRIENCES */}
             {experiencePages.map((chunk, pageIndex) => (
               <A4Page key={pageIndex}>
                 <CornerTriangle customLogo={cvData.smileLogo} />
                 <HeaderSmall name={formatName()} role={cvData.profile.current_role} />
                 <div className="flex justify-between items-end border-b border-slate-200 pb-2 mb-8 mt-16 px-12 flex-shrink-0"><h3 className="text-xl font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat">{pageIndex === 0 ? "Mes dernières expériences" : "Expériences (Suite)"}</h3><span className="text-[10px] font-bold text-[#666666] uppercase">Références</span></div>
-                {/* L'utilisation de print:overflow-visible et break-inside-avoid sur les ExperienceItem assure que les blocs passent à la page suivante si nécessaire */}
-                <div className="flex-1 px-12 pb-32 overflow-hidden print:overflow-visible">
-                  {chunk.map((exp) => (
-                    <ExperienceItem key={exp.id} exp={exp} />
-                  ))}
-                </div>
+                <div className="flex-1 px-12 pb-32 overflow-hidden print:overflow-visible">{chunk.map((exp) => (<ExperienceItem key={exp.id} exp={exp} />))}</div>
                 <Footer />
               </A4Page>
             ))}
-            
           </div>
         </div>
       </div>
-      
-      {/* Styles Globaux & Print */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&family=Open+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap');
         .font-montserrat { font-family: 'Montserrat', sans-serif; }
         .font-sans { font-family: 'Open Sans', sans-serif; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-
         .A4-page { width: 210mm; height: 297mm; background: white; flex-shrink: 0; box-sizing: border-box; position: relative; }
-
         @media print {
           @page { size: A4; margin: 0; }
           body { margin: 0; padding: 0; background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          .print-hidden, div[class*="w-[500px]"], div[class*="absolute bottom-6"] { display: none !important; }
+          .print-hidden, div[class*="w-[550px]"], div[class*="absolute bottom-6"] { display: none !important; }
           .flex-1.bg-slate-800 { display: block !important; height: auto !important; overflow: visible !important; background: white !important; padding: 0 !important; }
           .print-container { transform: none !important; margin: 0 !important; width: 100% !important; display: block !important; gap: 0 !important; }
           .A4-page { margin: 0 !important; box-shadow: none !important; page-break-after: always !important; break-after: page !important; width: 210mm !important; height: 297mm !important; display: flex !important; flex-direction: column !important; }
-          
-          /* Stratégie de saut de bloc : on évite de couper les missions */
           .break-inside-avoid { break-inside: avoid !important; page-break-inside: avoid !important; }
         }
       `}</style>
