@@ -122,7 +122,7 @@ const A4Page = ({ children, className = "" }) => (
 );
 
 const CornerTriangle = ({ customLogo }) => (
-  <div className="absolute top-0 left-0 w-[140px] h-[140px] z-50 pointer-events-none print:w-[120px] print:h-[120px]">
+  <div className="absolute top-0 left-0 w-[170px] h-[170px] z-50 pointer-events-none print:w-[150px] print:h-[150px]">
     <div className="absolute top-0 left-0 w-full h-full bg-[#2E86C1]" style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)' }}></div>
     {customLogo && (
       <div className="absolute top-[12px] left-[12px] w-[100px] h-[100px] flex items-center justify-center">
@@ -182,11 +182,11 @@ const ExperienceItem = ({ exp }) => (
       </div>
       {exp.objective && (
         <div className="mb-4">
-           <h5 className="text-[10px] font-bold text-[#2E86C1] uppercase mb-1">Objectif</h5>
-           <p className="text-sm text-[#333333] leading-relaxed break-words" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.objective)}}></p>
+           <h5 className="text-[10px] font-bold text-[#2E86C1] uppercase mb-1 text-left">Objectif</h5>
+           <p className="text-sm text-[#333333] leading-relaxed break-words text-left" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.objective)}}></p>
         </div>
       )}
-      <div className="mt-4 pt-4 border-t border-slate-50 space-y-4">
+      <div className="mt-4 pt-4 border-t border-slate-50 space-y-4 text-left">
          <div>
             <h5 className="text-[10px] font-bold text-[#999999] uppercase mb-1">Réalisation</h5>
             <p className="text-xs font-medium text-[#333333] break-words" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.phases)}}></p>
@@ -350,10 +350,12 @@ export default function App() {
   const pdfInputRef = useRef(null);
   const [newSecteur, setNewSecteur] = useState("");
   const [isImporting, setIsImporting] = useState(false);
-  
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [newSkillsInput, setNewSkillsInput] = useState({});
+
   const [cvData, setCvData] = useState(() => {
     try {
-      const saved = localStorage.getItem('smile_cv_data_ref_final_stable_v1');
+      const saved = localStorage.getItem('smile_cv_data_ref_final_stable_ref_v1');
       if (saved) return JSON.parse(saved);
     } catch(e) { console.error(e); }
     return DEFAULT_CV_DATA;
@@ -372,7 +374,7 @@ export default function App() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      localStorage.setItem('smile_cv_data_ref_final_stable_v1', JSON.stringify(cvData));
+      localStorage.setItem('smile_cv_data_ref_final_stable_ref_v1', JSON.stringify(cvData));
       setLastSaved(new Date());
     }, 1000);
     return () => clearTimeout(timer);
@@ -385,9 +387,6 @@ export default function App() {
   };
 
   useEffect(() => { document.title = getFilenameBase(); }, [cvData.profile]);
-
-  const [newCategoryName, setNewCategoryName] = useState("");
-  const [newSkillsInput, setNewSkillsInput] = useState({});
 
   // --- LOGIQUE IMPORT PDF ---
   const extractTextFromPDF = async (file) => {
@@ -439,7 +438,7 @@ export default function App() {
   const deleteCategory = (n) => setCvData(p => { const newC = { ...p.skills_categories }; delete newC[n]; return { ...p, skills_categories: newC }; });
   const updateSkillInCategory = (cat, idx, f, v) => setCvData(p => { const s = [...p.skills_categories[cat]]; s[idx] = { ...s[idx], [f]: v }; return { ...p, skills_categories: { ...p.skills_categories, [cat]: s } }; });
   const addSkillToCategory = (cat) => { const i = newSkillsInput[cat] || { name: '', rating: 3 }; if (i.name) { setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [cat]: [...p.skills_categories[cat], { name: i.name, rating: i.rating }] } })); setNewSkillsInput(p => ({ ...p, [cat]: { name: '', rating: 3 } })); } };
-  const updateNewSkillInput = (cat, field, v) => { setNewSkillsInput(p => ({ ...p, [cat]: { ...(p[cat] || { name: '', rating: 3 }), [field]: v } })); };
+  const updateNewSkillInput = (cat, field, val) => { setNewSkillsInput(p => ({ ...p, [cat]: { ...(p[cat] || { name: '', rating: 3 }), [field]: val } })); };
   const removeSkillFromCategory = (cat, idx) => setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [cat]: p.skills_categories[cat].filter((_, i) => i !== idx) } }));
   const addSecteur = () => { if (newSecteur) { setCvData(p => ({ ...p, connaissances_sectorielles: [...p.connaissances_sectorielles, newSecteur] })); setNewSecteur(""); }};
   const removeSecteur = (idx) => setCvData(p => ({ ...p, connaissances_sectorielles: p.connaissances_sectorielles.filter((_, i) => i !== idx) }));
@@ -449,6 +448,7 @@ export default function App() {
   const updateEducation = (i, f, v) => { const n = [...cvData.education]; n[i][f] = v; setCvData(p => ({ ...p, education: n })); };
   const addEducation = () => setCvData(p => ({ ...p, education: [...p.education, { year: "", degree: "", location: "" }] }));
   const removeEducation = (i) => setCvData(p => ({ ...p, education: p.education.filter((_, idx) => idx !== i) }));
+  
   const resetCV = () => { if (confirm("Réinitialiser tout le CV ?")) { localStorage.removeItem('smile_cv_data_ref_final_stable_ref_v1'); setCvData(DEFAULT_CV_DATA); } };
   const downloadJSON = () => { const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(cvData)); a.download = `${getFilenameBase()}.json`; a.click(); };
   const uploadJSON = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (ev) => { try { setCvData(JSON.parse(ev.target.result)); } catch (err) { alert("Invalide"); } }; reader.readAsText(file); };
@@ -510,7 +510,7 @@ export default function App() {
                   <DropZoneUI onFile={handleSmileLogo} label={cvData.smileLogo ? "Changer" : "Logo"} className="h-24 bg-white" />
                 </div>
                 <div className="p-3 border border-slate-200 bg-slate-50 rounded-lg flex flex-col gap-2">
-                  <span className="text-[10px] font-bold text-slate-600 uppercase flex items-center justify-between">Photo {cvData.isAnonymous && <span className="text-[9px] bg-red-100 text-red-600 px-1 rounded uppercase">Caché</span>}</span>
+                  <span className="text-[10px] font-bold text-slate-600 uppercase flex items-center justify-between">Photo Profil {cvData.isAnonymous && <span className="text-[9px] bg-red-100 text-red-600 px-1 rounded uppercase">Caché</span>}</span>
                   <DropZoneUI onFile={handlePhotoUpload} label={cvData.profile.photo ? "Changer" : "Photo"} icon={<User size={16}/>} className="h-24 bg-white" />
                 </div>
               </div>
@@ -604,13 +604,15 @@ export default function App() {
             {/* PAGE 1 */}
             <A4Page>
               <CornerTriangle customLogo={cvData.smileLogo} />
+              
               {!cvData.isAnonymous && cvData.profile.photo && (
                 <div className="absolute top-12 right-12 w-44 h-44 rounded-full overflow-hidden border-4 border-white shadow-xl z-20">
                   <img src={cvData.profile.photo} className="w-full h-full object-cover" alt="Portrait" />
                 </div>
               )}
 
-              <div className="pt-24 px-16 pb-0 flex-shrink-0">
+              {/* Header Page 1 : Espacement pt-36 pour être dynamique sous le triangle bleu */}
+              <div className="pt-36 px-16 pb-0 flex-shrink-0">
                  <h1 className="uppercase leading-[0.85] mb-8 font-montserrat text-[#333333] text-left">
                     {formatNameHeader()}
                  </h1>
@@ -628,6 +630,7 @@ export default function App() {
                  </div>
               </div>
               
+              {/* Bloc Bio remonté pour se rapprocher du bloc identité */}
               <div className="flex-1 flex flex-col justify-start pt-0 pb-12 overflow-hidden">
                   <div className="px-24 mb-6 relative z-10 flex flex-col items-center">
                      <p className="text-lg text-[#333333] leading-relaxed italic border-t border-slate-100 pt-8 text-center break-words w-full max-w-[160mm]" 
@@ -637,7 +640,7 @@ export default function App() {
                   <div className="w-full bg-[#2E86C1] py-6 px-16 mb-8 flex items-center justify-center gap-10 shadow-inner relative z-10 flex-shrink-0">
                     {cvData.profile.tech_logos.map((logo, i) => (<img key={i} src={logo.src} className="h-14 w-auto object-contain brightness-0 invert opacity-95 transition-transform hover:scale-110" alt={logo.name} />))}
                   </div>
-                  {/* AJUSTEMENT : mt-12 pour descendre d'une ligne les hexagones */}
+                  {/* AJUSTEMENT : mt-12 pour descendre d'une ligne les hexagones et équilibrer l'espace */}
                   <div className="flex justify-center gap-12 relative z-10 px-10 flex-shrink-0 mt-12">
                     {cvData.soft_skills.map((skill, i) => (
                       <div key={i} className="relative w-40 h-44 flex items-center justify-center">
