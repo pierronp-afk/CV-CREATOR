@@ -7,9 +7,6 @@ import {
   Bold, List, Copy, HelpCircle, RefreshCw, Cloud, Mail, Printer
 } from 'lucide-react';
 
-// --- CONFIGURATION ---
-const apiKey = ""; 
-
 // --- THEME ---
 const THEME = {
   primary: "#2E86C1", 
@@ -52,6 +49,17 @@ const DEFAULT_CV_DATA = {
       achievements: ["Participation à la phase de conception", "Adaptation de l'interface"],
       tech_stack: ["Drupal", "Twig"],
       phases: "Conception, Développement"
+    },
+    {
+      id: 2,
+      client_name: "L'Oréal",
+      client_logo: null,
+      period: "2021 - 2022",
+      role: "Tech Lead",
+      objective: "Refonte du site e-commerce B2B...",
+      achievements: ["Audit de performance", "Mise en place CI/CD", "Formation équipe"],
+      tech_stack: ["React", "NodeJS", "AWS"],
+      phases: "Audit, Dev, Run"
     }
   ],
   education: [
@@ -62,6 +70,16 @@ const DEFAULT_CV_DATA = {
     "Outils": [{ name: "Jira", rating: 5 }, { name: "AWS", rating: 3 }],
     "Méthodologies": [{ name: "Agile", rating: 5 }, { name: "Scrum", rating: 5 }]
   }
+};
+
+// --- HELPER PAGINATION (Découpage manuel strict) ---
+const chunkArray = (array, size) => {
+  if (!array.length) return [];
+  const chunked = [];
+  for (let i = 0; i < array.length; i += size) {
+    chunked.push(array.slice(i, i + size));
+  }
+  return chunked;
 };
 
 // --- HELPER FORMATTING ---
@@ -125,7 +143,6 @@ const RichTextarea = ({ label, value, onChange, placeholder, maxLength }) => {
     { name: 'ChatGPT', url: 'https://chat.openai.com/', icon: 'openai' },
     { name: 'Gemini', url: 'https://gemini.google.com/', icon: 'googlegemini' },
     { name: 'Claude', url: 'https://claude.ai/', icon: 'anthropic/000000' },
-    { name: 'Mistral', url: 'https://chat.mistral.ai/', icon: 'mistral/000000' },
   ];
   return (
     <div className="mb-6 relative">
@@ -190,15 +207,16 @@ const HexagonRating = ({ score, onChange }) => (
 );
 
 // --- COMPOSANTS DE STRUCTURE PDF (PAGE A4) ---
+// Ce composant encapsule chaque page du PDF pour qu'elle soit indépendante et visible à l'écran
 const A4Page = ({ children, className = "" }) => (
   <div 
-    className={`cv-page bg-white relative overflow-hidden mx-auto ${className}`}
+    className={`A4-page bg-white relative overflow-hidden mx-auto ${className}`}
     style={{ 
       width: '210mm', 
-      height: '297mm',
-      marginBottom: '20px',
-      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-      pageBreakAfter: 'always',
+      height: '297mm', // HAUTEUR FIXE POUR GARANTIR LE FORMAT A4
+      marginBottom: '40px', // Espace visuel entre les pages à l'écran
+      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+      pageBreakAfter: 'always', // FORCE LE SAUT DE PAGE A L'IMPRESSION
       breakAfter: 'page'
     }}
   >
@@ -306,6 +324,8 @@ export default function App() {
   const uploadJSON = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (ev) => { try { setCvData(JSON.parse(ev.target.result)); } catch (err) { alert("Invalide"); } }; reader.readAsText(file); };
   const handleEmail = () => { window.location.href = `mailto:?subject=${encodeURIComponent(getFilenameBase())}&body=Bonjour,`; };
 
+  const handlePrint = () => window.print();
+
   // --- HANDLERS DATA ---
   const handleProfileChange = (f, v) => setCvData(p => ({ ...p, profile: { ...p.profile, [f]: v } }));
   const addTechLogo = (o) => setCvData(p => ({ ...p, profile: { ...p.profile, tech_logos: [...p.profile.tech_logos, o] } }));
@@ -326,7 +346,8 @@ export default function App() {
   const removeEducation = (i) => setCvData(p => ({ ...p, education: p.education.filter((_, idx) => idx !== i) }));
   const formatName = () => cvData.isAnonymous ? `${cvData.profile.firstname[0]}. ${cvData.profile.lastname[0]}.` : `${cvData.profile.firstname} ${cvData.profile.lastname}`;
 
-  // Decoupage des experiences pour la pagination (3 par page)
+  // Decoupage des experiences pour la pagination (2 par page pour sécurité)
+  // On place maximum 2 expériences par page pour éviter tout problème de coupure
   const chunkArray = (array, size) => {
     if (!array.length) return [];
     const chunked = [];
@@ -335,9 +356,7 @@ export default function App() {
     }
     return chunked;
   };
-  const experienceChunks = chunkArray(cvData.experiences, 3);
-
-  const handlePrint = () => window.print();
+  const experienceChunks = chunkArray(cvData.experiences, 2);
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col md:flex-row h-screen overflow-hidden font-sans">
