@@ -79,14 +79,12 @@ const formatTextForPreview = (text) => {
   return clean;
 };
 
-// Logique de découpage personnalisée prenant en compte les sauts de page forcés
 const paginateExperiences = (experiences) => {
   if (!experiences.length) return [];
   const pages = [];
   let currentPage = [];
 
-  experiences.forEach((exp, index) => {
-    // Si la mission doit être sur une nouvelle page ou si on a déjà 2 missions
+  experiences.forEach((exp) => {
     if (exp.forceNewPage && currentPage.length > 0) {
       pages.push(currentPage);
       currentPage = [exp];
@@ -160,7 +158,7 @@ const HexagonRating = ({ score, onChange }) => (
 );
 
 const ExperienceItem = ({ exp }) => (
-  <div className="grid grid-cols-12 gap-6 mb-8 break-inside-avoid">
+  <div className="grid grid-cols-12 gap-6 mb-8 break-inside-avoid print:break-inside-avoid">
     <div className="col-span-2 flex flex-col items-center pt-2">
       {exp.client_logo && (
         <div className="w-16 h-16 rounded-lg border border-slate-200 overflow-hidden flex items-center justify-center bg-white mb-2 p-1">
@@ -216,6 +214,16 @@ const InputUI = ({ label, value, onChange, placeholder, maxLength, type = "text"
 const RichTextareaUI = ({ label, value, onChange, placeholder, maxLength }) => {
   const textareaRef = useRef(null);
 
+  const handleTextChange = (e) => {
+    const val = e.target.value;
+    const lines = val.split('\n');
+    if (lines.length > 30) {
+      // On bloque à 30 lignes
+      return;
+    }
+    onChange(val);
+  };
+
   const insertTag = (tag) => {
     const textarea = textareaRef.current;
     if (!textarea) return;
@@ -260,13 +268,18 @@ const RichTextareaUI = ({ label, value, onChange, placeholder, maxLength }) => {
     { name: 'Claude', url: 'https://claude.ai/', icon: 'anthropic/000000' }
   ];
 
+  const currentLines = value?.split('\n').length || 0;
+
   return (
     <div className="mb-6">
-      <label className="text-xs font-bold text-[#333333] uppercase block mb-1">{label}</label>
+      <div className="flex justify-between items-end mb-1">
+        <label className="text-xs font-bold text-[#333333] uppercase block">{label}</label>
+        <span className={`text-[9px] font-bold ${currentLines >= 30 ? 'text-red-500' : 'text-slate-400'}`}>{currentLines} / 30 lignes</span>
+      </div>
       <div className="bg-slate-50 border border-slate-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-[#2E86C1] transition-all shadow-sm">
         <div className="flex items-center gap-1 bg-white px-2 py-1.5 border-b border-slate-200">
           <ButtonUI variant="toolbar" onClick={() => insertTag('b')} title="Gras"><Bold size={12}/></ButtonUI>
-          <ButtonUI variant="toolbar" onClick={() => insertTag('list')} title="Puce (Sélection ou curseur)"><List size={12}/></ButtonUI>
+          <ButtonUI variant="toolbar" onClick={() => insertTag('list')} title="Puce"><List size={12}/></ButtonUI>
           <div className="w-px h-3 bg-slate-300 mx-1"></div>
           <span className="text-[9px] text-slate-400 font-bold mr-1 uppercase">IA:</span>
           {llmTools.map((tool) => (
@@ -279,7 +292,7 @@ const RichTextareaUI = ({ label, value, onChange, placeholder, maxLength }) => {
           ref={textareaRef} 
           className="w-full px-4 py-3 bg-transparent text-sm h-32 resize-none focus:outline-none border-none shadow-inner" 
           value={value} 
-          onChange={(e) => onChange(e.target.value)} 
+          onChange={handleTextChange} 
           maxLength={maxLength} 
           placeholder={placeholder} 
         />
@@ -327,7 +340,7 @@ export default function App() {
   
   const [cvData, setCvData] = useState(() => {
     try {
-      const saved = localStorage.getItem('smile_cv_data_final_stable_v7');
+      const saved = localStorage.getItem('smile_cv_data_v8_stable');
       if (saved) return JSON.parse(saved);
     } catch(e) { console.error(e); }
     return DEFAULT_CV_DATA;
@@ -337,7 +350,7 @@ export default function App() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      localStorage.setItem('smile_cv_data_final_stable_v7', JSON.stringify(cvData));
+      localStorage.setItem('smile_cv_data_v8_stable', JSON.stringify(cvData));
       setLastSaved(new Date());
     }, 1000);
     return () => clearTimeout(timer);
@@ -356,7 +369,7 @@ export default function App() {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newSkillsInput, setNewSkillsInput] = useState({});
 
-  const resetCV = () => { if (confirm("Réinitialiser tout le CV ?")) { localStorage.removeItem('smile_cv_data_final_stable_v7'); setCvData(DEFAULT_CV_DATA); } };
+  const resetCV = () => { if (confirm("Réinitialiser tout le CV ?")) { localStorage.removeItem('smile_cv_data_v8_stable'); setCvData(DEFAULT_CV_DATA); } };
   const downloadJSON = () => { const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(cvData)); a.download = `${getFilenameBase()}.json`; a.click(); };
   const uploadJSON = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (ev) => { try { setCvData(JSON.parse(ev.target.result)); } catch (err) { alert("Invalide"); } }; reader.readAsText(file); };
   
@@ -389,7 +402,7 @@ export default function App() {
   const addSecteur = () => { if (newSecteur) { setCvData(p => ({ ...p, connaissances_sectorielles: [...p.connaissances_sectorielles, newSecteur] })); setNewSecteur(""); }};
   const removeSecteur = (idx) => setCvData(p => ({ ...p, connaissances_sectorielles: p.connaissances_sectorielles.filter((_, i) => i !== idx) }));
   const addCertification = (o) => setCvData(p => ({ ...p, certifications: [...p.certifications, { name: o.name, logo: o.src }] }));
-  const updateCertification = (idx, field, val) => setCvData(p => { const certs = [...p.certifications]; certs[idx] = { ...certs[idx], [field]: val }; return { ...p, certifications: certs }; });
+  const updateCertification = (idx, field, val) => { const certs = [...cvData.certifications]; certs[idx][field] = val; setCvData({ ...cvData, certifications: certs }); };
   const removeCertification = (idx) => setCvData(p => ({ ...p, certifications: p.certifications.filter((_, i) => i !== idx) }));
   
   const updateEducation = (i, f, v) => { const n = [...cvData.education]; n[i][f] = v; setCvData(p => ({ ...p, education: n })); };
@@ -424,7 +437,7 @@ export default function App() {
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-8 custom-scrollbar">
-           {/* STEP 1 */}
+           {/* Étape 1 : Profil */}
            {step === 1 && (
             <div className="space-y-6 animate-in slide-in-from-right transition-all">
               <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><User size={24} /><h2 className="text-lg font-bold uppercase">Profil</h2></div>
@@ -436,14 +449,14 @@ export default function App() {
               <div className="bg-white p-4 rounded-xl border border-slate-200"><label className="text-xs font-bold text-[#333333] uppercase block mb-3 text-left">Bandeau Technos</label><LogoSelectorUI onSelect={addTechLogo} label="Ajouter" /><div className="flex flex-wrap gap-2 mt-4">{cvData.profile.tech_logos.map((logo, i) => (<div key={i} className="relative group bg-slate-100 p-2 rounded-md border border-slate-200"><img src={logo.src} className="w-6 h-6 object-contain" alt={logo.name} /><button onClick={() => removeTechLogo(i)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100"><X size={10} /></button></div>))}</div></div>
             </div>
            )}
-           {/* STEP 2 */}
+           {/* Étape 2 : Soft Skills */}
            {step === 2 && (
             <div className="space-y-6 animate-in slide-in-from-right transition-all">
                <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><Hexagon size={24} /><h2 className="text-lg font-bold uppercase">Soft Skills</h2></div>
                {[0, 1, 2].map(i => (<InputUI key={i} label={`Hexagone #${i+1}`} value={cvData.soft_skills[i]} onChange={(v) => {const s = [...cvData.soft_skills]; s[i] = v; setCvData(p => ({...p, soft_skills: s}));}} />))}
             </div>
            )}
-           {/* STEP 3 (Compétences & Formation) */}
+           {/* Étape 3 : Compétences & Formation */}
            {step === 3 && (
              <div className="space-y-8 animate-in slide-in-from-right transition-all">
                <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><Cpu size={24} /><h2 className="text-lg font-bold uppercase">Compétences & Formation</h2></div>
@@ -470,12 +483,12 @@ export default function App() {
                    <div className="mt-2 space-y-1">{cvData.certifications.map((c, i) => (
                      <div key={i} className="flex flex-col bg-white p-2 rounded border border-slate-100 group shadow-sm">
                        <div className="flex justify-between items-center mb-1">
-                         <div className="w-6 h-6 overflow-hidden flex items-center justify-center">
+                         <div className="w-6 h-6 border rounded overflow-hidden flex items-center justify-center bg-slate-50">
                             {c.logo ? <img src={c.logo} className="max-w-full max-h-full object-contain" /> : null}
                          </div>
                          <button onClick={() => removeCertification(i)} className="text-red-300 hover:text-red-500"><X size={10}/></button>
                        </div>
-                       <input className="w-full text-[10px] font-bold bg-transparent outline-none focus:text-blue-500 border-b border-transparent focus:border-blue-200" value={c.name} onChange={(e) => updateCertification(i, 'name', e.target.value)} />
+                       <input className="w-full text-[10px] font-bold bg-transparent outline-none focus:text-blue-500 border-b border-transparent focus:border-blue-200 uppercase" value={c.name} onChange={(e) => updateCertification(i, 'name', e.target.value)} />
                      </div>
                    ))}</div>
                  </div>
@@ -510,7 +523,7 @@ export default function App() {
                </div>
              </div>
            )}
-           {/* STEP 4 (Expériences) */}
+           {/* Étape 4 : Expériences */}
            {step === 4 && (
             <div className="space-y-8 animate-in slide-in-from-right transition-all">
               <div className="flex justify-between items-center mb-4 text-[#2E86C1]"><div className="flex items-center gap-3"><Briefcase size={24} /><h2 className="text-lg font-bold uppercase">Expériences</h2></div><ButtonUI onClick={addExperience} variant="outline" className="px-3 py-1 text-xs"><Plus size={14} /> Ajouter</ButtonUI></div>
@@ -526,18 +539,9 @@ export default function App() {
                     <LogoSelectorUI label="" onSelect={(logo) => updateExperience(exp.id, 'client_logo', logo.src)} />
                   </div>
                   
-                  {/* Option de saut de page pour gérer le débordement */}
                   <div className="mb-4 flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-100">
-                    <div className="flex items-center gap-2">
-                       <FilePlus size={16} className="text-[#2E86C1]"/>
-                       <span className="text-xs font-bold text-slate-600">Texte trop long ?</span>
-                    </div>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <span className="text-[10px] font-black uppercase text-slate-400">Forcer une nouvelle page après cette mission</span>
-                      <button onClick={() => updateExperience(exp.id, 'forceNewPage', !exp.forceNewPage)}>
-                        {exp.forceNewPage ? <ToggleRight className="text-green-500"/> : <ToggleLeft className="text-slate-300"/>}
-                      </button>
-                    </label>
+                    <div className="flex items-center gap-2"><FilePlus size={16} className="text-[#2E86C1]"/><span className="text-xs font-bold text-slate-600">Saut de page manuel</span></div>
+                    <button onClick={() => updateExperience(exp.id, 'forceNewPage', !exp.forceNewPage)}>{exp.forceNewPage ? <ToggleRight className="text-green-500"/> : <ToggleLeft className="text-slate-300"/>}</button>
                   </div>
 
                   <InputUI label="Client" value={exp.client_name} onChange={(v) => updateExperience(exp.id, 'client_name', v)} />
@@ -561,16 +565,14 @@ export default function App() {
         </div>
 
         <div className="flex-1 overflow-auto w-full p-8 flex justify-center custom-scrollbar">
-          <div className="print-container flex flex-col origin-top transition-transform duration-300 gap-10" style={{ transform: `scale(${zoom})`, marginBottom: `${zoom * 100}px` }}>
+          <div 
+            className="print-container flex flex-col origin-top transition-transform duration-300 gap-10" 
+            style={{ transform: `scale(${zoom})`, marginBottom: `${zoom * 100}px` }}
+          >
             
             {/* ELEMENT 1 : PAGE DE GARDE */}
             <A4Page>
               <CornerTriangle customLogo={cvData.smileLogo} />
-              {!cvData.isAnonymous && cvData.profile.photo && (
-                <div className="absolute top-12 right-12 w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg z-20">
-                  <img src={cvData.profile.photo} className="w-full h-full object-cover" alt="Portrait" />
-                </div>
-              )}
               <div className="pt-24 px-16 pb-0 flex-shrink-0">
                  <h1 className="text-6xl font-bold text-[#333333] uppercase leading-tight mb-2 font-montserrat">{formatName()}</h1>
                  <div className="inline-block bg-[#2E86C1] text-white font-bold text-xl px-4 py-1 rounded-sm uppercase mb-10 tracking-wider">{cvData.profile.years_experience} ans d'expérience</div>
@@ -598,7 +600,7 @@ export default function App() {
             <A4Page>
               <CornerTriangle customLogo={cvData.smileLogo} />
               <HeaderSmall name={formatName()} role={cvData.profile.current_role} />
-              <div className="grid grid-cols-12 gap-10 mt-20 h-full px-12 flex-1 pb-32 overflow-hidden">
+              <div className="grid grid-cols-12 gap-10 mt-20 h-full px-12 flex-1 pb-32 overflow-hidden print:overflow-visible">
                   <div className="col-span-5 border-r border-slate-100 pr-8">
                     <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-8 flex items-center gap-2"><Cpu size={20}/> Mes Compétences</h3>
                     <div className="space-y-8">{Object.entries(cvData.skills_categories).map(([cat, skills]) => (<div key={cat}><h4 className="text-[10px] font-bold text-[#999999] uppercase tracking-widest border-b border-slate-100 pb-2 mb-3">{cat}</h4><div className="space-y-3">{skills.map((skill, i) => (<div key={i} className="flex items-center justify-between"><span className="text-xs font-bold text-[#333333] uppercase">{skill.name}</span><HexagonRating score={skill.rating} /></div>))}</div></div>))}</div>
@@ -615,19 +617,21 @@ export default function App() {
                         </div>
                       ))}</div></section>
                     )}
+                    {/* Bloc Formation remonté */}
                     <section><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-6 flex items-center gap-2"><GraduationCap size={20}/> Ma Formation</h3><div className="space-y-4">{cvData.education.map((edu, i) => (<div key={i} className="border-l-2 border-slate-100 pl-4"><span className="text-[10px] font-bold text-[#999999] block mb-1">{edu.year}</span><h4 className="text-xs font-bold text-[#333333] uppercase leading-tight">{edu.degree}</h4><span className="text-[9px] text-[#2E86C1] font-medium uppercase">{edu.location}</span></div>))}</div></section>
                   </div>
               </div>
               <Footer />
             </A4Page>
 
-            {/* ELEMENT 3+ : EXPÉRIENCES (Pagination intelligente) */}
+            {/* ELEMENT 3+ : EXPÉRIENCES (Pagination avec continuité lisible) */}
             {experiencePages.map((chunk, pageIndex) => (
               <A4Page key={pageIndex}>
                 <CornerTriangle customLogo={cvData.smileLogo} />
                 <HeaderSmall name={formatName()} role={cvData.profile.current_role} />
                 <div className="flex justify-between items-end border-b border-slate-200 pb-2 mb-8 mt-16 px-12 flex-shrink-0"><h3 className="text-xl font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat">{pageIndex === 0 ? "Mes dernières expériences" : "Expériences (Suite)"}</h3><span className="text-[10px] font-bold text-[#666666] uppercase">Références</span></div>
-                <div className="flex-1 px-12 pb-32 overflow-hidden">
+                {/* L'utilisation de print:overflow-visible et break-inside-avoid sur les ExperienceItem assure que les blocs passent à la page suivante si nécessaire */}
+                <div className="flex-1 px-12 pb-32 overflow-hidden print:overflow-visible">
                   {chunk.map((exp) => (
                     <ExperienceItem key={exp.id} exp={exp} />
                   ))}
@@ -653,11 +657,13 @@ export default function App() {
         @media print {
           @page { size: A4; margin: 0; }
           body { margin: 0; padding: 0; background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          .print-hidden, div[class*="w-[550px]"], div[class*="absolute bottom-6"] { display: none !important; }
+          .print-hidden, div[class*="w-[500px]"], div[class*="absolute bottom-6"] { display: none !important; }
           .flex-1.bg-slate-800 { display: block !important; height: auto !important; overflow: visible !important; background: white !important; padding: 0 !important; }
           .print-container { transform: none !important; margin: 0 !important; width: 100% !important; display: block !important; gap: 0 !important; }
           .A4-page { margin: 0 !important; box-shadow: none !important; page-break-after: always !important; break-after: page !important; width: 210mm !important; height: 297mm !important; display: flex !important; flex-direction: column !important; }
-          .A4-page * { overflow: visible !important; }
+          
+          /* Stratégie de saut de bloc : on évite de couper les missions */
+          .break-inside-avoid { break-inside: avoid !important; page-break-inside: avoid !important; }
         }
       `}</style>
     </div>
