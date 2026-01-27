@@ -7,10 +7,9 @@ import {
   Bold, List, Copy, HelpCircle, RefreshCw, Cloud, Mail, Printer
 } from 'lucide-react';
 
-// --- CONFIGURATION ---
+// --- CONFIGURATION & THÈME ---
 const apiKey = ""; 
 
-// --- THEME ---
 const THEME = {
   primary: "#2E86C1", 
   secondary: "#006898", 
@@ -52,17 +51,6 @@ const DEFAULT_CV_DATA = {
       achievements: ["Participation à la phase de conception", "Adaptation de l'interface"],
       tech_stack: ["Drupal", "Twig"],
       phases: "Conception, Développement"
-    },
-    {
-      id: 2,
-      client_name: "L'Oréal",
-      client_logo: null,
-      period: "2021 - 2022",
-      role: "Tech Lead",
-      objective: "Refonte du site e-commerce B2B...",
-      achievements: ["Audit de performance", "Mise en place CI/CD", "Formation équipe"],
-      tech_stack: ["React", "NodeJS", "AWS"],
-      phases: "Audit, Dev, Run"
     }
   ],
   education: [
@@ -94,7 +82,7 @@ const chunkArray = (array, size) => {
   return chunked;
 };
 
-// --- SOUS-COMPOSANTS DE STRUCTURE ---
+// --- SOUS-COMPOSANTS DE STRUCTURE PDF ---
 
 const A4Page = ({ children, className = "" }) => (
   <div 
@@ -120,7 +108,7 @@ const CornerTriangle = ({ customLogo }) => (
             src={customLogo} 
             className="max-w-full max-h-full object-contain brightness-0 invert" 
             style={{ transform: 'rotate(-45deg)' }} 
-            alt="Logo Entreprise"
+            alt="Logo"
          />
       </div>
     ) : (
@@ -214,7 +202,7 @@ const InputUI = ({ label, value, onChange, placeholder, maxLength, type = "text"
   </div>
 );
 
-const RichTextareaUI = ({ label, value, onChange, onAI, loadingAI, placeholder, maxLength }) => {
+const RichTextareaUI = ({ label, value, onChange, placeholder, maxLength }) => {
   const textareaRef = useRef(null);
   const insertTag = (tag) => {
     const textarea = textareaRef.current;
@@ -303,7 +291,7 @@ export default function App() {
   
   const [cvData, setCvData] = useState(() => {
     try {
-      const saved = localStorage.getItem('smile_cv_data_stable');
+      const saved = localStorage.getItem('smile_cv_data_stable_final');
       if (saved) return JSON.parse(saved);
     } catch(e) { console.error(e); }
     return DEFAULT_CV_DATA;
@@ -313,7 +301,7 @@ export default function App() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      localStorage.setItem('smile_cv_data_stable', JSON.stringify(cvData));
+      localStorage.setItem('smile_cv_data_stable_final', JSON.stringify(cvData));
       setLastSaved(new Date());
     }, 1000);
     return () => clearTimeout(timer);
@@ -333,7 +321,7 @@ export default function App() {
   const [editingCategory, setEditingCategory] = useState(null); 
   const [newSkillsInput, setNewSkillsInput] = useState({});
 
-  const resetCV = () => { if (confirm("Reset ?")) { localStorage.removeItem('smile_cv_data_stable'); setCvData(DEFAULT_CV_DATA); } };
+  const resetCV = () => { if (confirm("Reset ?")) { localStorage.removeItem('smile_cv_data_stable_final'); setCvData(DEFAULT_CV_DATA); } };
   const downloadJSON = () => { const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(cvData)); a.download = `${getFilenameBase()}.json`; a.click(); };
   const uploadJSON = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (ev) => { try { setCvData(JSON.parse(ev.target.result)); } catch (err) { alert("Invalide"); } }; reader.readAsText(file); };
   const handleEmail = () => { window.location.href = `mailto:?subject=${encodeURIComponent(getFilenameBase())}&body=Bonjour,`; };
@@ -349,7 +337,7 @@ export default function App() {
   const removeExperience = (id) => setCvData(p => ({ ...p, experiences: p.experiences.filter(e => e.id !== id) }));
   const addSkillCategory = () => { if (newCategoryName) { setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [newCategoryName]: [] } })); setNewCategoryName(""); } };
   const saveCategoryRename = () => { if (editingCategory?.newName) { setCvData(p => { const n = { ...p.skills_categories }; const d = n[editingCategory.oldName]; delete n[editingCategory.oldName]; n[editingCategory.newName] = d; return { ...p, skills_categories: n }; }); } setEditingCategory(null); };
-  const deleteCategory = (n) => setCvData(p => { const newC = { ...p.skills_categories }; delete n[editingCategory.oldName]; return { ...p, skills_categories: newC }; });
+  const deleteCategory = (n) => setCvData(p => { const newC = { ...p.skills_categories }; delete newC[n]; return { ...p, skills_categories: newC }; });
   const updateSkillInCategory = (cat, idx, f, v) => setCvData(p => { const s = [...p.skills_categories[cat]]; s[idx] = { ...s[idx], [f]: v }; return { ...p, skills_categories: { ...p.skills_categories, [cat]: s } }; });
   const addSkillToCategory = (cat) => { const i = newSkillsInput[cat] || { name: '', rating: 3 }; if (i.name) { setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [cat]: [...p.skills_categories[cat], { name: i.name, rating: i.rating }] } })); setNewSkillsInput(p => ({ ...p, [cat]: { name: '', rating: 3 } })); } };
   const updateNewSkillInput = (cat, field, val) => { setNewSkillsInput(p => ({ ...p, [cat]: { ...(p[cat] || { name: '', rating: 3 }), [field]: val } })); };
@@ -402,12 +390,7 @@ export default function App() {
               <div className="grid grid-cols-2 gap-4"><InputUI label="Années XP" value={cvData.profile.years_experience} onChange={(v) => handleProfileChange('years_experience', v)} /><InputUI label="Techno Principale" value={cvData.profile.main_tech} onChange={(v) => handleProfileChange('main_tech', v)} /></div>
               <InputUI label="Poste Actuel" value={cvData.profile.current_role} onChange={(v) => handleProfileChange('current_role', v)} />
               <RichTextareaUI label="Bio / Résumé" value={cvData.profile.summary} onChange={(val) => handleProfileChange('summary', val)} maxLength={400} />
-              <div className="bg-white p-4 rounded-xl border border-slate-200"><label className="text-xs font-bold text-[#333333] uppercase block mb-3">Bandeau Technos</label><LogoSelectorUI onSelect={addTechLogo} label="Ajouter" /><div className="flex flex-wrap gap-2 mt-4">{cvData.profile.tech_logos.map((logo, i) => (
-                <div key={i} className="relative group bg-slate-100 p-2 rounded-md border border-slate-200">
-                  <img src={logo.src} className="w-6 h-6 object-contain" alt={logo.name} />
-                  <button onClick={() => removeTechLogo(i)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"><X size={10} /></button>
-                </div>
-              ))}</div></div>
+              <div className="bg-white p-4 rounded-xl border border-slate-200"><label className="text-xs font-bold text-[#333333] uppercase block mb-3">Bandeau Technos</label><LogoSelectorUI onSelect={addTechLogo} label="Ajouter" /><div className="flex flex-wrap gap-2 mt-4">{cvData.profile.tech_logos.map((logo, i) => (<div key={i} className="relative group bg-slate-100 p-2 rounded-md border border-slate-200"><img src={logo.src} className="w-6 h-6 object-contain" alt={logo.name} /><button onClick={() => removeTechLogo(i)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100"><X size={10} /></button></div>))}</div></div>
             </div>
            )}
            {/* STEP 2 */}
@@ -417,7 +400,7 @@ export default function App() {
                {[0, 1, 2].map(i => (<InputUI key={i} label={`Hexagone #${i+1}`} value={cvData.soft_skills[i]} onChange={(v) => {const s = [...cvData.soft_skills]; s[i] = v; setCvData(p => ({...p, soft_skills: s}));}} />))}
             </div>
            )}
-           {/* STEP 3 (Formation - Échangé) */}
+           {/* STEP 3 (Formation) */}
            {step === 3 && (
              <div className="space-y-8 animate-in slide-in-from-right transition-all">
                <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><GraduationCap size={24} /><h2 className="text-lg font-bold uppercase">Formation & Compétences</h2></div>
@@ -430,7 +413,7 @@ export default function App() {
                </div>
              </div>
            )}
-           {/* STEP 4 (Expériences - Échangé) */}
+           {/* STEP 4 */}
            {step === 4 && (
             <div className="space-y-8 animate-in slide-in-from-right transition-all">
               <div className="flex justify-between items-center mb-4 text-[#2E86C1]"><div className="flex items-center gap-3"><Briefcase size={24} /><h2 className="text-lg font-bold uppercase">Expériences</h2></div><ButtonUI onClick={addExperience} variant="outline" className="px-3 py-1 text-xs"><Plus size={14} /> Ajouter</ButtonUI></div>
@@ -548,7 +531,7 @@ export default function App() {
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
         /* Style des pages A4 pour l'aperçu */
-        .cv-page { 
+        .A4-page { 
            width: 210mm; 
            height: 297mm; 
            background: white; 
@@ -580,7 +563,7 @@ export default function App() {
             gap: 0 !important; 
           }
           
-          .cv-page { 
+          .A4-page { 
             margin: 0 !important; 
             box-shadow: none !important; 
             page-break-after: always !important; 
@@ -592,7 +575,7 @@ export default function App() {
           }
 
           /* On s'assure que le contenu ne déborde pas */
-          .cv-page * { overflow: visible !important; }
+          .A4-page * { overflow: visible !important; }
         }
       `}</style>
     </div>
