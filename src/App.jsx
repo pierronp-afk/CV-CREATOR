@@ -327,7 +327,7 @@ export default function App() {
   
   const [cvData, setCvData] = useState(() => {
     try {
-      const saved = localStorage.getItem('smile_cv_data_final_stable_v10');
+      const saved = localStorage.getItem('smile_cv_data_final_stable_v11');
       if (saved) return JSON.parse(saved);
     } catch(e) { console.error(e); }
     return DEFAULT_CV_DATA;
@@ -337,7 +337,7 @@ export default function App() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      localStorage.setItem('smile_cv_data_final_stable_v10', JSON.stringify(cvData));
+      localStorage.setItem('smile_cv_data_final_stable_v11', JSON.stringify(cvData));
       setLastSaved(new Date());
     }, 1000);
     return () => clearTimeout(timer);
@@ -354,10 +354,11 @@ export default function App() {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newSkillsInput, setNewSkillsInput] = useState({});
 
-  const resetCV = () => { if (confirm("Réinitialiser tout le CV ?")) { localStorage.removeItem('smile_cv_data_final_stable_v10'); setCvData(DEFAULT_CV_DATA); } };
+  const resetCV = () => { if (confirm("Réinitialiser tout le CV ?")) { localStorage.removeItem('smile_cv_data_final_stable_v11'); setCvData(DEFAULT_CV_DATA); } };
   const downloadJSON = () => { const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(cvData)); a.download = `${getFilenameBase()}.json`; a.click(); };
   const uploadJSON = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (ev) => { try { setCvData(JSON.parse(ev.target.result)); } catch (err) { alert("Invalide"); } }; reader.readAsText(file); };
   
+  // Handlers
   const handleProfileChange = (f, v) => setCvData(p => ({ ...p, profile: { ...p.profile, [f]: v } }));
   const addTechLogo = (o) => setCvData(p => ({ ...p, profile: { ...p.profile, tech_logos: [...p.profile.tech_logos, o] } }));
   const removeTechLogo = (i) => setCvData(p => ({ ...p, profile: { ...p.profile, tech_logos: p.profile.tech_logos.filter((_, idx) => idx !== i) } }));
@@ -421,6 +422,7 @@ export default function App() {
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-8 custom-scrollbar">
+           {/* STEP 1 */}
            {step === 1 && (
             <div className="space-y-6 animate-in slide-in-from-right transition-all">
               <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><User size={24} /><h2 className="text-lg font-bold uppercase">Profil</h2></div>
@@ -432,12 +434,14 @@ export default function App() {
               <div className="bg-white p-4 rounded-xl border border-slate-200"><label className="text-xs font-bold text-[#333333] uppercase block mb-3 text-left">Bandeau Technos</label><LogoSelectorUI onSelect={addTechLogo} label="Ajouter" /><div className="flex flex-wrap gap-2 mt-4">{cvData.profile.tech_logos.map((logo, i) => (<div key={i} className="relative group bg-slate-100 p-2 rounded-md border border-slate-200"><img src={logo.src} className="w-6 h-6 object-contain" alt={logo.name} /><button onClick={() => removeTechLogo(i)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100"><X size={10} /></button></div>))}</div></div>
             </div>
            )}
+           {/* STEP 2 */}
            {step === 2 && (
             <div className="space-y-6 animate-in slide-in-from-right transition-all">
                <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><Hexagon size={24} /><h2 className="text-lg font-bold uppercase">Soft Skills</h2></div>
                {[0, 1, 2].map(i => (<InputUI key={i} label={`Hexagone #${i+1}`} value={cvData.soft_skills[i]} onChange={(v) => {const s = [...cvData.soft_skills]; s[i] = v; setCvData(p => ({...p, soft_skills: s}));}} />))}
             </div>
            )}
+           {/* STEP 3 (Formation & Compétences) */}
            {step === 3 && (
              <div className="space-y-8 animate-in slide-in-from-right transition-all">
                <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><Cpu size={24} /><h2 className="text-lg font-bold uppercase">Compétences & Formation</h2></div>
@@ -483,6 +487,7 @@ export default function App() {
                </div>
              </div>
            )}
+           {/* STEP 4 (Expériences) */}
            {step === 4 && (
             <div className="space-y-8 animate-in slide-in-from-right transition-all">
               <div className="flex justify-between items-center mb-4 text-[#2E86C1]"><div className="flex items-center gap-3"><Briefcase size={24} /><h2 className="text-lg font-bold uppercase">Expériences</h2></div><ButtonUI onClick={addExperience} variant="outline" className="px-3 py-1 text-xs"><Plus size={14} /> Ajouter</ButtonUI></div>
@@ -526,7 +531,7 @@ export default function App() {
               <div className="flex-1 flex flex-col justify-center pb-12 overflow-hidden">
                   <div className="px-24 mb-10 relative z-10 flex flex-col items-center">
                      <p className="text-lg text-[#333333] leading-relaxed italic border-t border-slate-100 pt-8 text-center break-words w-full max-w-[160mm]" 
-                        style={{ whiteSpace: 'normal' }}
+                        style={{ whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'break-word' }}
                         dangerouslySetInnerHTML={{__html: formatTextForPreview(`"${cvData.profile.summary}"`)}}></p>
                   </div>
                   <div className="w-full bg-[#2E86C1] py-6 px-16 mb-10 flex items-center justify-center gap-10 shadow-inner relative z-10 flex-shrink-0">
