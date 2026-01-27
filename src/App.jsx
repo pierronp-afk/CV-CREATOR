@@ -4,19 +4,21 @@ import {
   Upload, X, Briefcase, GraduationCap, User, Hexagon, Cpu, 
   Image as ImageIcon, ZoomIn, ZoomOut, Search, LayoutTemplate, 
   Save, FolderOpen, Eye, Shield, Check, Edit2,
-  Bold, List, Copy, HelpCircle, RefreshCw, Cloud, Mail
+  Bold, List, Copy, HelpCircle, RefreshCw, Cloud, Mail, Printer
 } from 'lucide-react';
 
-// --- CHARTE GRAPHIQUE SMILE ---
+// --- CONFIGURATION ---
+const apiKey = ""; // Laisser vide pour la preview
+// Pour Vercel décommenter : const apiKey = import.meta.env.VITE_GOOGLE_API_KEY || "";
+
 const THEME = {
-  primary: "#2E86C1", // Smile Blue
-  secondary: "#006898", // Darker Blue
-  textDark: "#333333", // Anthracite
-  textGrey: "#666666", // Grey
+  primary: "#2E86C1", 
+  secondary: "#006898", 
+  textDark: "#333333", 
+  textGrey: "#666666", 
   bg: "#FFFFFF"
 };
 
-// Helper pour les icônes
 const getIconUrl = (slug) => `https://cdn.simpleicons.org/${slug.toLowerCase().replace(/\s+/g, '')}/white`;
 const getBrandIconUrl = (slug) => `https://cdn.simpleicons.org/${slug.toLowerCase().replace(/\s+/g, '')}`;
 
@@ -73,7 +75,6 @@ const formatTextForPreview = (text) => {
 };
 
 // --- COMPOSANTS UI ---
-
 const Button = ({ children, onClick, variant = "primary", className = "", disabled = false, title = "" }) => {
   const baseStyle = "px-4 py-2 rounded-lg font-bold text-sm transition-all flex items-center gap-2 justify-center";
   const variants = {
@@ -84,11 +85,7 @@ const Button = ({ children, onClick, variant = "primary", className = "", disabl
     ghost: "text-slate-500 hover:bg-slate-100",
     toolbar: "p-1.5 hover:bg-slate-200 rounded text-slate-600"
   };
-  return (
-    <button onClick={onClick} disabled={disabled} title={title} className={`${baseStyle} ${variants[variant]} ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}>
-      {children}
-    </button>
-  );
+  return <button onClick={onClick} disabled={disabled} title={title} className={`${baseStyle} ${variants[variant]} ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}>{children}</button>;
 };
 
 const Input = ({ label, value, onChange, placeholder, maxLength, type = "text" }) => (
@@ -114,10 +111,8 @@ const RichTextarea = ({ label, value, onChange, placeholder, maxLength }) => {
     const before = text.substring(0, start);
     const after = text.substring(end);
     let newText = "";
-    
     if (tag === 'b') newText = `${before}<b>${selected}</b>${after}`;
     if (tag === 'list') newText = `${before}• ${after}`;
-    
     onChange(newText);
   };
 
@@ -179,10 +174,7 @@ const LogoSelector = ({ onSelect, label = "Ajouter un logo" }) => {
     <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
       {label && <label className="text-[10px] font-bold text-[#333333] uppercase block mb-2">{label}</label>}
       <div className="flex gap-2 mb-2">
-        <div className="relative flex-1">
-          <input className="w-full pl-7 pr-2 py-1.5 bg-white border border-slate-300 rounded text-xs" placeholder="Recherche (ex: Java)" value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} />
-          <Search className="absolute left-2 top-2 text-slate-400" size={12} />
-        </div>
+        <div className="relative flex-1"><input className="w-full pl-7 pr-2 py-1.5 bg-white border border-slate-300 rounded text-xs" placeholder="Recherche (ex: Java)" value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} /><Search className="absolute left-2 top-2 text-slate-400" size={12} /></div>
         <Button variant="primary" className="px-2 py-1 text-xs h-auto" onClick={handleSearch}><Plus size={12}/></Button>
       </div>
       <div className="text-center text-[9px] text-slate-400 mb-2 font-bold uppercase">- OU -</div>
@@ -201,43 +193,37 @@ const HexagonRating = ({ score, onChange }) => (
   </div>
 );
 
-// --- ELEMENTS REPETITIFS (FIXED) ---
-const CornerTriangle = ({ customLogo }) => (
-  <div className="fixed top-0 left-0 w-[120px] h-[120px] z-50 pointer-events-none print:block hidden" style={{ zIndex: 9999 }}>
-    <div className="absolute top-0 left-0 w-full h-full bg-[#2E86C1]" style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)' }}></div>
-    {customLogo ? (
-      <div className="absolute top-[10px] left-[10px] w-[60px] h-[60px]"><img src={customLogo} className="w-full h-full object-contain brightness-0 invert" style={{ transform: 'rotate(-45deg)' }} /></div>
-    ) : (
-      <div className="absolute top-[25px] left-[25px] transform -rotate-45 origin-center"><span className="text-white font-black text-xl tracking-tighter italic block drop-shadow-md">SMILE</span></div>
+// --- COMPOSANTS PRINT REPETITIFS (FIXED) ---
+const PrintHeader = ({ customLogo, name, role, isFirstPage }) => (
+  <div className="print-header-fixed hidden print:block fixed top-0 left-0 w-full h-[120px] bg-white z-[9999]">
+    {/* Triangle */}
+    <div className="absolute top-0 left-0 w-[120px] h-[120px]">
+      <div className="absolute top-0 left-0 w-full h-full bg-[#2E86C1]" style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)', printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' }}></div>
+      {customLogo ? (
+        <div className="absolute top-[10px] left-[10px] w-[60px] h-[60px]"><img src={customLogo} className="w-full h-full object-contain brightness-0 invert" style={{ transform: 'rotate(-45deg)' }} /></div>
+      ) : (
+        <div className="absolute top-[25px] left-[25px] transform -rotate-45 origin-center"><span className="text-white font-black text-xl tracking-tighter italic block drop-shadow-md">SMILE</span></div>
+      )}
+    </div>
+    
+    {/* Info Nom/Role (Sauf Page 1) */}
+    {!isFirstPage && (
+      <div className="flex justify-end items-start pt-10 px-12">
+        <div className="text-right">
+          <h3 className="text-sm font-bold text-[#333333] uppercase">{name}</h3>
+          <p className="text-[10px] font-bold text-[#999999] uppercase">{role}</p>
+        </div>
+      </div>
     )}
   </div>
 );
 
-// Triangle spécifique pour l'aperçu écran (non fixed)
-const CornerTrianglePreview = ({ customLogo }) => (
-  <div className="absolute top-0 left-0 w-[140px] h-[140px] z-50 pointer-events-none overflow-hidden">
-    <div className="absolute top-0 left-0 w-full h-full bg-[#2E86C1]" style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)' }}></div>
-    {customLogo ? (
-      <div className="absolute top-[10px] left-[10px] w-[60px] h-[60px]"><img src={customLogo} className="w-full h-full object-contain brightness-0 invert" style={{ transform: 'rotate(-45deg)' }} /></div>
-    ) : (
-      <div className="absolute top-[25px] left-[25px] transform -rotate-45 origin-center"><span className="text-white font-black text-xl tracking-tighter italic block drop-shadow-md">SMILE</span></div>
-    )}
-  </div>
-);
-
-const Footer = () => (
-  <div className="fixed bottom-0 left-0 w-full bg-white z-50 print:block hidden">
-    <div className="mx-12 border-t border-slate-100 pt-2 pb-8 flex justify-between items-center bg-white">
+const PrintFooter = () => (
+  <div className="print-footer-fixed hidden print:flex fixed bottom-0 left-0 w-full h-[60px] items-center bg-white z-[9999]">
+     <div className="w-full mx-12 border-t border-slate-100 pt-2 flex justify-between items-center">
       <div className="text-[8px] font-bold text-[#999999] uppercase tracking-widest">Smile - IT is Open <span className="text-[#2E86C1] ml-1">CRÉATEUR D'EXPÉRIENCE DIGITALE OUVERTE</span></div>
       <div className="text-[8px] font-bold text-[#333333]">#MadeWithSmile</div>
     </div>
-  </div>
-);
-
-const FooterPreview = () => (
-  <div className="absolute bottom-8 left-12 right-12 border-t border-slate-100 pt-4 flex justify-between items-center">
-    <div className="text-[8px] font-bold text-[#999999] uppercase tracking-widest">Smile - IT is Open <span className="text-[#2E86C1] ml-1">CRÉATEUR D'EXPÉRIENCE DIGITALE OUVERTE</span></div>
-    <div className="text-[8px] font-bold text-[#333333]">#MadeWithSmile</div>
   </div>
 );
 
@@ -280,22 +266,21 @@ export default function App() {
   const [editingCategory, setEditingCategory] = useState(null); 
   const [newSkillsInput, setNewSkillsInput] = useState({});
 
-  const resetCV = () => { if (confirm("Attention : Reset ?")) { localStorage.removeItem('smile_cv_data'); setCvData(DEFAULT_CV_DATA); } };
+  const resetCV = () => { if (confirm("Reset ?")) { localStorage.removeItem('smile_cv_data'); setCvData(DEFAULT_CV_DATA); } };
   const downloadJSON = () => { const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(cvData)); a.download = `${getFilenameBase()}.json`; a.click(); };
   const uploadJSON = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (ev) => { try { setCvData(JSON.parse(ev.target.result)); } catch (err) { alert("Invalide"); } }; reader.readAsText(file); };
   const handleEmail = () => { window.location.href = `mailto:?subject=${encodeURIComponent(getFilenameBase())}&body=Bonjour,`; };
 
-  // Handlers Updates
   const handleProfileChange = (f, v) => setCvData(p => ({ ...p, profile: { ...p.profile, [f]: v } }));
   const addTechLogo = (o) => setCvData(p => ({ ...p, profile: { ...p.profile, tech_logos: [...p.profile.tech_logos, o] } }));
   const removeTechLogo = (i) => setCvData(p => ({ ...p, profile: { ...p.profile, tech_logos: p.profile.tech_logos.filter((_, idx) => idx !== i) } }));
   const handleSmileLogo = (f) => { if(f) { const r = new FileReader(); r.onload = (ev) => setCvData(p => ({...p, smileLogo: ev.target.result})); r.readAsDataURL(f); } };
   const handlePhotoUpload = (f) => { if(f) { const r = new FileReader(); r.onload = (ev) => setCvData(p => ({...p, profile: { ...p.profile, photo: ev.target.result }})); r.readAsDataURL(f); } };
+
   const updateExperience = (id, f, v) => setCvData(p => ({ ...p, experiences: p.experiences.map(e => e.id === id ? { ...e, [f]: v } : e) }));
   const addExperience = () => setCvData(p => ({ ...p, experiences: [...p.experiences, { id: Date.now(), client_name: "", client_logo: null, period: "", role: "", objective: "", achievements: [], tech_stack: [], phases: "" }] }));
   const removeExperience = (id) => setCvData(p => ({ ...p, experiences: p.experiences.filter(e => e.id !== id) }));
   
-  // Skills Logic
   const addSkillCategory = () => { if (newCategoryName) { setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [newCategoryName]: [] } })); setNewCategoryName(""); } };
   const saveCategoryRename = () => { if (editingCategory?.newName) { setCvData(p => { const n = { ...p.skills_categories }; const d = n[editingCategory.oldName]; delete n[editingCategory.oldName]; n[editingCategory.newName] = d; return { ...p, skills_categories: n }; }); } setEditingCategory(null); };
   const deleteCategory = (n) => setCvData(p => { const newC = { ...p.skills_categories }; delete newC[n]; return { ...p, skills_categories: newC }; });
@@ -303,45 +288,43 @@ export default function App() {
   const addSkillToCategory = (cat) => { const i = newSkillsInput[cat] || { name: '', rating: 3 }; if (i.name) { setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [cat]: [...p.skills_categories[cat], { name: i.name, rating: i.rating }] } })); setNewSkillsInput(p => ({ ...p, [cat]: { name: '', rating: 3 } })); } };
   const removeSkillFromCategory = (cat, idx) => setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [cat]: p.skills_categories[cat].filter((_, i) => i !== idx) } }));
 
-  // Education Logic
   const updateEducation = (i, f, v) => { const n = [...cvData.education]; n[i][f] = v; setCvData(p => ({ ...p, education: n })); };
   const addEducation = () => setCvData(p => ({ ...p, education: [...p.education, { year: "", degree: "", location: "" }] }));
   const removeEducation = (i) => setCvData(p => ({ ...p, education: p.education.filter((_, idx) => idx !== i) }));
 
   const formatName = () => cvData.isAnonymous ? `${cvData.profile.firstname[0]}. ${cvData.profile.lastname[0]}.` : `${cvData.profile.firstname} ${cvData.profile.lastname}`;
 
-  // PRINT: On imprime directement
-  const handlePrint = () => window.print();
+  // PRINT FUNCTION
+  const handlePrint = () => {
+    // Petit hack pour forcer le render des éléments print-only avant l'impression
+    setTimeout(() => {
+      window.print();
+    }, 100);
+  };
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col md:flex-row h-screen overflow-hidden font-sans">
       
-      {/* --- WIZARD UI (Masqué à l'impression) --- */}
+      {/* --- WIZARD UI --- */}
       <div className="w-full md:w-[550px] bg-white border-r border-slate-200 flex flex-col h-full z-10 shadow-xl print:hidden">
+        {/* Header & Steps ... */}
         <div className="bg-slate-50 border-b border-slate-200 p-2 flex justify-between items-center px-4 text-xs">
-           <div className="flex items-center gap-3">
-             <div className="flex items-center gap-1 text-green-600 font-medium"><Cloud size={12}/> {lastSaved ? `Sauvegardé` : "Prêt"}</div>
-           </div>
+           <div className="flex items-center gap-3"><div className="flex items-center gap-1 text-green-600 font-medium"><Cloud size={12}/> {lastSaved ? `Sauvegardé` : "Prêt"}</div></div>
            <div className="flex gap-1">
-             <Button variant="ghost" className="px-2 py-1 h-7" onClick={resetCV}><RefreshCw size={12}/> Reset</Button>
-             <Button variant="ghost" className="px-2 py-1 h-7" onClick={downloadJSON}><Save size={12}/></Button>
-             <Button variant="ghost" className="px-2 py-1 h-7" onClick={() => jsonInputRef.current.click()}><FolderOpen size={12}/></Button>
+             <Button variant="ghost" className="px-2 py-1 h-7" onClick={resetCV} title="Reset"><RefreshCw size={12}/></Button>
+             <Button variant="ghost" className="px-2 py-1 h-7" onClick={downloadJSON} title="Save JSON"><Save size={12}/></Button>
+             <Button variant="ghost" className="px-2 py-1 h-7" onClick={() => jsonInputRef.current.click()} title="Load JSON"><FolderOpen size={12}/></Button>
              <input type="file" ref={jsonInputRef} className="hidden" accept=".json" onChange={uploadJSON} />
-             <Button variant="ghost" className="px-2 py-1 h-7 text-[#2E86C1]" onClick={handleEmail}><Mail size={12}/> Email</Button>
-             <Button variant={cvData.isAnonymous ? "danger" : "secondary"} className="px-2 py-1 h-7" onClick={() => setCvData(p => ({...p, isAnonymous: !p.isAnonymous}))}>
-               {cvData.isAnonymous ? "Visible" : "Anonymiser"}
-             </Button>
+             <Button variant="ghost" className="px-2 py-1 h-7 text-[#2E86C1]" onClick={handleEmail} title="Email"><Mail size={12}/></Button>
+             <Button variant={cvData.isAnonymous ? "danger" : "secondary"} className="px-2 py-1 h-7" onClick={() => setCvData(p => ({...p, isAnonymous: !p.isAnonymous}))}>{cvData.isAnonymous ? "Visible" : "Anonymiser"}</Button>
            </div>
         </div>
 
         <div className="p-6 border-b border-slate-100 bg-white sticky top-0 z-20">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="font-bold text-xl text-[#2E86C1]">Smile Editor</h1>
-            <span className="text-xs font-bold text-slate-400">Étape {step} / 4</span>
-          </div>
+          <div className="flex justify-between items-center mb-6"><h1 className="font-bold text-xl text-[#2E86C1]">Smile Editor</h1><span className="text-xs font-bold text-slate-400">Étape {step} / 4</span></div>
           <div className="flex gap-2">
             <Button variant="secondary" onClick={() => setStep(s => Math.max(1, s - 1))} disabled={step === 1} className="flex-1"><ArrowLeft size={16} /></Button>
-            {step < 4 ? <Button onClick={() => setStep(s => Math.min(4, s + 1))} className="flex-[2]">Suivant <ArrowRight size={16} /></Button> : <Button onClick={handlePrint} className="flex-[2] bg-slate-900 hover:bg-black"><Download size={16}/> Imprimer PDF</Button>}
+            {step < 4 ? <Button onClick={() => setStep(s => Math.min(4, s + 1))} className="flex-[2]">Suivant <ArrowRight size={16} /></Button> : <Button onClick={handlePrint} className="flex-[2] bg-slate-900 hover:bg-black"><Printer size={16}/> Imprimer PDF</Button>}
           </div>
         </div>
 
@@ -350,16 +333,13 @@ export default function App() {
            {step === 1 && (
             <div className="space-y-6 animate-in slide-in-from-right">
               <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><User size={24} /><h2 className="text-lg font-bold uppercase">Profil</h2></div>
+              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex gap-3"><div className="text-[#2E86C1] shrink-0 mt-0.5"><HelpCircle size={18} /></div><div><h4 className="text-xs font-bold text-[#2E86C1] uppercase mb-1">Aide IA</h4><p className="text-[11px] text-slate-600 leading-tight">Cliquez sur les logos IA pour copier le texte et l'améliorer.</p></div></div>
               <div className="flex gap-4 mb-6">
-                <div className="flex-1"><span className="text-[10px] font-bold text-[#2E86C1] uppercase">Logo Entreprise</span><DropZone onFile={handleSmileLogo} label="Changer" className="h-24 bg-white" /></div>
-                <div className="flex-1"><span className="text-[10px] font-bold text-slate-600 uppercase">Photo</span><DropZone onFile={handlePhotoUpload} label="Changer" className="h-24 bg-white" /></div>
+                <div className="flex-1 p-3 border border-blue-100 bg-blue-50/50 rounded-lg flex flex-col gap-2"><span className="text-[10px] font-bold text-[#2E86C1] uppercase">Logo Entreprise</span><DropZone onFile={handleSmileLogo} label={cvData.smileLogo ? "Changer" : "Logo"} className="h-24 bg-white" /></div>
+                <div className="flex-1 p-3 border border-slate-200 bg-slate-50 rounded-lg flex flex-col gap-2"><span className="text-[10px] font-bold text-slate-600 uppercase flex items-center justify-between">Photo Profil<span className="text-[9px] bg-red-100 text-red-600 px-1 rounded">{cvData.isAnonymous ? "Masquée" : "Visible"}</span></span><DropZone onFile={handlePhotoUpload} label={cvData.profile.photo ? "Changer" : "Photo"} icon={<User size={16}/>} className="h-24 bg-white" /></div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <Input label="Prénom" value={cvData.profile.firstname} onChange={(v) => handleProfileChange('firstname', v)} />
-                <Input label="NOM" value={cvData.profile.lastname} onChange={(v) => handleProfileChange('lastname', v)} />
-              </div>
-              <Input label="Années XP" value={cvData.profile.years_experience} onChange={(v) => handleProfileChange('years_experience', v)} />
-              <Input label="Techno Principale" value={cvData.profile.main_tech} onChange={(v) => handleProfileChange('main_tech', v)} />
+              <div className="grid grid-cols-2 gap-4"><Input label="Prénom" value={cvData.profile.firstname} onChange={(v) => handleProfileChange('firstname', v)} /><Input label="NOM" value={cvData.profile.lastname} onChange={(v) => handleProfileChange('lastname', v)} /></div>
+              <div className="grid grid-cols-2 gap-4"><Input label="Années XP" value={cvData.profile.years_experience} onChange={(v) => handleProfileChange('years_experience', v)} /><Input label="Techno Principale" value={cvData.profile.main_tech} onChange={(v) => handleProfileChange('main_tech', v)} /></div>
               <Input label="Poste Actuel" value={cvData.profile.current_role} onChange={(v) => handleProfileChange('current_role', v)} />
               <RichTextarea label="Bio / Résumé" value={cvData.profile.summary} onChange={(val) => handleProfileChange('summary', val)} maxLength={400} />
               <div className="bg-white p-4 rounded-xl border border-slate-200"><label className="text-xs font-bold text-[#333333] uppercase block mb-3">Bandeau Technos</label><LogoSelector onSelect={addTechLogo} label="Ajouter" /><div className="flex flex-wrap gap-2 mt-4">{cvData.profile.tech_logos.map((logo, i) => (<div key={i} className="relative group bg-slate-100 p-2 rounded-md border border-slate-200"><img src={logo.src} className="w-6 h-6 object-contain" /><button onClick={() => removeTechLogo(i)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100"><X size={10} /></button></div>))}</div></div>
@@ -372,7 +352,7 @@ export default function App() {
                {[0, 1, 2].map(i => (<Input key={i} label={`Hexagone #${i+1}`} value={cvData.soft_skills[i]} onChange={(v) => {const s = [...cvData.soft_skills]; s[i] = v; setCvData(p => ({...p, soft_skills: s}));}} />))}
             </div>
            )}
-           {/* STEP 3 (Formation - Inversé) */}
+           {/* STEP 3 (Formation) */}
            {step === 3 && (
              <div className="space-y-8 animate-in slide-in-from-right">
                <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><GraduationCap size={24} /><h2 className="text-lg font-bold uppercase">Formation & Compétences</h2></div>
@@ -385,6 +365,7 @@ export default function App() {
                ))}
                <Button onClick={addEducation} variant="secondary" className="w-full text-xs py-2 mt-2">Ajouter Formation</Button>
                <div className="mt-8 border-t border-slate-100 pt-6">
+                 <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><Cpu size={24} /><h2 className="text-lg font-bold uppercase">Compétences</h2></div>
                  <div className="flex gap-2 mb-6"><input className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded text-xs" placeholder="Nouvelle Catégorie" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addSkillCategory()} /><Button variant="outline" className="px-3 py-1 text-xs" onClick={addSkillCategory}><Plus size={12}/> Ajouter</Button></div>
                  {Object.entries(cvData.skills_categories).map(([cat, skills]) => (
                    <div key={cat} className="mb-6 p-4 bg-white border border-slate-200 rounded-xl">
@@ -396,14 +377,14 @@ export default function App() {
                </div>
              </div>
            )}
-           {/* STEP 4 (Expériences - Inversé) */}
+           {/* STEP 4 (Expériences) */}
            {step === 4 && (
             <div className="space-y-8 animate-in slide-in-from-right">
               <div className="flex justify-between items-center mb-4 text-[#2E86C1]"><div className="flex items-center gap-3"><Briefcase size={24} /><h2 className="text-lg font-bold uppercase">Expériences</h2></div><Button onClick={addExperience} variant="outline" className="px-3 py-1 text-xs"><Plus size={14} /> Ajouter</Button></div>
               {cvData.experiences.map((exp) => (
                 <div key={exp.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm relative group mb-4">
-                  <div className="absolute top-4 right-4 flex gap-1"><button onClick={() => moveExperience(exp.id, 'up')} className="p-1 hover:bg-slate-100 rounded"><MoveUp size={14}/></button><button onClick={() => removeExperience(exp.id)} className="p-1 bg-red-50 text-red-500 rounded"><Trash2 size={14}/></button></div>
-                  <div className="mb-4"><span className="text-xs font-bold text-[#333333] uppercase block mb-2">Logo Client</span><div className="flex items-center gap-4"><div className="w-12 h-12 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-center overflow-hidden shrink-0">{exp.client_logo ? <img src={exp.client_logo} className="w-full h-full object-contain p-1" /> : <ImageIcon size={20} className="text-slate-300"/>}</div><div className="flex-1"><LogoSelector label="" onSelect={(logo) => updateExperience(exp.id, 'client_logo', logo.src)} /></div></div></div>
+                  <div className="absolute top-4 right-4 flex gap-1"><button onClick={() => removeExperience(exp.id)} className="p-1 bg-red-50 text-red-500 rounded"><Trash2 size={14}/></button></div>
+                  <div className="mb-4"><span className="text-xs font-bold text-[#333333] uppercase block mb-2">Logo Client</span><div className="flex items-center gap-4"><div className="w-12 h-12 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-center overflow-hidden shrink-0">{exp.client_logo ? <img src={exp.client_logo} className="w-full h-full object-cover" /> : <ImageIcon size={20} className="text-slate-300"/>}</div><div className="flex-1"><LogoSelector label="" onSelect={(logo) => updateExperience(exp.id, 'client_logo', logo.src)} /></div></div></div>
                   <Input label="Client" value={exp.client_name} onChange={(v) => updateExperience(exp.id, 'client_name', v)} />
                   <Input label="Rôle" value={exp.role} onChange={(v) => updateExperience(exp.id, 'role', v)} />
                   <Input label="Période" value={exp.period} onChange={(v) => updateExperience(exp.id, 'period', v)} />
@@ -418,6 +399,7 @@ export default function App() {
 
       {/* --- PREVIEW & PRINT AREA --- */}
       <div className="flex-1 bg-slate-800 overflow-hidden relative flex flex-col items-center">
+        {/* Zoom Controls */}
         <div className="absolute bottom-6 z-50 flex items-center gap-4 bg-white/90 backdrop-blur px-6 py-2 rounded-full shadow-2xl border border-white/20 print:hidden">
            <button onClick={() => setZoom(Math.max(0.2, zoom - 0.1))} className="p-2 hover:bg-slate-100 rounded-full"><ZoomOut size={18} /></button>
            <span className="text-xs font-bold text-slate-600 min-w-[3rem] text-center">{Math.round(zoom * 100)}%</span>
@@ -426,110 +408,108 @@ export default function App() {
 
         <div className="flex-1 overflow-auto w-full p-8 flex justify-center custom-scrollbar">
           <div 
-            className="print-container flex flex-col origin-top transition-transform duration-300 gap-8" 
-            style={{ transform: `scale(${zoom})`, marginBottom: `${zoom * 100}px` }}
+            className="print-container flex flex-col origin-top transition-transform duration-300 bg-white shadow-2xl" 
+            style={{ transform: `scale(${zoom})`, marginBottom: `${zoom * 100}px`, width: '210mm' }}
           >
             
-            {/* ELEMENTS FLOTTANTS (FIXED) pour l'impression */}
-            <CornerTriangle customLogo={cvData.smileLogo} />
-            <Footer />
+            {/* ELEMENT 1 : PAGE DE GARDE (PAGE 1) - Toujours isolée */}
+            <div className="cv-page-cover relative h-[297mm] overflow-hidden" style={{ pageBreakAfter: 'always' }}>
+              <div className="absolute top-0 left-0 w-[120px] h-[120px] z-20">
+                <div className="absolute top-0 left-0 w-full h-full bg-[#2E86C1]" style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)', printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' }}></div>
+                {cvData.smileLogo ? 
+                  <div className="absolute top-[10px] left-[10px] w-[60px] h-[60px]"><img src={cvData.smileLogo} className="w-full h-full object-contain brightness-0 invert" style={{ transform: 'rotate(-45deg)' }} /></div> :
+                  <div className="absolute top-[25px] left-[25px] transform -rotate-45 origin-center"><span className="text-white font-black text-xl tracking-tighter italic block drop-shadow-md">SMILE</span></div>
+                }
+              </div>
 
-            {/* --- PAGE 1 : PROFIL --- */}
-            <div className="cv-page shadow-2xl bg-white relative">
-              <div className="h-[297mm] flex flex-col relative overflow-hidden">
-                <CornerTrianglePreview customLogo={cvData.smileLogo} />
-                {!cvData.isAnonymous && cvData.profile.photo && (
-                  <div className="absolute top-12 right-12 w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg z-20">
-                    <img src={cvData.profile.photo} className="w-full h-full object-cover" alt="Portrait" />
+              {!cvData.isAnonymous && cvData.profile.photo && (
+                <div className="absolute top-12 right-12 w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg z-20">
+                  <img src={cvData.profile.photo} className="w-full h-full object-cover" alt="Portrait" />
+                </div>
+              )}
+
+              <div className="pt-24 px-16 pb-0">
+                 <h1 className="text-6xl font-bold text-[#333333] uppercase leading-tight mb-2 font-montserrat">{formatName()}</h1>
+                 <div className="inline-block bg-[#2E86C1] text-white font-bold text-xl px-4 py-1 rounded-sm uppercase mb-10 tracking-wider">{cvData.profile.years_experience} ans d'expérience</div>
+                 <h2 className="text-3xl font-bold text-[#333333] uppercase mb-4 tracking-wide font-montserrat">{cvData.profile.current_role}</h2>
+                 <div className="text-xl text-[#666666] font-medium uppercase tracking-widest mb-10 border-l-4 border-[#2E86C1] pl-4">{cvData.profile.main_tech}</div>
+              </div>
+              <div className="px-16 mb-4 relative z-10 flex-1">
+                 <p className="text-lg text-[#333333] leading-relaxed italic border-t border-slate-100 pt-8" dangerouslySetInnerHTML={{__html: formatTextForPreview(`"${cvData.profile.summary}"`)}}></p>
+              </div>
+              <div className="w-full bg-[#2E86C1] py-6 px-16 mb-8 flex items-center justify-center gap-10 shadow-inner relative z-10">
+                {cvData.profile.tech_logos.map((logo, i) => (<img key={i} src={logo.src} className="h-14 w-auto object-contain brightness-0 invert opacity-95 hover:scale-110 transition-transform" />))}
+              </div>
+              <div className="flex justify-center gap-12 relative z-10 px-10 mb-24">
+                {cvData.soft_skills.map((skill, i) => (
+                  <div key={i} className="relative w-40 h-44 flex items-center justify-center">
+                    <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full text-[#2E86C1] fill-current drop-shadow-xl"><polygon points="50 0, 100 25, 100 75, 50 100, 0 75, 0 25" /></svg>
+                    <span className="relative z-10 text-white font-bold text-sm uppercase text-center px-4 leading-tight font-montserrat">{skill || "Soft Skill"}</span>
                   </div>
-                )}
-                <div className="pt-24 px-16 pb-0">
-                   <h1 className="text-6xl font-bold text-[#333333] uppercase leading-tight mb-2 font-montserrat">{formatName()}</h1>
-                   <div className="inline-block bg-[#2E86C1] text-white font-bold text-xl px-4 py-1 rounded-sm uppercase mb-10 tracking-wider">{cvData.profile.years_experience} ans d'expérience</div>
-                   <h2 className="text-3xl font-bold text-[#333333] uppercase mb-4 tracking-wide font-montserrat">{cvData.profile.current_role}</h2>
-                   <div className="text-xl text-[#666666] font-medium uppercase tracking-widest mb-10 border-l-4 border-[#2E86C1] pl-4">{cvData.profile.main_tech}</div>
-                </div>
-                <div className="px-16 mb-4 relative z-10 flex-1">
-                   <p className="text-lg text-[#333333] leading-relaxed italic border-t border-slate-100 pt-8" dangerouslySetInnerHTML={{__html: formatTextForPreview(`"${cvData.profile.summary}"`)}}></p>
-                </div>
-                <div className="w-full bg-[#2E86C1] py-6 px-16 mb-8 flex items-center justify-center gap-10 shadow-inner relative z-10">
-                  {cvData.profile.tech_logos.map((logo, i) => (<img key={i} src={logo.src} className="h-14 w-auto object-contain brightness-0 invert opacity-95 hover:scale-110 transition-transform" />))}
-                  {cvData.profile.tech_logos.length === 0 && <span className="text-white/30 text-xs font-bold uppercase tracking-widest">Technos</span>}
-                </div>
-                <div className="flex justify-center gap-12 relative z-10 px-10 mb-24">
-                  {cvData.soft_skills.map((skill, i) => (
-                    <div key={i} className="relative w-40 h-44 flex items-center justify-center">
-                      <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full text-[#2E86C1] fill-current drop-shadow-xl"><polygon points="50 0, 100 25, 100 75, 50 100, 0 75, 0 25" /></svg>
-                      <span className="relative z-10 text-white font-bold text-sm uppercase text-center px-4 leading-tight font-montserrat">{skill || "Soft Skill"}</span>
-                    </div>
-                  ))}
-                </div>
-                <FooterPreview />
+                ))}
               </div>
-            </div>
-
-            {/* --- PAGE 2 : FORMATION & COMPÉTENCES --- */}
-            <div className="cv-page shadow-2xl bg-white relative">
-              <div className="h-[297mm] flex flex-col relative overflow-hidden">
-                <CornerTrianglePreview customLogo={cvData.smileLogo} />
-                <HeaderSmall name={formatName()} role={cvData.profile.current_role} />
-                <div className="grid grid-cols-12 gap-10 mt-20 h-full px-4 flex-1">
-                    <div className="col-span-5 border-r border-slate-100 pr-8">
-                      <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-8 flex items-center gap-2"><GraduationCap /> Ma Formation</h3>
-                      <div className="space-y-8">{cvData.education.map((edu, i) => (<div key={i}><span className="text-xs font-bold text-[#666666] block mb-1">{edu.year}</span><h4 className="text-sm font-bold text-[#333333] uppercase leading-tight mb-1">{edu.degree}</h4><span className="text-xs text-[#2E86C1] font-medium">{edu.location}</span></div>))}</div>
-                    </div>
-                    <div className="col-span-7 pl-4">
-                      <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-8 flex items-center gap-2"><Cpu /> Mes Compétences</h3>
-                      <div className="space-y-8">{Object.entries(cvData.skills_categories).map(([cat, skills]) => (<div key={cat}><h4 className="text-xs font-bold text-[#999999] uppercase tracking-widest border-b border-slate-100 pb-2 mb-3">{cat}</h4><div className="grid grid-cols-2 gap-x-4 gap-y-3">{skills.map((skill, i) => (<div key={i} className="flex items-center justify-between"><span className="text-xs font-bold text-[#333333]">{skill.name}</span><HexagonRating score={skill.rating} /></div>))}</div></div>))}</div>
-                    </div>
-                </div>
-                <FooterPreview />
-              </div>
-            </div>
-
-            {/* --- PAGES EXPÉRIENCES (Flux continu qui sera paginé par le navigateur) --- */}
-            <div className="cv-page bg-white shadow-2xl relative min-h-[297mm] h-auto flex flex-col">
-              {/* Le header est rendu "en dur" au début du bloc expériences */}
-              <div className="print-header-placeholder h-[120px] print:hidden">
-                 <CornerTrianglePreview customLogo={cvData.smileLogo} />
-                 <HeaderSmall name={formatName()} role={cvData.profile.current_role} />
-              </div>
-
-              {/* Contenu principal */}
-              <div className="flex-1 px-4 pb-24 pt-4">
-                 <div className="flex justify-between items-end border-b border-slate-200 pb-2 mb-8 px-4">
-                    <h3 className="text-xl font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat">Mes dernières expériences</h3>
-                    <span className="text-[10px] font-bold text-[#666666] uppercase">Références</span>
-                 </div>
-                 <div className="space-y-12">
-                   {cvData.experiences.map((exp) => (
-                     <div key={exp.id} className="grid grid-cols-12 gap-6 break-inside-avoid">
-                        <div className="col-span-2 flex flex-col items-center pt-2">
-                          <div className="w-16 h-16 rounded-lg border border-slate-200 overflow-hidden flex items-center justify-center bg-white mb-2 p-1">
-                             {exp.client_logo ? <img src={exp.client_logo} className="w-full h-full object-contain" /> : <LayoutTemplate size={24} className="text-slate-300"/>}
-                          </div>
-                          <span className="text-[10px] font-bold text-[#333333] uppercase text-center leading-tight">{exp.client_name}</span>
-                        </div>
-                        <div className="col-span-10 border-l border-slate-100 pl-6 pb-6">
-                          <div className="flex justify-between items-baseline mb-3">
-                             <h4 className="text-lg font-bold text-[#333333] uppercase">{exp.client_name} <span className="font-normal text-[#666666]">| {exp.role}</span></h4>
-                             <span className="text-xs font-bold text-[#2E86C1] uppercase">{exp.period}</span>
-                          </div>
-                          <div className="mb-4">
-                             <h5 className="text-[10px] font-bold text-[#2E86C1] uppercase mb-1">Objectif</h5>
-                             <p className="text-sm text-[#333333] leading-relaxed" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.objective)}}></p>
-                          </div>
-                          <div className="flex gap-8 mt-4 pt-4 border-t border-slate-50">
-                             <div className="flex-1"><h5 className="text-[10px] font-bold text-[#999999] uppercase mb-1">Réalisation</h5><p className="text-xs font-medium text-[#333333]" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.phases)}}></p></div>
-                             <div className="flex-[2]"><h5 className="text-[10px] font-bold text-[#999999] uppercase mb-1">Environnement</h5><div className="flex flex-wrap gap-1">{exp.tech_stack.map((t, i) => <span key={i} className="text-xs font-bold text-[#2E86C1] bg-blue-50 px-2 py-0.5 rounded">{t}</span>)}</div></div>
-                          </div>
-                        </div>
-                     </div>
-                   ))}
-                 </div>
-              </div>
-              
               <FooterPreview />
+            </div>
+
+            {/* ELEMENT 2 : CONTENU PRINCIPAL (FLUX CONTINU) */}
+            <div className="cv-content-flow relative">
+              
+              {/* HEADER ET FOOTER RÉPÉTÉS SUR CHAQUE PAGE D'IMPRESSION (Invisible à l'écran, visible en print via CSS fixed) */}
+              <PrintHeaderFixed customLogo={cvData.smileLogo} name={formatName()} role={cvData.profile.current_role} />
+              <PrintFooterFixed />
+
+              {/* CONTENU QUI VA COULER SUR PLUSIEURS PAGES */}
+              <div className="print-content-padding" style={{ paddingTop: '120px', paddingBottom: '60px' }}>
+                
+                {/* SECTION 1 : FORMATION & COMPETENCES */}
+                <div className="px-12 mb-12 break-inside-avoid">
+                   <div className="grid grid-cols-12 gap-10">
+                      <div className="col-span-5 border-r border-slate-100 pr-8">
+                        <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-8 flex items-center gap-2"><GraduationCap /> Ma Formation</h3>
+                        <div className="space-y-8">{cvData.education.map((edu, i) => (<div key={i}><span className="text-xs font-bold text-[#666666] block mb-1">{edu.year}</span><h4 className="text-sm font-bold text-[#333333] uppercase leading-tight mb-1">{edu.degree}</h4><span className="text-xs text-[#2E86C1] font-medium">{edu.location}</span></div>))}</div>
+                      </div>
+                      <div className="col-span-7 pl-4">
+                        <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-8 flex items-center gap-2"><Cpu /> Mes Compétences</h3>
+                        <div className="space-y-8">{Object.entries(cvData.skills_categories).map(([cat, skills]) => (<div key={cat}><h4 className="text-xs font-bold text-[#999999] uppercase tracking-widest border-b border-slate-100 pb-2 mb-3">{cat}</h4><div className="grid grid-cols-2 gap-x-4 gap-y-3">{skills.map((skill, i) => (<div key={i} className="flex items-center justify-between"><span className="text-xs font-bold text-[#333333]">{skill.name}</span><HexagonRating score={skill.rating} /></div>))}</div></div>))}</div>
+                      </div>
+                   </div>
+                </div>
+
+                {/* SECTION 2 : EXPÉRIENCES */}
+                <div className="px-12">
+                   <div className="flex justify-between items-end border-b border-slate-200 pb-2 mb-8 px-4">
+                      <h3 className="text-xl font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat">Mes dernières expériences</h3>
+                      <span className="text-[10px] font-bold text-[#666666] uppercase">Références</span>
+                   </div>
+                   <div className="space-y-12">
+                     {cvData.experiences.map((exp) => (
+                       <div key={exp.id} className="grid grid-cols-12 gap-6 break-inside-avoid">
+                          <div className="col-span-2 flex flex-col items-center pt-2">
+                            <div className="w-16 h-16 rounded-lg border border-slate-200 overflow-hidden flex items-center justify-center bg-white mb-2 p-1">
+                               {exp.client_logo ? <img src={exp.client_logo} className="w-full h-full object-contain" /> : <LayoutTemplate size={24} className="text-slate-300"/>}
+                            </div>
+                            <span className="text-[10px] font-bold text-[#333333] uppercase text-center leading-tight">{exp.client_name}</span>
+                          </div>
+                          <div className="col-span-10 border-l border-slate-100 pl-6 pb-6">
+                            <div className="flex justify-between items-baseline mb-3">
+                               <h4 className="text-lg font-bold text-[#333333] uppercase">{exp.client_name} <span className="font-normal text-[#666666]">| {exp.role}</span></h4>
+                               <span className="text-xs font-bold text-[#2E86C1] uppercase">{exp.period}</span>
+                            </div>
+                            <div className="mb-4">
+                               <h5 className="text-[10px] font-bold text-[#2E86C1] uppercase mb-1">Objectif</h5>
+                               <p className="text-sm text-[#333333] leading-relaxed" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.objective)}}></p>
+                            </div>
+                            <div className="flex gap-8 mt-4 pt-4 border-t border-slate-50">
+                               <div className="flex-1"><h5 className="text-[10px] font-bold text-[#999999] uppercase mb-1">Réalisation</h5><p className="text-xs font-medium text-[#333333]" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.phases)}}></p></div>
+                               <div className="flex-[2]"><h5 className="text-[10px] font-bold text-[#999999] uppercase mb-1">Environnement</h5><div className="flex flex-wrap gap-1">{exp.tech_stack.map((t, i) => <span key={i} className="text-xs font-bold text-[#2E86C1] bg-blue-50 px-2 py-0.5 rounded">{t}</span>)}</div></div>
+                            </div>
+                          </div>
+                       </div>
+                     ))}
+                   </div>
+                </div>
+
+              </div>
             </div>
 
           </div>
@@ -541,7 +521,9 @@ export default function App() {
         .font-montserrat { font-family: 'Montserrat', sans-serif; }
         .font-sans { font-family: 'Open Sans', sans-serif; }
         
-        .cv-page { width: 210mm; background: white; box-sizing: border-box; position: relative; }
+        .cv-page-cover { width: 210mm; height: 297mm; background: white; flex-shrink: 0; box-sizing: border-box; position: relative; }
+        .cv-content-flow { width: 210mm; background: white; min-height: 297mm; }
+
         .break-inside-avoid { break-inside: avoid; page-break-inside: avoid; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
@@ -550,72 +532,72 @@ export default function App() {
           @page { size: A4; margin: 0; }
           body { background: white; margin: 0; padding: 0; }
           
-          /* Cacher toute l'interface UI */
-          .print-hidden, div[class*="w-[550px]"], div[class*="absolute bottom-6"], div[class*="absolute top-4"] { display: none !important; }
-          
-          /* Réinitialiser le conteneur principal */
-          .flex-1.bg-slate-800 { 
-            display: block !important; 
-            height: auto !important; 
-            overflow: visible !important; 
-            background: white !important;
-            padding: 0 !important;
+          .print-hidden, div[class*="w-[550px]"], div[class*="absolute bottom-6"] { display: none !important; }
+          .flex-1.bg-slate-800 { display: block !important; height: auto !important; overflow: visible !important; background: white !important; padding: 0 !important; }
+          .print-container { transform: none !important; margin: 0 !important; width: 100% !important; gap: 0 !important; }
+
+          /* PAGE 1 FORCEE */
+          .cv-page-cover { 
+             height: 297mm !important; 
+             page-break-after: always; 
+             break-after: page; 
           }
 
-          .print-container { 
-            transform: none !important; 
-            margin: 0 !important; 
-            width: 100% !important; 
-            display: block !important; 
-            gap: 0 !important;
+          /* FLUX CONTINU POUR LA SUITE */
+          .cv-content-flow {
+             display: block !important;
           }
 
-          /* Gestion des pages */
-          .cv-page {
-            width: 100% !important;
-            margin: 0 !important;
-            box-shadow: none !important;
-            border: none !important;
-            page-break-after: always;
-            break-after: page;
+          /* HEADER ET FOOTER FIXES SUR CHAQUE PAGE DU FLUX */
+          .print-header-fixed { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100px; background: white; z-index: 1000; 
+            display: block !important;
           }
-          
-          /* Pour la page continue d'expériences */
-          .cv-page.h-auto {
-             height: auto !important;
-             min-height: 297mm;
+          .print-footer-fixed { 
+            position: fixed; bottom: 0; left: 0; width: 100%; height: 50px; background: white; z-index: 1000;
+            display: flex !important;
           }
 
-          /* Fixer le triangle et le footer sur CHAQUE page imprimée */
-          /* Note: position fixed en print répète l'élément sur chaque page */
-          .fixed { position: fixed !important; display: block !important; }
-          
-          /* Cacher les éléments "Preview" qui font doublon en print */
-          .cv-page .absolute.top-0, .cv-page .absolute.bottom-8 { 
-            /* On cache les versions absolute (preview) pour laisser place aux versions fixed (print) */
-            display: none !important; 
+          /* ESPACEMENT POUR NE PAS CHEVAUCHER HEADER/FOOTER */
+          .print-content-padding {
+             margin-top: 100px; /* Espace pour le header fixed */
+             margin-bottom: 50px; /* Espace pour le footer fixed */
           }
           
-          /* Padding pour ne pas chevaucher le header/footer fixed */
-          .cv-page {
-             padding-top: 50px; 
-             padding-bottom: 50px;
-          }
+          /* Empêcher le header de s'afficher sur la page 1 (cover) qui a déjà le sien */
+          .cv-page-cover { z-index: 2000; position: relative; }
         }
       `}</style>
     </div>
   );
 }
 
-// --- SOUS-COMPOSANTS ---
-const CornerTrianglePreview = ({ customLogo }) => (
-  <div className="absolute top-0 left-0 w-[140px] h-[140px] z-50 pointer-events-none overflow-hidden">
-    <div className="absolute top-0 left-0 w-full h-full bg-[#2E86C1]" style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)' }}></div>
-    {customLogo ? (
-      <div className="absolute top-[10px] left-[10px] w-[60px] h-[60px]"><img src={customLogo} className="w-full h-full object-contain brightness-0 invert" style={{ transform: 'rotate(-45deg)' }} /></div>
-    ) : (
-      <div className="absolute top-[25px] left-[25px] transform -rotate-45 origin-center"><span className="text-white font-black text-xl tracking-tighter italic block drop-shadow-md">SMILE</span></div>
-    )}
+// --- ELEMENTS FIXES POUR L'IMPRESSION ---
+const PrintHeaderFixed = ({ customLogo, name, role }) => (
+  <div className="print-header-fixed hidden print:block fixed top-0 left-0 w-full h-[120px] bg-white z-[9999]">
+    <div className="absolute top-0 left-0 w-[120px] h-[120px]">
+      <div className="absolute top-0 left-0 w-full h-full bg-[#2E86C1]" style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)', printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' }}></div>
+      {customLogo ? (
+        <div className="absolute top-[10px] left-[10px] w-[60px] h-[60px]"><img src={customLogo} className="w-full h-full object-contain brightness-0 invert" style={{ transform: 'rotate(-45deg)' }} /></div>
+      ) : (
+        <div className="absolute top-[25px] left-[25px] transform -rotate-45 origin-center"><span className="text-white font-black text-xl tracking-tighter italic block drop-shadow-md">SMILE</span></div>
+      )}
+    </div>
+    <div className="flex justify-end items-start pt-10 px-12">
+      <div className="text-right">
+        <h3 className="text-sm font-bold text-[#333333] uppercase">{name}</h3>
+        <p className="text-[10px] font-bold text-[#999999] uppercase">{role}</p>
+      </div>
+    </div>
+  </div>
+);
+
+const PrintFooterFixed = () => (
+  <div className="print-footer-fixed hidden print:flex fixed bottom-0 left-0 w-full h-[60px] items-center bg-white z-[9999]">
+     <div className="w-full mx-12 border-t border-slate-100 pt-2 flex justify-between items-center">
+      <div className="text-[8px] font-bold text-[#999999] uppercase tracking-widest">Smile - IT is Open <span className="text-[#2E86C1] ml-1">CRÉATEUR D'EXPÉRIENCE DIGITALE OUVERTE</span></div>
+      <div className="text-[8px] font-bold text-[#333333]">#MadeWithSmile</div>
+    </div>
   </div>
 );
 
@@ -623,36 +605,5 @@ const FooterPreview = () => (
   <div className="absolute bottom-8 left-12 right-12 border-t border-slate-100 pt-4 flex justify-between items-center">
     <div className="text-[8px] font-bold text-[#999999] uppercase tracking-widest">Smile - IT is Open <span className="text-[#2E86C1] ml-1">CRÉATEUR D'EXPÉRIENCE DIGITALE OUVERTE</span></div>
     <div className="text-[8px] font-bold text-[#333333]">#MadeWithSmile</div>
-  </div>
-);
-
-// Ces versions FIXED s'affichent uniquement à l'impression, sur chaque page
-const CornerTriangle = ({ customLogo }) => (
-  <div className="fixed top-0 left-0 w-[120px] h-[120px] z-[9999] pointer-events-none print:block hidden">
-    <div className="absolute top-0 left-0 w-full h-full bg-[#2E86C1]" style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)', printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' }}></div>
-    {customLogo ? (
-      <div className="absolute top-[10px] left-[10px] w-[60px] h-[60px]"><img src={customLogo} className="w-full h-full object-contain brightness-0 invert" style={{ transform: 'rotate(-45deg)' }} /></div>
-    ) : (
-      <div className="absolute top-[25px] left-[25px] transform -rotate-45 origin-center"><span className="text-white font-black text-xl tracking-tighter italic block drop-shadow-md">SMILE</span></div>
-    )}
-  </div>
-);
-
-const Footer = () => (
-  <div className="fixed bottom-0 left-0 w-full bg-white z-[9999] print:block hidden">
-    <div className="mx-12 mb-8 border-t border-slate-100 pt-2 flex justify-between items-center bg-white">
-      <div className="text-[8px] font-bold text-[#999999] uppercase tracking-widest">Smile - IT is Open <span className="text-[#2E86C1] ml-1">CRÉATEUR D'EXPÉRIENCE DIGITALE OUVERTE</span></div>
-      <div className="text-[8px] font-bold text-[#333333]">#MadeWithSmile</div>
-    </div>
-  </div>
-);
-
-const HeaderSmall = ({ name, role }) => (
-  <div className="flex justify-between items-start border-b-2 border-[#2E86C1] pb-4 pt-10 px-4">
-    <div><div className="w-10 h-10"></div></div>
-    <div className="text-right">
-      <h3 className="text-sm font-bold text-[#333333] uppercase">{name}</h3>
-      <p className="text-[10px] font-bold text-[#999999] uppercase">{role}</p>
-    </div>
   </div>
 );
