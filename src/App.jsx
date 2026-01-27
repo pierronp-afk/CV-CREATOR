@@ -112,12 +112,21 @@ const A4Page = ({ children, className = "" }) => (
 );
 
 const CornerTriangle = ({ customLogo }) => (
-  <div className="absolute top-0 left-0 w-[120px] h-[120px] z-20 pointer-events-none">
+  <div className="absolute top-0 left-0 w-[170px] h-[170px] z-50 pointer-events-none print:w-[150px] print:h-[150px]">
     <div className="absolute top-0 left-0 w-full h-full bg-[#2E86C1]" style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)', printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' }}></div>
     {customLogo ? (
-      <div className="absolute top-[10px] left-[10px] w-[60px] h-[60px]"><img src={customLogo} className="w-full h-full object-contain brightness-0 invert" style={{ transform: 'rotate(-45deg)' }} /></div>
+      <div className="absolute top-[12px] left-[12px] w-[100px] h-[100px] flex items-center justify-center">
+         <img 
+            src={customLogo} 
+            className="max-w-full max-h-full object-contain brightness-0 invert" 
+            style={{ transform: 'rotate(-45deg)' }} 
+            alt="Logo Entreprise"
+         />
+      </div>
     ) : (
-      <div className="absolute top-[25px] left-[25px] transform -rotate-45 origin-center"><span className="text-white font-black text-xl tracking-tighter italic block drop-shadow-md">SMILE</span></div>
+      <div className="absolute top-[40px] left-[30px] transform -rotate-45 origin-center">
+        <span className="text-white font-black text-2xl tracking-tighter italic block drop-shadow-md">SMILE</span>
+      </div>
     )}
   </div>
 );
@@ -153,7 +162,11 @@ const ExperienceItem = ({ exp }) => (
   <div className="grid grid-cols-12 gap-6 mb-8 break-inside-avoid">
     <div className="col-span-2 flex flex-col items-center pt-2">
       <div className="w-16 h-16 rounded-lg border border-slate-200 overflow-hidden flex items-center justify-center bg-white mb-2 p-1">
-         {exp.client_logo ? <img src={exp.client_logo} className="w-full h-full object-contain" /> : <LayoutTemplate size={24} className="text-slate-300"/>}
+         {exp.client_logo ? (
+            <img src={exp.client_logo} className="max-w-full max-h-full object-contain" alt="Logo Client" />
+         ) : (
+            <LayoutTemplate size={24} className="text-slate-300"/>
+         )}
       </div>
       <span className="text-[10px] font-bold text-[#333333] uppercase text-center leading-tight">{exp.client_name}</span>
     </div>
@@ -201,7 +214,7 @@ const InputUI = ({ label, value, onChange, placeholder, maxLength, type = "text"
   </div>
 );
 
-const RichTextareaUI = ({ label, value, onChange, placeholder, maxLength }) => {
+const RichTextareaUI = ({ label, value, onChange, onAI, loadingAI, placeholder, maxLength }) => {
   const textareaRef = useRef(null);
   const insertTag = (tag) => {
     const textarea = textareaRef.current;
@@ -236,7 +249,7 @@ const RichTextareaUI = ({ label, value, onChange, placeholder, maxLength }) => {
         <div className="flex items-center gap-1 bg-slate-100 rounded-t-lg px-2 py-1 border border-slate-200 border-b-0 absolute right-0 top-0 transform -translate-y-full">
           <ButtonUI variant="toolbar" onClick={() => insertTag('b')} title="Gras"><Bold size={12}/></ButtonUI>
           <ButtonUI variant="toolbar" onClick={() => insertTag('list')} title="Puce"><List size={12}/></ButtonUI>
-          <div className="w-px h-3 bg-slate-300 mx-2"></div>
+          <div className="w-px h-3 bg-slate-300 mx-1"></div>
           <span className="text-[9px] text-slate-400 font-bold mr-1">IA:</span>
           {llmTools.map((tool) => (
             <button key={tool.name} onClick={() => copyAndOpenAI(tool.url)} className="p-1 hover:bg-white rounded transition-all hover:scale-110 grayscale hover:grayscale-0 opacity-70 hover:opacity-100" title={`Copier & Ouvrir ${tool.name}`}>
@@ -332,7 +345,7 @@ export default function App() {
   const handleSmileLogo = (f) => { if(f) { const r = new FileReader(); r.onload = (ev) => setCvData(p => ({...p, smileLogo: ev.target.result})); r.readAsDataURL(f); } };
   const handlePhotoUpload = (f) => { if(f) { const r = new FileReader(); r.onload = (ev) => setCvData(p => ({...p, profile: { ...p.profile, photo: ev.target.result }})); r.readAsDataURL(f); } };
   const updateExperience = (id, f, v) => setCvData(p => ({ ...p, experiences: p.experiences.map(e => e.id === id ? { ...e, [f]: v } : e) }));
-  const addExperience = () => setCvData(p => ({ ...p, experiences: [...p.experiences, { id: Date.now(), client_name: "", client_logo: null, period: "", role: "", objective: "", achievements: [], tech_stack: [], phases: "" }] }));
+  const addExperience = () => setCvData(p => ({ ...p, experiences: [{ id: Date.now(), client_name: "", client_logo: null, period: "", role: "", objective: "", achievements: [], tech_stack: [], phases: "" }, ...p.experiences] }));
   const removeExperience = (id) => setCvData(p => ({ ...p, experiences: p.experiences.filter(e => e.id !== id) }));
   const addSkillCategory = () => { if (newCategoryName) { setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [newCategoryName]: [] } })); setNewCategoryName(""); } };
   const saveCategoryRename = () => { if (editingCategory?.newName) { setCvData(p => { const n = { ...p.skills_categories }; const d = n[editingCategory.oldName]; delete n[editingCategory.oldName]; n[editingCategory.newName] = d; return { ...p, skills_categories: n }; }); } setEditingCategory(null); };
@@ -378,7 +391,7 @@ export default function App() {
         <div className="flex-1 overflow-y-auto px-6 py-8 custom-scrollbar">
            {/* STEP 1 */}
            {step === 1 && (
-            <div className="space-y-6 animate-in slide-in-from-right">
+            <div className="space-y-6 animate-in slide-in-from-right transition-all">
               <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><User size={24} /><h2 className="text-lg font-bold uppercase">Profil</h2></div>
               <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex gap-3"><div className="text-[#2E86C1] shrink-0 mt-0.5"><HelpCircle size={18} /></div><div><h4 className="text-xs font-bold text-[#2E86C1] uppercase mb-1">Aide IA</h4><p className="text-[11px] text-slate-600 leading-tight">Cliquez sur les logos IA pour copier le texte et l'améliorer.</p></div></div>
               <div className="flex gap-4 mb-6">
@@ -389,32 +402,24 @@ export default function App() {
               <div className="grid grid-cols-2 gap-4"><InputUI label="Années XP" value={cvData.profile.years_experience} onChange={(v) => handleProfileChange('years_experience', v)} /><InputUI label="Techno Principale" value={cvData.profile.main_tech} onChange={(v) => handleProfileChange('main_tech', v)} /></div>
               <InputUI label="Poste Actuel" value={cvData.profile.current_role} onChange={(v) => handleProfileChange('current_role', v)} />
               <RichTextareaUI label="Bio / Résumé" value={cvData.profile.summary} onChange={(val) => handleProfileChange('summary', val)} maxLength={400} />
-              <div className="bg-white p-4 rounded-xl border border-slate-200"><label className="text-xs font-bold text-[#333333] uppercase block mb-3">Bandeau Technos</label><LogoSelectorUI onSelect={addTechLogo} label="Ajouter" /><div className="flex flex-wrap gap-2 mt-4">{cvData.profile.tech_logos.map((logo, i) => (<div key={i} className="relative group bg-slate-100 p-2 rounded-md border border-slate-200"><img src={logo.src} className="w-6 h-6 object-contain" alt={logo.name} /><button onClick={() => removeTechLogo(i)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100"><X size={10} /></button></div>))}</div></div>
+              <div className="bg-white p-4 rounded-xl border border-slate-200"><label className="text-xs font-bold text-[#333333] uppercase block mb-3">Bandeau Technos</label><LogoSelectorUI onSelect={addTechLogo} label="Ajouter" /><div className="flex flex-wrap gap-2 mt-4">{cvData.profile.tech_logos.map((logo, i) => (
+                <div key={i} className="relative group bg-slate-100 p-2 rounded-md border border-slate-200">
+                  <img src={logo.src} className="w-6 h-6 object-contain" alt={logo.name} />
+                  <button onClick={() => removeTechLogo(i)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"><X size={10} /></button>
+                </div>
+              ))}</div></div>
             </div>
            )}
            {/* STEP 2 */}
            {step === 2 && (
-            <div className="space-y-6 animate-in slide-in-from-right">
+            <div className="space-y-6 animate-in slide-in-from-right transition-all">
                <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><Hexagon size={24} /><h2 className="text-lg font-bold uppercase">Soft Skills</h2></div>
                {[0, 1, 2].map(i => (<InputUI key={i} label={`Hexagone #${i+1}`} value={cvData.soft_skills[i]} onChange={(v) => {const s = [...cvData.soft_skills]; s[i] = v; setCvData(p => ({...p, soft_skills: s}));}} />))}
             </div>
            )}
-           {/* STEP 3 (Formation) */}
+           {/* STEP 3 (Expériences) */}
            {step === 3 && (
-             <div className="space-y-8 animate-in slide-in-from-right">
-               <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><GraduationCap size={24} /><h2 className="text-lg font-bold uppercase">Formation & Compétences</h2></div>
-               {cvData.education.map((edu, i) => (<div key={i} className="bg-slate-50 p-4 rounded-lg border border-slate-200 mb-3 relative group"><button onClick={() => removeEducation(i)} className="absolute top-2 right-2 text-slate-300 hover:text-red-500"><Trash2 size={14}/></button><InputUI label="Diplôme" value={edu.degree} onChange={(v) => updateEducation(i, 'degree', v)} /><div className="grid grid-cols-2 gap-2"><InputUI label="Année" value={edu.year} onChange={(v) => updateEducation(i, 'year', v)} /><InputUI label="Lieu" value={edu.location} onChange={(v) => updateEducation(i, 'location', v)} /></div></div>))}
-               <ButtonUI onClick={addEducation} variant="secondary" className="w-full text-xs py-2 mt-2">Ajouter Formation</ButtonUI>
-               <div className="mt-8 border-t border-slate-100 pt-6">
-                 <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><Cpu size={24} /><h2 className="text-lg font-bold uppercase">Compétences</h2></div>
-                 <div className="flex gap-2 mb-6"><input className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded text-xs" placeholder="Nouvelle Catégorie" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addSkillCategory()} /><ButtonUI variant="outline" className="px-3 py-1 text-xs" onClick={addSkillCategory}><Plus size={12}/> Ajouter</ButtonUI></div>
-                 {Object.entries(cvData.skills_categories).map(([cat, skills]) => (<div key={cat} className="mb-6 p-4 bg-white border border-slate-200 rounded-xl"><div className="flex justify-between items-center mb-3 border-b border-slate-50 pb-2"><div className="flex items-center gap-2 flex-1">{editingCategory?.oldName === cat ? (<div className="flex items-center gap-1 flex-1 mr-2"><input className="w-full px-2 py-1 text-xs border border-blue-300 rounded" autoFocus value={editingCategory.newName} onChange={(e) => setEditingCategory({ ...editingCategory, newName: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && saveCategoryRename()} /><button onClick={saveCategoryRename} className="bg-green-100 text-green-700 p-1 rounded hover:bg-green-200"><Check size={12}/></button></div>) : (<><h3 className="text-sm font-bold text-slate-700 uppercase">{cat}</h3><button onClick={() => setEditingCategory({oldName: cat, newName: cat})} className="text-slate-300 hover:text-blue-500"><Edit2 size={12}/></button></>)}</div><button onClick={() => deleteCategory(cat)} className="text-slate-300 hover:text-red-500"><Trash2 size={14}/></button></div><div className="space-y-2 mb-3">{skills.map((skill, idx) => (<div key={idx} className="flex items-center justify-between bg-slate-50 p-2 rounded group"><input className="text-xs font-bold text-slate-700 bg-transparent border-b border-transparent focus:border-[#2E86C1] focus:outline-none w-1/2" value={skill.name} onChange={(e) => updateSkillInCategory(cat, idx, 'name', e.target.value)} /><div className="flex items-center gap-3"><HexagonRating score={skill.rating} onChange={(r) => updateSkillInCategory(cat, idx, 'rating', r)} /><button onClick={() => removeSkillFromCategory(cat, idx)} className="text-slate-300 hover:text-red-600"><X size={12}/></button></div></div>))}</div><div className="flex items-center gap-2 bg-blue-50/50 p-2 rounded-lg"><input className="flex-1 px-2 py-1 text-xs border border-slate-200 rounded" placeholder="Compétence" value={newSkillsInput[cat]?.name || ''} onChange={(e) => updateNewSkillInput(cat, 'name', e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addSkillToCategory(cat)} /><div className="flex items-center gap-1"><span className="text-[9px] text-slate-400 font-bold uppercase">Note:</span><HexagonRating score={newSkillsInput[cat]?.rating || 3} onChange={(r) => updateNewSkillInput(cat, 'rating', r)} /></div><ButtonUI variant="primary" className="px-2 py-1 text-xs h-auto" onClick={() => addSkillToCategory(cat)}><Plus size={12}/></ButtonUI></div></div>))}
-               </div>
-             </div>
-           )}
-           {/* STEP 4 (Expériences) */}
-           {step === 4 && (
-            <div className="space-y-8 animate-in slide-in-from-right">
+            <div className="space-y-8 animate-in slide-in-from-right transition-all">
               <div className="flex justify-between items-center mb-4 text-[#2E86C1]"><div className="flex items-center gap-3"><Briefcase size={24} /><h2 className="text-lg font-bold uppercase">Expériences</h2></div><ButtonUI onClick={addExperience} variant="outline" className="px-3 py-1 text-xs"><Plus size={14} /> Ajouter</ButtonUI></div>
               {cvData.experiences.map((exp) => (
                 <div key={exp.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm relative group mb-4">
@@ -429,6 +434,19 @@ export default function App() {
               ))}
             </div>
           )}
+           {/* STEP 4 (Formation) */}
+           {step === 4 && (
+             <div className="space-y-8 animate-in slide-in-from-right transition-all">
+               <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><GraduationCap size={24} /><h2 className="text-lg font-bold uppercase">Formation & Compétences</h2></div>
+               {cvData.education.map((edu, i) => (<div key={i} className="bg-slate-50 p-4 rounded-lg border border-slate-200 mb-3 relative group"><button onClick={() => removeEducation(i)} className="absolute top-2 right-2 text-slate-300 hover:text-red-500"><Trash2 size={14}/></button><InputUI label="Diplôme" value={edu.degree} onChange={(v) => updateEducation(i, 'degree', v)} /><div className="grid grid-cols-2 gap-2"><InputUI label="Année" value={edu.year} onChange={(v) => updateEducation(i, 'year', v)} /><InputUI label="Lieu" value={edu.location} onChange={(v) => updateEducation(i, 'location', v)} /></div></div>))}
+               <ButtonUI onClick={addEducation} variant="secondary" className="w-full text-xs py-2 mt-2">Ajouter Formation</ButtonUI>
+               <div className="mt-8 border-t border-slate-100 pt-6">
+                 <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><Cpu size={24} /><h2 className="text-lg font-bold uppercase">Compétences</h2></div>
+                 <div className="flex gap-2 mb-6"><input className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded text-xs" placeholder="Nouvelle Catégorie" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addSkillCategory()} /><ButtonUI variant="outline" className="px-3 py-1 text-xs" onClick={addSkillCategory}><Plus size={12}/> Ajouter</ButtonUI></div>
+                 {Object.entries(cvData.skills_categories).map(([cat, skills]) => (<div key={cat} className="mb-6 p-4 bg-white border border-slate-200 rounded-xl"><div className="flex justify-between items-center mb-3 border-b border-slate-50 pb-2"><div className="flex items-center gap-2 flex-1">{editingCategory?.oldName === cat ? (<div className="flex items-center gap-1 flex-1 mr-2"><input className="w-full px-2 py-1 text-xs border border-blue-300 rounded" autoFocus value={editingCategory.newName} onChange={(e) => setEditingCategory({ ...editingCategory, newName: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && saveCategoryRename()} /><button onClick={saveCategoryRename} className="bg-green-100 text-green-700 p-1 rounded hover:bg-green-200"><Check size={12}/></button></div>) : (<><h3 className="text-sm font-bold text-slate-700 uppercase">{cat}</h3><button onClick={() => setEditingCategory({oldName: cat, newName: cat})} className="text-slate-300 hover:text-blue-500"><Edit2 size={12}/></button></>)}</div><button onClick={() => deleteCategory(cat)} className="text-slate-300 hover:text-red-500"><Trash2 size={14}/></button></div><div className="space-y-2 mb-3">{skills.map((skill, idx) => (<div key={idx} className="flex items-center justify-between bg-slate-50 p-2 rounded group"><input className="text-xs font-bold text-slate-700 bg-transparent border-b border-transparent focus:border-[#2E86C1] focus:outline-none w-1/2" value={skill.name} onChange={(e) => updateSkillInCategory(cat, idx, 'name', e.target.value)} /><div className="flex items-center gap-3"><HexagonRating score={skill.rating} onChange={(r) => updateSkillInCategory(cat, idx, 'rating', r)} /><button onClick={() => removeSkillFromCategory(cat, idx)} className="text-slate-300 hover:text-red-600"><X size={12}/></button></div></div>))}</div><div className="flex items-center gap-2 bg-blue-50/50 p-2 rounded-lg"><input className="flex-1 px-2 py-1 text-xs border border-slate-200 rounded" placeholder="Compétence" value={newSkillsInput[cat]?.name || ''} onChange={(e) => updateNewSkillInput(cat, 'name', e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addSkillToCategory(cat)} /><div className="flex items-center gap-1"><span className="text-[9px] text-slate-400 font-bold uppercase">Note:</span><HexagonRating score={newSkillsInput[cat]?.rating || 3} onChange={(r) => updateNewSkillInput(cat, 'rating', r)} /></div><ButtonUI variant="primary" className="px-2 py-1 text-xs h-auto" onClick={() => addSkillToCategory(cat)}><Plus size={12}/></ButtonUI></div></div>))}
+               </div>
+             </div>
+           )}
         </div>
       </div>
 
@@ -465,7 +483,11 @@ export default function App() {
                  <p className="text-lg text-[#333333] leading-relaxed italic border-t border-slate-100 pt-8" dangerouslySetInnerHTML={{__html: formatTextForPreview(`"${cvData.profile.summary}"`)}}></p>
               </div>
               <div className="w-full bg-[#2E86C1] py-6 px-16 mb-8 flex items-center justify-center gap-10 shadow-inner relative z-10">
-                {cvData.profile.tech_logos.map((logo, i) => (<img key={i} src={logo.src} className="h-14 w-auto object-contain brightness-0 invert opacity-95 hover:scale-110 transition-transform" />))}
+                {cvData.profile.tech_logos.map((logo, i) => (
+                  <div key={i} className="h-14 w-auto flex items-center justify-center">
+                    <img src={logo.src} className="h-full w-full object-contain brightness-0 invert opacity-95 transition-transform hover:scale-110" alt={logo.name} />
+                  </div>
+                ))}
               </div>
               <div className="flex justify-center gap-12 relative z-10 px-10 mb-24">
                 {cvData.soft_skills.map((skill, i) => (
