@@ -266,7 +266,7 @@ const RichTextareaUI = ({ label, value, onChange, placeholder, maxLength }) => {
           <ButtonUI variant="toolbar" onClick={() => insertTag('b')} title="Gras"><Bold size={12}/></ButtonUI>
           <ButtonUI variant="toolbar" onClick={() => insertTag('list')} title="Puce"><List size={12}/></ButtonUI>
           <div className="w-px h-3 bg-slate-300 mx-1"></div>
-          <span className="text-[9px] text-slate-400 font-bold mr-1 uppercase tracking-tighter">IA:</span>
+          <span className="text-[9px] text-slate-400 font-bold mr-1 uppercase">IA:</span>
           {[{ name: 'ChatGPT', url: 'https://chat.openai.com/', icon: 'openai' },
             { name: 'Gemini', url: 'https://gemini.google.com/', icon: 'googlegemini' },
             { name: 'Claude', url: 'https://claude.ai/', icon: 'anthropic/000000' }].map((tool) => (
@@ -327,7 +327,7 @@ export default function App() {
   
   const [cvData, setCvData] = useState(() => {
     try {
-      const saved = localStorage.getItem('smile_cv_data_final_stable_v9');
+      const saved = localStorage.getItem('smile_cv_data_final_stable_v10');
       if (saved) return JSON.parse(saved);
     } catch(e) { console.error(e); }
     return DEFAULT_CV_DATA;
@@ -337,7 +337,7 @@ export default function App() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      localStorage.setItem('smile_cv_data_final_stable_v9', JSON.stringify(cvData));
+      localStorage.setItem('smile_cv_data_final_stable_v10', JSON.stringify(cvData));
       setLastSaved(new Date());
     }, 1000);
     return () => clearTimeout(timer);
@@ -354,11 +354,10 @@ export default function App() {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newSkillsInput, setNewSkillsInput] = useState({});
 
-  const resetCV = () => { if (confirm("Réinitialiser tout le CV ?")) { localStorage.removeItem('smile_cv_data_final_stable_v9'); setCvData(DEFAULT_CV_DATA); } };
+  const resetCV = () => { if (confirm("Réinitialiser tout le CV ?")) { localStorage.removeItem('smile_cv_data_final_stable_v10'); setCvData(DEFAULT_CV_DATA); } };
   const downloadJSON = () => { const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(cvData)); a.download = `${getFilenameBase()}.json`; a.click(); };
   const uploadJSON = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (ev) => { try { setCvData(JSON.parse(ev.target.result)); } catch (err) { alert("Invalide"); } }; reader.readAsText(file); };
   
-  // Handlers
   const handleProfileChange = (f, v) => setCvData(p => ({ ...p, profile: { ...p.profile, [f]: v } }));
   const addTechLogo = (o) => setCvData(p => ({ ...p, profile: { ...p.profile, tech_logos: [...p.profile.tech_logos, o] } }));
   const removeTechLogo = (i) => setCvData(p => ({ ...p, profile: { ...p.profile, tech_logos: p.profile.tech_logos.filter((_, idx) => idx !== i) } }));
@@ -459,7 +458,17 @@ export default function App() {
                      <h3 className="text-[10px] font-black uppercase text-slate-400">Certifs</h3>
                      <button onClick={() => setCvData(p => ({...p, showCertif: !p.showCertif}))}>{cvData.showCertif ? <ToggleRight className="text-green-500"/> : <ToggleLeft className="text-slate-300"/>}</button>
                    </div>
-                   <LogoSelectorUI onSelect={addCertification} label="" /><div className="mt-2 space-y-1">{cvData.certifications.map((c, i) => (<div key={i} className="flex flex-col bg-white p-2 rounded border border-slate-100 group shadow-sm"><div className="flex justify-between items-center mb-1"><div className="w-6 h-6 overflow-hidden flex items-center justify-center">{c.logo ? <img src={c.logo} className="max-w-full max-h-full object-contain" /> : null}</div><button onClick={() => removeCertification(i)} className="text-red-300 hover:text-red-500"><X size={10}/></button></div><input className="w-full text-[10px] font-bold bg-transparent outline-none focus:text-blue-500 border-b border-transparent focus:border-blue-200 uppercase" value={c.name} onChange={(e) => updateCertification(i, 'name', e.target.value)} /></div>))}</div>
+                   <LogoSelectorUI onSelect={addCertification} label="" /><div className="mt-2 space-y-1">{cvData.certifications.map((c, i) => (
+                     <div key={i} className="flex flex-col bg-white p-2 rounded border border-slate-100 group shadow-sm">
+                       <div className="flex justify-between items-center mb-1">
+                         <div className="w-6 h-6 overflow-hidden flex items-center justify-center">
+                            {c.logo ? <img src={c.logo} className="max-w-full max-h-full object-contain" /> : null}
+                         </div>
+                         <button onClick={() => removeCertification(i)} className="text-red-300 hover:text-red-500"><X size={10}/></button>
+                       </div>
+                       <input className="w-full text-[10px] font-bold bg-transparent outline-none focus:text-blue-500 border-b border-transparent focus:border-blue-200 uppercase" value={c.name} onChange={(e) => updateCertification(i, 'name', e.target.value)} />
+                     </div>
+                   ))}</div>
                  </div>
                </div>
                <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 shadow-sm">
@@ -579,7 +588,7 @@ export default function App() {
           .print-hidden, div[class*="w-[550px]"], div[class*="absolute bottom-6"] { display: none !important; }
           .flex-1.bg-slate-800 { display: block !important; height: auto !important; overflow: visible !important; background: white !important; padding: 0 !important; }
           .print-container { transform: none !important; margin: 0 !important; width: 100% !important; display: block !important; gap: 0 !important; }
-          .A4-page { margin: 0 !important; box-shadow: none !important; page-break-after: always !important; break-after: page !important; width: 210mm !important; height: 297mm !important; display: flex !important; flex-direction: column !important; }
+          .A4-page { margin: 0 !important; box-shadow: none !important; page-break-after: always !important; break-after: page !important; width: 210mm !important; height: 297.1mm !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; }
           .break-inside-avoid { break-inside: avoid !important; page-break-inside: avoid !important; }
         }
       `}</style>
