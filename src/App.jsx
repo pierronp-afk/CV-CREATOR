@@ -3,7 +3,7 @@ import {
   ArrowRight, ArrowLeft, Download, Plus, Trash2, MoveUp, MoveDown, 
   Upload, X, Briefcase, GraduationCap, User, Hexagon, Cpu, 
   Image as ImageIcon, ZoomIn, ZoomOut, Search, LayoutTemplate, 
-  Save, FolderOpen, Eye, EyeOff, Shield, Edit2, Check,
+  Save, FolderOpen, Eye, Shield, Check, Edit2,
   Bold, List, Copy, HelpCircle, RefreshCw, Cloud, Mail, Printer
 } from 'lucide-react';
 
