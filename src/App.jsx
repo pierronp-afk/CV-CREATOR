@@ -3,7 +3,7 @@ import {
   ArrowRight, ArrowLeft, Download, Plus, Trash2, MoveUp, MoveDown, 
   Upload, X, Briefcase, GraduationCap, User, Hexagon, Cpu, 
   Image as ImageIcon, ZoomIn, ZoomOut, Search, LayoutTemplate, 
-  Save, FolderOpen, Eye, Shield, Check, Edit2,
+  Save, FolderOpen, Eye, EyeOff, Shield, Edit2, Check,
   Bold, List, Copy, HelpCircle, RefreshCw, Cloud, Mail, Printer
 } from 'lucide-react';
 
@@ -368,6 +368,7 @@ export default function App() {
              <Button variant={cvData.isAnonymous ? "danger" : "secondary"} className="px-2 py-1 h-7" onClick={() => setCvData(p => ({...p, isAnonymous: !p.isAnonymous}))}>{cvData.isAnonymous ? "Visible" : "Anonymiser"}</Button>
            </div>
         </div>
+
         <div className="p-6 border-b border-slate-100 bg-white sticky top-0 z-20">
           <div className="flex justify-between items-center mb-6"><h1 className="font-bold text-xl text-[#2E86C1]">Smile Editor</h1><span className="text-xs font-bold text-slate-400">Étape {step} / 4</span></div>
           <div className="flex gap-2">
@@ -504,6 +505,7 @@ export default function App() {
                   <h3 className="text-xl font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat">{pageIndex === 0 ? "Mes dernières expériences" : "Expériences (Suite)"}</h3>
                   <span className="text-[10px] font-bold text-[#666666] uppercase">Références</span>
                 </div>
+                {/* Centrage vertical si c'est la dernière page et qu'il n'y a qu'une seule expérience */}
                 <div className={`flex-1 px-12 ${pageIndex === experienceChunks.length - 1 && chunk.length === 1 ? 'flex flex-col justify-center' : ''}`}>
                   {chunk.map((exp) => (
                     <div key={exp.id} className="grid grid-cols-12 gap-6 mb-8 break-inside-avoid">
