@@ -4,13 +4,11 @@ import {
   Upload, X, Briefcase, GraduationCap, User, Hexagon, Cpu, 
   Image as ImageIcon, ZoomIn, ZoomOut, Search, LayoutTemplate, 
   Save, FolderOpen, Eye, Shield, Check, Edit2,
-  Bold, List, Copy, HelpCircle, RefreshCw, Cloud, Mail, Printer, Wand2, Loader2,
+  Bold, List, Copy, HelpCircle, RefreshCw, Cloud, Mail, Printer,
   ChevronUp, ChevronDown, Award, Factory, ToggleLeft, ToggleRight
 } from 'lucide-react';
 
 // --- CONFIGURATION & THÈME ---
-const apiKey = ""; 
-
 const THEME = {
   primary: "#2E86C1", 
   secondary: "#006898", 
@@ -58,17 +56,6 @@ const DEFAULT_CV_DATA = {
       achievements: ["Participation à la phase de conception", "Adaptation de l'interface"],
       tech_stack: ["Drupal", "Twig"],
       phases: "Conception, Développement"
-    },
-    {
-      id: 2,
-      client_name: "L'Oréal",
-      client_logo: null,
-      period: "2021 - 2022",
-      role: "Tech Lead",
-      objective: "Refonte du site e-commerce B2B...",
-      achievements: ["Audit de performance", "Mise en place CI/CD", "Formation équipe"],
-      tech_stack: ["React", "NodeJS", "AWS"],
-      phases: "Audit, Dev, Run"
     }
   ],
   education: [
@@ -164,13 +151,12 @@ const HexagonRating = ({ score, onChange }) => (
 const ExperienceItem = ({ exp }) => (
   <div className="grid grid-cols-12 gap-6 mb-8 break-inside-avoid">
     <div className="col-span-2 flex flex-col items-center pt-2">
-      <div className="w-16 h-16 rounded-lg border border-slate-200 overflow-hidden flex items-center justify-center bg-white mb-2 p-1">
-         {exp.client_logo ? (
-            <img src={exp.client_logo} className="max-w-full max-h-full object-contain" alt="Logo Client" />
-         ) : (
-            <LayoutTemplate size={24} className="text-slate-300"/>
-         )}
-      </div>
+      {/* Si pas de logo, on n'affiche même pas le cadre blanc */}
+      {exp.client_logo && (
+        <div className="w-16 h-16 rounded-lg border border-slate-200 overflow-hidden flex items-center justify-center bg-white mb-2 p-1">
+          <img src={exp.client_logo} className="max-w-full max-h-full object-contain" alt="Logo Client" />
+        </div>
+      )}
       <span className="text-[10px] font-bold text-[#333333] uppercase text-center leading-tight">{exp.client_name}</span>
     </div>
     <div className="col-span-10 border-l border-slate-100 pl-6 pb-6">
@@ -265,23 +251,28 @@ const RichTextareaUI = ({ label, value, onChange, placeholder, maxLength }) => {
   ];
 
   return (
-    <div className="mb-6 relative">
-      <div className="flex justify-between items-end mb-1">
-        <label className="text-xs font-bold text-[#333333] uppercase block">{label}</label>
-        <div className="flex items-center gap-1 bg-slate-100 rounded-t-lg px-2 py-1 border border-slate-200 border-b-0 absolute right-0 top-0 transform -translate-y-full">
+    <div className="mb-6">
+      <label className="text-xs font-bold text-[#333333] uppercase block mb-1">{label}</label>
+      <div className="bg-slate-50 border border-slate-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-[#2E86C1] transition-all">
+        <div className="flex items-center gap-1 bg-white px-2 py-1.5 border-b border-slate-200">
           <ButtonUI variant="toolbar" onClick={() => insertTag('b')} title="Gras"><Bold size={12}/></ButtonUI>
-          <ButtonUI variant="toolbar" onClick={() => insertTag('list')} title="Puce (Sélection ou curseur)"><List size={12}/></ButtonUI>
+          <ButtonUI variant="toolbar" onClick={() => insertTag('list')} title="Puce"><List size={12}/></ButtonUI>
           <div className="w-px h-3 bg-slate-300 mx-1"></div>
-          <span className="text-[9px] text-slate-400 font-bold mr-1">IA:</span>
+          <span className="text-[9px] text-slate-400 font-bold mr-1 uppercase">IA:</span>
           {llmTools.map((tool) => (
-            <button key={tool.name} onClick={() => copyToClipboard(tool.url)} className="p-1 hover:bg-white rounded transition-all hover:scale-110 grayscale hover:grayscale-0 opacity-70 hover:opacity-100" title={`Copier & Ouvrir ${tool.name}`}>
+            <button key={tool.name} onClick={() => copyToClipboard(tool.url)} className="p-1 hover:bg-slate-100 rounded transition-all hover:scale-110 grayscale hover:grayscale-0 opacity-70 hover:opacity-100" title={`Copier & Ouvrir ${tool.name}`}>
               <img src={getBrandIconUrl(tool.icon)} className="w-4 h-4" alt={tool.name} />
             </button>
           ))}
         </div>
-      </div>
-      <div className="relative">
-        <textarea ref={textareaRef} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg rounded-tr-none text-sm h-32 resize-none focus:outline-none focus:ring-2 focus:ring-[#2E86C1]" value={value} onChange={(e) => onChange(e.target.value)} maxLength={maxLength} placeholder={placeholder} />
+        <textarea 
+          ref={textareaRef} 
+          className="w-full px-4 py-3 bg-transparent text-sm h-32 resize-none focus:outline-none border-none" 
+          value={value} 
+          onChange={(e) => onChange(e.target.value)} 
+          maxLength={maxLength} 
+          placeholder={placeholder} 
+        />
       </div>
     </div>
   );
@@ -326,7 +317,7 @@ export default function App() {
   
   const [cvData, setCvData] = useState(() => {
     try {
-      const saved = localStorage.getItem('smile_cv_data_final_ref');
+      const saved = localStorage.getItem('smile_cv_data_final_v5');
       if (saved) return JSON.parse(saved);
     } catch(e) { console.error(e); }
     return DEFAULT_CV_DATA;
@@ -336,7 +327,7 @@ export default function App() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      localStorage.setItem('smile_cv_data_final_ref', JSON.stringify(cvData));
+      localStorage.setItem('smile_cv_data_final_v5', JSON.stringify(cvData));
       setLastSaved(new Date());
     }, 1000);
     return () => clearTimeout(timer);
@@ -356,7 +347,7 @@ export default function App() {
   const [editingCategory, setEditingCategory] = useState(null); 
   const [newSkillsInput, setNewSkillsInput] = useState({});
 
-  const resetCV = () => { if (confirm("Réinitialiser tout le CV ?")) { localStorage.removeItem('smile_cv_data_final_ref'); setCvData(DEFAULT_CV_DATA); } };
+  const resetCV = () => { if (confirm("Réinitialiser tout le CV ?")) { localStorage.removeItem('smile_cv_data_final_v5'); setCvData(DEFAULT_CV_DATA); } };
   const downloadJSON = () => { const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(cvData)); a.download = `${getFilenameBase()}.json`; a.click(); };
   const uploadJSON = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (ev) => { try { setCvData(JSON.parse(ev.target.result)); } catch (err) { alert("Invalide"); } }; reader.readAsText(file); };
   
@@ -365,6 +356,7 @@ export default function App() {
   const addTechLogo = (o) => setCvData(p => ({ ...p, profile: { ...p.profile, tech_logos: [...p.profile.tech_logos, o] } }));
   const removeTechLogo = (i) => setCvData(p => ({ ...p, profile: { ...p.profile, tech_logos: p.profile.tech_logos.filter((_, idx) => idx !== i) } }));
   const handleSmileLogo = (f) => { if(f) { const r = new FileReader(); r.onload = (ev) => setCvData(p => ({...p, smileLogo: ev.target.result})); r.readAsDataURL(f); } };
+  
   const moveExperience = (index, direction) => {
     const newExp = [...cvData.experiences];
     const target = direction === 'up' ? index - 1 : index + 1;
@@ -373,19 +365,24 @@ export default function App() {
       setCvData({ ...cvData, experiences: newExp });
     }
   };
+
   const updateExperience = (id, f, v) => setCvData(p => ({ ...p, experiences: p.experiences.map(e => e.id === id ? { ...e, [f]: v } : e) }));
   const addExperience = () => setCvData(p => ({ ...p, experiences: [{ id: Date.now(), client_name: "", client_logo: null, period: "", role: "", objective: "", achievements: [], tech_stack: [], phases: "" }, ...p.experiences] }));
   const removeExperience = (id) => setCvData(p => ({ ...p, experiences: p.experiences.filter(e => e.id !== id) }));
+  
   const addSkillCategory = () => { if (newCategoryName) { setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [newCategoryName]: [] } })); setNewCategoryName(""); } };
-  const deleteCategory = (n) => setCvData(p => { const newC = { ...p.skills_categories }; delete newC[n]; return { ...p, skills_categories: newC }; });
+  const deleteCategory = (n) => setCvData(p => { const newC = { ...p.skills_categories }; delete n[editingCategory?.oldName || n]; return { ...p, skills_categories: newC }; });
   const updateSkillInCategory = (cat, idx, f, v) => setCvData(p => { const s = [...p.skills_categories[cat]]; s[idx] = { ...s[idx], [f]: v }; return { ...p, skills_categories: { ...p.skills_categories, [cat]: s } }; });
   const addSkillToCategory = (cat) => { const i = newSkillsInput[cat] || { name: '', rating: 3 }; if (i.name) { setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [cat]: [...p.skills_categories[cat], { name: i.name, rating: i.rating }] } })); setNewSkillsInput(p => ({ ...p, [cat]: { name: '', rating: 3 } })); } };
   const updateNewSkillInput = (cat, field, val) => { setNewSkillsInput(p => ({ ...p, [cat]: { ...(p[cat] || { name: '', rating: 3 }), [field]: val } })); };
   const removeSkillFromCategory = (cat, idx) => setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [cat]: p.skills_categories[cat].filter((_, i) => i !== idx) } }));
+  
   const addSecteur = () => { if (newSecteur) { setCvData(p => ({ ...p, connaissances_sectorielles: [...p.connaissances_sectorielles, newSecteur] })); setNewSecteur(""); }};
   const removeSecteur = (idx) => setCvData(p => ({ ...p, connaissances_sectorielles: p.connaissances_sectorielles.filter((_, i) => i !== idx) }));
   const addCertification = (o) => setCvData(p => ({ ...p, certifications: [...p.certifications, { name: o.name, logo: o.src }] }));
+  const updateCertification = (idx, field, val) => setCvData(p => { const certs = [...p.certifications]; certs[idx] = { ...certs[idx], [field]: val }; return { ...p, certifications: certs }; });
   const removeCertification = (idx) => setCvData(p => ({ ...p, certifications: p.certifications.filter((_, i) => i !== idx) }));
+  
   const updateEducation = (i, f, v) => { const n = [...cvData.education]; n[i][f] = v; setCvData(p => ({ ...p, education: n })); };
   const addEducation = () => setCvData(p => ({ ...p, education: [...p.education, { year: "", degree: "", location: "" }] }));
   const removeEducation = (i) => setCvData(p => ({ ...p, education: p.education.filter((_, idx) => idx !== i) }));
@@ -414,7 +411,7 @@ export default function App() {
           <div className="flex justify-between items-center mb-6"><h1 className="font-bold text-xl text-[#2E86C1]">Smile Editor</h1><span className="text-xs font-bold text-slate-400">Étape {step} / 4</span></div>
           <div className="flex gap-2">
             <ButtonUI variant="secondary" onClick={() => setStep(s => Math.max(1, s - 1))} disabled={step === 1} className="flex-1"><ArrowLeft size={16} /></ButtonUI>
-            {step < 4 ? <ButtonUI onClick={() => setStep(s => Math.min(4, s + 1))} className="flex-[2]">Suivant <ArrowRight size={16} /></ButtonUI> : <ButtonUI onClick={handlePrint} className="flex-[2] bg-slate-900 hover:bg-black">Imprimer PDF</ButtonUI>}
+            {step < 4 ? <ButtonUI onClick={() => setStep(s => Math.min(4, s + 1))} className="flex-[2]">Suivant <ArrowRight size={16} /></ButtonUI> : <ButtonUI onClick={handlePrint} className="flex-[2] bg-slate-900 hover:bg-black text-white">Imprimer PDF</ButtonUI>}
           </div>
         </div>
 
@@ -422,7 +419,6 @@ export default function App() {
            {step === 1 && (
             <div className="space-y-6 animate-in slide-in-from-right transition-all">
               <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><User size={24} /><h2 className="text-lg font-bold uppercase">Profil</h2></div>
-              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex gap-3"><div className="text-[#2E86C1] shrink-0 mt-0.5"><HelpCircle size={18} /></div><div><h4 className="text-xs font-bold text-[#2E86C1] uppercase mb-1 text-left">Aide IA</h4><p className="text-[11px] text-slate-600 leading-tight text-left">Cliquez sur les logos IA pour copier le texte et l'améliorer.</p></div></div>
               <div className="mb-6 p-4 border border-blue-100 bg-blue-50/50 rounded-lg flex flex-col gap-2"><span className="text-[10px] font-bold text-[#2E86C1] uppercase text-left">Logo Entreprise</span><DropZoneUI onFile={handleSmileLogo} label={cvData.smileLogo ? "Changer" : "Logo"} className="h-24 bg-white" /></div>
               <div className="grid grid-cols-2 gap-4"><InputUI label="Prénom" value={cvData.profile.firstname} onChange={(v) => handleProfileChange('firstname', v)} /><InputUI label="NOM" value={cvData.profile.lastname} onChange={(v) => handleProfileChange('lastname', v)} /></div>
               <div className="grid grid-cols-2 gap-4"><InputUI label="Années XP" value={cvData.profile.years_experience} onChange={(v) => handleProfileChange('years_experience', v)} /><InputUI label="Techno Principale" value={cvData.profile.main_tech} onChange={(v) => handleProfileChange('main_tech', v)} /></div>
@@ -440,15 +436,67 @@ export default function App() {
            {step === 3 && (
              <div className="space-y-8 animate-in slide-in-from-right transition-all">
                <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><Cpu size={24} /><h2 className="text-lg font-bold uppercase">Compétences & Formation</h2></div>
-               {/* Secteurs & Certifs */}
+               
                <div className="grid grid-cols-2 gap-4">
-                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200"><div className="flex justify-between items-center mb-3"><h3 className="text-[10px] font-black uppercase text-slate-400">Secteur</h3><button onClick={() => setCvData(p => ({...p, showSecteur: !p.showSecteur}))}>{cvData.showSecteur ? <ToggleRight className="text-green-500"/> : <ToggleLeft className="text-slate-300"/>}</button></div><div className="flex gap-1 mb-2"><input className="flex-1 px-2 py-1 text-xs border rounded" placeholder="Banque..." value={newSecteur} onChange={e => setNewSecteur(e.target.value)} onKeyDown={e => e.key === 'Enter' && addSecteur()} /><ButtonUI variant="primary" className="p-1 h-auto" onClick={addSecteur}><Plus size={10}/></ButtonUI></div><div className="flex flex-wrap gap-1">{cvData.connaissances_sectorielles.map((s, i) => (<span key={i} className="bg-white text-[9px] font-bold px-2 py-0.5 rounded border border-slate-200 flex items-center gap-1 uppercase">{s} <X size={10} className="cursor-pointer text-red-300" onClick={() => removeSecteur(i)}/></span>))}</div></div>
-                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200"><div className="flex justify-between items-center mb-3"><h3 className="text-[10px] font-black uppercase text-slate-400">Certifs</h3><button onClick={() => setCvData(p => ({...p, showCertif: !p.showCertif}))}>{cvData.showCertif ? <ToggleRight className="text-green-500"/> : <ToggleLeft className="text-slate-300"/>}</button></div><LogoSelectorUI onSelect={addCertification} label="" /><div className="mt-2 space-y-1">{cvData.certifications.map((c, i) => (<div key={i} className="flex justify-between items-center bg-white p-1 rounded text-[9px] border border-slate-100 group"><div className="flex items-center gap-2 flex-1 overflow-hidden"><img src={c.logo} className="w-4 h-4 object-contain" /><span className="truncate uppercase font-bold">{c.name}</span></div><button onClick={() => removeCertification(i)} className="text-red-300 hover:text-red-500 opacity-0 group-hover:opacity-100"><X size={10}/></button></div>))}</div></div>
+                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm">
+                   <div className="flex justify-between items-center mb-3">
+                     <h3 className="text-[10px] font-black uppercase text-slate-400">Secteur</h3>
+                     <button onClick={() => setCvData(p => ({...p, showSecteur: !p.showSecteur}))}>{cvData.showSecteur ? <ToggleRight className="text-green-500"/> : <ToggleLeft className="text-slate-300"/>}</button>
+                   </div>
+                   <div className="flex gap-1 mb-2">
+                     <input className="flex-1 px-2 py-1 text-xs border rounded" placeholder="Banque..." value={newSecteur} onChange={e => setNewSecteur(e.target.value)} onKeyDown={e => e.key === 'Enter' && addSecteur()} />
+                     <ButtonUI variant="primary" className="p-1 h-auto" onClick={addSecteur}><Plus size={10}/></ButtonUI>
+                   </div>
+                   <div className="flex flex-wrap gap-1">{cvData.connaissances_sectorielles.map((s, i) => (<span key={i} className="bg-white text-[9px] font-bold px-2 py-0.5 rounded border border-slate-200 flex items-center gap-1 uppercase">{s} <X size={10} className="cursor-pointer text-red-300" onClick={() => removeSecteur(i)}/></span>))}</div>
+                 </div>
+
+                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm">
+                   <div className="flex justify-between items-center mb-3">
+                     <h3 className="text-[10px] font-black uppercase text-slate-400">Certifs</h3>
+                     <button onClick={() => setCvData(p => ({...p, showCertif: !p.showCertif}))}>{cvData.showCertif ? <ToggleRight className="text-green-500"/> : <ToggleLeft className="text-slate-300"/>}</button>
+                   </div>
+                   <LogoSelectorUI onSelect={addCertification} label="" />
+                   <div className="mt-2 space-y-1">{cvData.certifications.map((c, i) => (
+                     <div key={i} className="flex flex-col bg-white p-2 rounded border border-slate-100 group shadow-sm">
+                       <div className="flex justify-between items-center mb-1">
+                         <div className="w-6 h-6 border rounded overflow-hidden flex items-center justify-center bg-slate-50">
+                            {c.logo ? <img src={c.logo} className="max-w-full max-h-full object-contain" /> : null}
+                         </div>
+                         <button onClick={() => removeCertification(i)} className="text-red-300 hover:text-red-500"><X size={10}/></button>
+                       </div>
+                       <input className="w-full text-[10px] font-bold bg-transparent outline-none focus:text-blue-500 border-b border-transparent focus:border-blue-200" value={c.name} onChange={(e) => updateCertification(i, 'name', e.target.value)} />
+                     </div>
+                   ))}</div>
+                 </div>
                </div>
-               {/* Formation */}
-               <div className="bg-slate-50 p-6 rounded-xl border border-slate-200"><h3 className="text-[10px] font-black uppercase text-slate-400 mb-4">Formation Académique</h3>{cvData.education.map((edu, i) => (<div key={i} className="bg-white p-3 rounded-lg border border-slate-200 mb-3 relative group"><button onClick={() => removeEducation(i)} className="absolute top-2 right-2 text-slate-300 hover:text-red-500"><Trash2 size={12}/></button><InputUI label="Diplôme" value={edu.degree} onChange={v => updateEducation(i, 'degree', v)} /><div className="grid grid-cols-2 gap-2"><InputUI label="Année" value={edu.year} onChange={v => updateEducation(i, 'year', v)} /><InputUI label="Lieu" value={edu.location} onChange={v => updateEducation(i, 'location', v)} /></div></div>))}<ButtonUI onClick={addEducation} variant="secondary" className="w-full text-xs py-2">Ajouter Formation</ButtonUI></div>
-               {/* Compétences Notées */}
-               <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm"><h3 className="text-[10px] font-black uppercase text-slate-400 mb-4">Compétences Notées</h3><div className="flex gap-2 mb-6"><input className="flex-1 px-3 py-2 bg-slate-50 border rounded text-xs" placeholder="Nouvelle Catégorie" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addSkillCategory()} /><ButtonUI variant="outline" className="px-3 py-1 text-xs" onClick={addSkillCategory}><Plus size={12}/></ButtonUI></div>{Object.entries(cvData.skills_categories).map(([cat, skills]) => (<div key={cat} className="mb-4 p-3 bg-slate-50/50 rounded-lg border border-slate-100"><div className="flex justify-between items-center mb-2"><h4 className="text-xs font-bold text-slate-700 uppercase">{cat}</h4><button onClick={() => deleteCategory(cat)} className="text-red-300 hover:text-red-500"><Trash2 size={12}/></button></div><div className="space-y-1">{skills.map((skill, idx) => (<div key={idx} className="flex items-center justify-between text-xs bg-white p-1.5 rounded shadow-sm"><input className="font-medium text-slate-600 bg-transparent border-none p-0 focus:ring-0 w-1/2" value={skill.name} onChange={(e) => updateSkillInCategory(cat, idx, 'name', e.target.value)} /><HexagonRating score={skill.rating} onChange={(r) => updateSkillInCategory(cat, idx, 'rating', r)} /></div>))}</div><div className="mt-2 flex gap-1"><input className="flex-1 px-2 py-1 text-[10px] border border-slate-200 rounded" placeholder="Add..." value={newSkillsInput[cat]?.name || ''} onChange={(e) => updateNewSkillInput(cat, 'name', e.target.value)} /><ButtonUI variant="primary" className="p-1 h-auto" onClick={() => addSkillToCategory(cat)}><Plus size={10}/></ButtonUI></div></div>))}</div>
+
+               <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 shadow-sm">
+                 <h3 className="text-[10px] font-black uppercase text-slate-400 mb-4">Formation Académique</h3>
+                 {cvData.education.map((edu, i) => (
+                   <div key={i} className="bg-white p-3 rounded-lg border border-slate-200 mb-3 relative group shadow-sm">
+                     <button onClick={() => removeEducation(i)} className="absolute top-2 right-2 text-slate-300 hover:text-red-500"><Trash2 size={12}/></button>
+                     <InputUI label="Diplôme" value={edu.degree} onChange={v => updateEducation(i, 'degree', v)} />
+                     <div className="grid grid-cols-2 gap-2"><InputUI label="Année" value={edu.year} onChange={v => updateEducation(i, 'year', v)} /><InputUI label="Lieu" value={edu.location} onChange={v => updateEducation(i, 'location', v)} /></div>
+                   </div>
+                 ))}
+                 <ButtonUI onClick={addEducation} variant="secondary" className="w-full text-xs py-2">Ajouter Formation</ButtonUI>
+               </div>
+               
+               <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                 <h3 className="text-[10px] font-black uppercase text-slate-400 mb-4">Compétences Notées</h3>
+                 <div className="flex gap-2 mb-6"><input className="flex-1 px-3 py-2 bg-slate-50 border rounded text-xs" placeholder="Nouvelle Catégorie" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addSkillCategory()} /><ButtonUI variant="outline" className="px-3 py-1 text-xs" onClick={addSkillCategory}><Plus size={12}/></ButtonUI></div>
+                 {Object.entries(cvData.skills_categories).map(([cat, skills]) => (
+                   <div key={cat} className="mb-4 p-3 bg-slate-50/50 rounded-lg border border-slate-100">
+                     <div className="flex justify-between items-center mb-2"><h4 className="text-xs font-bold text-slate-700 uppercase">{cat}</h4><button onClick={() => deleteCategory(cat)} className="text-red-300 hover:text-red-500"><Trash2 size={12}/></button></div>
+                     <div className="space-y-1">{skills.map((skill, idx) => (
+                       <div key={idx} className="flex items-center justify-between text-xs bg-white p-1.5 rounded shadow-sm">
+                         <input className="font-medium text-slate-600 bg-transparent border-none p-0 focus:ring-0 w-1/2" value={skill.name} onChange={(e) => updateSkillInCategory(cat, idx, 'name', e.target.value)} /><HexagonRating score={skill.rating} onChange={(r) => updateSkillInCategory(cat, idx, 'rating', r)} />
+                       </div>
+                     ))}</div>
+                     <div className="mt-2 flex gap-1"><input className="flex-1 px-2 py-1 text-[10px] border border-slate-200 rounded" placeholder="Add..." value={newSkillsInput[cat]?.name || ''} onChange={(e) => updateNewSkillInput(cat, 'name', e.target.value)} /><ButtonUI variant="primary" className="p-1 h-auto" onClick={() => addSkillToCategory(cat)}><Plus size={10}/></ButtonUI></div>
+                   </div>
+                 ))}
+               </div>
              </div>
            )}
            {step === 4 && (
@@ -461,7 +509,15 @@ export default function App() {
                     <button onClick={() => moveExperience(index, 'down')} disabled={index === cvData.experiences.length - 1} className="p-1 hover:bg-slate-100 rounded disabled:opacity-20"><ChevronDown size={14}/></button>
                     <button onClick={() => removeExperience(exp.id)} className="p-1 text-red-400 hover:bg-red-50 rounded ml-2"><Trash2 size={14}/></button>
                   </div>
-                  <div className="mb-4"><span className="text-xs font-bold text-[#333333] uppercase block mb-2 text-left">Logo Client</span><div className="flex items-center gap-4"><div className="w-12 h-12 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-center overflow-hidden shrink-0">{exp.client_logo ? <img src={exp.client_logo} className="w-full h-full object-contain p-1" /> : <ImageIcon size={20} className="text-slate-300"/>}</div><div className="flex-1"><LogoSelectorUI label="" onSelect={(logo) => updateExperience(exp.id, 'client_logo', logo.src)} /></div></div></div>
+                  <div className="mb-4">
+                    <span className="text-xs font-bold text-[#333333] uppercase block mb-2 text-left">Logo Client</span>
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 flex items-center justify-center overflow-hidden shrink-0">
+                        {exp.client_logo && <img src={exp.client_logo} className="w-full h-full object-contain" alt="Logo" />}
+                      </div>
+                      <div className="flex-1"><LogoSelectorUI label="" onSelect={(logo) => updateExperience(exp.id, 'client_logo', logo.src)} /></div>
+                    </div>
+                  </div>
                   <InputUI label="Client" value={exp.client_name} onChange={(v) => updateExperience(exp.id, 'client_name', v)} />
                   <InputUI label="Rôle" value={exp.role} onChange={(v) => updateExperience(exp.id, 'role', v)} />
                   <InputUI label="Période" value={exp.period} onChange={(v) => updateExperience(exp.id, 'period', v)} />
@@ -477,9 +533,9 @@ export default function App() {
       {/* --- PREVIEW AREA --- */}
       <div className="flex-1 bg-slate-800 overflow-hidden relative flex flex-col items-center">
         <div className="absolute bottom-6 z-50 flex items-center gap-4 bg-white/90 backdrop-blur px-6 py-2 rounded-full shadow-2xl border border-white/20 print:hidden transition-all hover:scale-105">
-           <button onClick={() => setZoom(Math.max(0.2, zoom - 0.1))}><ZoomOut size={18} /></button>
+           <button onClick={() => setZoom(Math.max(0.2, zoom - 0.1))} className="p-2 hover:bg-slate-100 rounded-full"><ZoomOut size={18} /></button>
            <span className="text-xs font-bold text-slate-600 min-w-[3rem] text-center">{Math.round(zoom * 100)}%</span>
-           <button onClick={() => setZoom(Math.min(1.5, zoom + 0.1))}><ZoomIn size={18} /></button>
+           <button onClick={() => setZoom(Math.min(1.5, zoom + 0.1))} className="p-2 hover:bg-slate-100 rounded-full"><ZoomIn size={18} /></button>
         </div>
 
         <div className="flex-1 overflow-auto w-full p-8 flex justify-center custom-scrollbar">
@@ -521,19 +577,21 @@ export default function App() {
               <CornerTriangle customLogo={cvData.smileLogo} />
               <HeaderSmall name={formatName()} role={cvData.profile.current_role} />
               <div className="grid grid-cols-12 gap-10 mt-20 h-full px-12 flex-1 pb-24 overflow-hidden">
-                  {/* Gauche : Compétences */}
                   <div className="col-span-5 border-r border-slate-100 pr-8">
                     <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-8 flex items-center gap-2"><Cpu size={20}/> Mes Compétences</h3>
                     <div className="space-y-8">{Object.entries(cvData.skills_categories).map(([cat, skills]) => (<div key={cat}><h4 className="text-[10px] font-bold text-[#999999] uppercase tracking-widest border-b border-slate-100 pb-2 mb-3">{cat}</h4><div className="space-y-3">{skills.map((skill, i) => (<div key={i} className="flex items-center justify-between"><span className="text-xs font-bold text-[#333333] uppercase">{skill.name}</span><HexagonRating score={skill.rating} /></div>))}</div></div>))}</div>
                   </div>
-
-                  {/* Droite : Secteurs -> Certifs -> Formation */}
                   <div className="col-span-7 flex flex-col gap-10">
                     {cvData.showSecteur && cvData.connaissances_sectorielles.length > 0 && (
                       <section><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2"><Factory size={20}/> Connaissances Sectorielles</h3><div className="flex flex-wrap gap-2">{cvData.connaissances_sectorielles.map((s, i) => (<span key={i} className="border-2 border-[#2E86C1] text-[#2E86C1] text-[10px] font-black px-3 py-1 rounded uppercase tracking-wider">{s}</span>))}</div></section>
                     )}
                     {cvData.showCertif && cvData.certifications.length > 0 && (
-                      <section><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2"><Award size={20}/> Certifications</h3><div className="grid grid-cols-2 gap-4">{cvData.certifications.map((c, i) => (<div key={i} className="flex items-center gap-3 bg-slate-50 p-2 rounded"><img src={c.logo} className="w-8 h-8 object-contain" /><span className="text-[10px] font-bold text-slate-700 uppercase">{c.name}</span></div>))}</div></section>
+                      <section><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2"><Award size={20}/> Certifications</h3><div className="grid grid-cols-2 gap-4">{cvData.certifications.map((c, i) => (
+                        <div key={i} className="flex items-center gap-3 bg-slate-50 p-2 rounded">
+                          {c.logo && <img src={c.logo} className="w-8 h-8 object-contain" alt={c.name} />}
+                          <span className="text-[10px] font-bold text-slate-700 uppercase leading-tight">{c.name}</span>
+                        </div>
+                      ))}</div></section>
                     )}
                     <section><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-6 flex items-center gap-2"><GraduationCap size={20}/> Ma Formation</h3><div className="space-y-4">{cvData.education.map((edu, i) => (<div key={i} className="border-l-2 border-slate-100 pl-4"><span className="text-[10px] font-bold text-[#999999] block mb-1">{edu.year}</span><h4 className="text-xs font-bold text-[#333333] uppercase leading-tight">{edu.degree}</h4><span className="text-[9px] text-[#2E86C1] font-medium uppercase">{edu.location}</span></div>))}</div></section>
                   </div>
@@ -547,7 +605,7 @@ export default function App() {
                 <CornerTriangle customLogo={cvData.smileLogo} />
                 <HeaderSmall name={formatName()} role={cvData.profile.current_role} />
                 <div className="flex justify-between items-end border-b border-slate-200 pb-2 mb-8 mt-16 px-12 flex-shrink-0"><h3 className="text-xl font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat">{pageIndex === 0 ? "Mes dernières expériences" : "Expériences (Suite)"}</h3><span className="text-[10px] font-bold text-[#666666] uppercase">Références</span></div>
-                <div className={`flex-1 px-12 overflow-hidden ${pageIndex === experienceChunks.length - 1 && chunk.length === 1 ? 'flex flex-col justify-center' : ''}`}>{chunk.map((exp) => (<ExperienceItem key={exp.id} exp={exp} />))}</div>
+                <div className={`flex-1 px-12 overflow-hidden`}>{chunk.map((exp) => (<ExperienceItem key={exp.id} exp={exp} />))}</div>
                 <Footer />
               </A4Page>
             ))}
@@ -563,14 +621,52 @@ export default function App() {
         .font-sans { font-family: 'Open Sans', sans-serif; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        .A4-page { width: 210mm; height: 297mm; background: white; flex-shrink: 0; box-sizing: border-box; position: relative; }
+
+        /* Style des pages A4 pour l'aperçu */
+        .A4-page { 
+           width: 210mm; 
+           height: 297mm; 
+           background: white; 
+           flex-shrink: 0; 
+           box-sizing: border-box; 
+           position: relative; 
+        }
+
         @media print {
+          /* Reset total pour forcer le format A4 pur sans marges navigateur */
           @page { size: A4; margin: 0; }
           body { margin: 0; padding: 0; background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          
           .print-hidden, div[class*="w-[550px]"], div[class*="absolute bottom-6"] { display: none !important; }
-          .flex-1.bg-slate-800 { display: block !important; height: auto !important; overflow: visible !important; background: white !important; padding: 0 !important; }
-          .print-container { transform: none !important; margin: 0 !important; width: 100% !important; display: block !important; gap: 0 !important; }
-          .A4-page { margin: 0 !important; box-shadow: none !important; page-break-after: always !important; break-after: page !important; width: 210mm !important; height: 297mm !important; display: flex !important; flex-direction: column !important; }
+          
+          .flex-1.bg-slate-800 { 
+            display: block !important; 
+            height: auto !important; 
+            overflow: visible !important; 
+            background: white !important; 
+            padding: 0 !important; 
+          }
+          
+          .print-container { 
+            transform: none !important; 
+            margin: 0 !important; 
+            width: 100% !important; 
+            display: block !important; 
+            gap: 0 !important; 
+          }
+          
+          .A4-page { 
+            margin: 0 !important; 
+            box-shadow: none !important; 
+            page-break-after: always !important; 
+            break-after: page !important; 
+            width: 210mm !important; 
+            height: 297mm !important; 
+            display: flex !important;
+            flex-direction: column !important;
+          }
+
+          /* On s'assure que le contenu ne déborde pas */
           .A4-page * { overflow: visible !important; }
         }
       `}</style>
