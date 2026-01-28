@@ -45,9 +45,7 @@ const DEFAULT_CV_DATA = {
   },
   soft_skills: ["Agilité", "Rigueur", "Communication"],
   connaissances_sectorielles: ["Industrie", "E-commerce"],
-  certifications: [
-    { name: "Drupal certified", logo: "https://cdn.simpleicons.org/drupal/white" }
-  ],
+  certifications: [{ name: "Drupal certified", logo: "https://cdn.simpleicons.org/drupal/white" }],
   experiences: [
     {
       id: 1,
@@ -56,15 +54,12 @@ const DEFAULT_CV_DATA = {
       period: "Jan 2023 - Présent",
       role: "Développeur Frontend",
       objective: "Développer la partie frontend de l'outil Castresa...",
-      achievements: [],
-      tech_stack: ["Drupal", "Twig"],
       phases: "Conception, Développement",
+      tech_stack: ["Drupal", "Twig"],
       forceNewPage: false
     }
   ],
-  education: [
-    { year: "2008/2010", degree: "Master Miage", location: "Orléans" }
-  ],
+  education: [{ year: "2008/2010", degree: "Master Miage", location: "Orléans" }],
   skills_categories: {
     "Langages": [{ name: "JAVA", rating: 4 }, { name: "PHP", rating: 5 }],
     "Outils": [{ name: "Jira", rating: 5 }]
@@ -73,18 +68,17 @@ const DEFAULT_CV_DATA = {
 
 // --- HELPERS ---
 const formatTextForPreview = (text) => {
-  if (!text || typeof text !== 'string') return "";
-  return text
+  if (!text) return "";
+  return String(text)
     .replace(/</g, "&lt;").replace(/>/g, "&gt;") 
     .replace(/&lt;b&gt;/g, "<b>").replace(/&lt;\/b&gt;/g, "</b>") 
     .replace(/\n/g, "<br/>"); 
 };
 
 const paginateExperiences = (experiences) => {
-  if (!Array.isArray(experiences) || !experiences.length) return [];
+  if (!Array.isArray(experiences)) return [];
   const pages = [];
   let currentPage = [];
-
   experiences.forEach((exp) => {
     if (exp.forceNewPage && currentPage.length > 0) {
       pages.push(currentPage);
@@ -96,7 +90,6 @@ const paginateExperiences = (experiences) => {
       currentPage.push(exp);
     }
   });
-
   if (currentPage.length > 0) pages.push(currentPage);
   return pages;
 };
@@ -104,25 +97,14 @@ const paginateExperiences = (experiences) => {
 // --- SOUS-COMPOSANTS DE STRUCTURE PDF ---
 
 const A4Page = ({ children, className = "" }) => (
-  <div 
-    className={`A4-page bg-white relative overflow-hidden mx-auto shadow-2xl flex-shrink-0 ${className}`}
-    style={{ 
-      width: '210mm', 
-      height: '297mm',
-      marginBottom: '40px',
-      boxSizing: 'border-box',
-      position: 'relative',
-      display: 'flex',
-      flexDirection: 'column'
-    }}
-  >
+  <div className={`A4-page bg-white relative overflow-hidden mx-auto shadow-2xl flex-shrink-0 ${className}`} style={{ width: '210mm', height: '297mm', marginBottom: '40px', display: 'flex', flexDirection: 'column' }}>
     {children}
   </div>
 );
 
 const CornerTriangle = ({ customLogo }) => (
   <div className="absolute top-0 left-0 w-[170px] h-[170px] z-50 pointer-events-none print:w-[150px] print:h-[150px]">
-    <div className="absolute top-0 left-0 w-full h-full bg-[#2E86C1]" style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)', printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' }}></div>
+    <div className="absolute top-0 left-0 w-full h-full bg-[#2E86C1]" style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)' }}></div>
     {customLogo && (
       <div className="absolute top-[12px] left-[12px] w-[100px] h-[100px] flex items-center justify-center">
          <img src={customLogo} className="max-w-full max-h-full object-contain brightness-0 invert" style={{ transform: 'rotate(-45deg)' }} alt="Logo" />
@@ -132,15 +114,12 @@ const CornerTriangle = ({ customLogo }) => (
 );
 
 const HeaderSmall = ({ isAnonymous, profile, role }) => {
-  const nameDisplay = isAnonymous 
-    ? `${String(profile?.firstname?.[0] || '')}${String(profile?.lastname?.[0] || '')}`
-    : `${String(profile?.firstname || '')} ${String(profile?.lastname || '')}`;
-    
+  const nameDisplay = isAnonymous ? `${profile.firstname?.[0] || ''}${profile.lastname?.[0] || ''}` : `${profile.firstname} ${profile.lastname}`;
   return (
     <div className="flex justify-between items-start border-b-2 border-[#2E86C1] pb-4 pt-10 px-12 mt-8 flex-shrink-0">
       <div><div className="w-10 h-10"></div></div>
       <div className="text-right">
-        <h3 className="text-sm font-bold text-[#333333] uppercase">{nameDisplay}</h3>
+        <h3 className="text-sm font-bold text-[#333333] uppercase">{String(nameDisplay)}</h3>
         <p className="text-[10px] font-bold text-[#999999] uppercase">{String(role || '')}</p>
       </div>
     </div>
@@ -148,9 +127,9 @@ const HeaderSmall = ({ isAnonymous, profile, role }) => {
 };
 
 const Footer = () => (
-  <div className="absolute bottom-8 left-12 right-12 border-t border-slate-100 pt-4 flex justify-between items-center bg-white flex-shrink-0">
-    <div className="text-[8px] font-bold text-[#999999] uppercase tracking-widest">Smile - IT is Open <span className="text-[#2E86C1] ml-1">CRÉATEUR D'EXPÉRIENCE DIGITALE OUVERTE</span></div>
-    <div className="text-[8px] font-bold text-[#333333]">#MadeWithSmile</div>
+  <div className="absolute bottom-8 left-12 right-12 border-t border-slate-100 pt-4 flex justify-between items-center bg-white flex-shrink-0 text-[8px] font-bold">
+    <div className="text-[#999999] uppercase tracking-widest">Smile - IT is Open <span className="text-[#2E86C1] ml-1">CRÉATEUR D'EXPÉRIENCE DIGITALE OUVERTE</span></div>
+    <div className="text-[#333333]">#MadeWithSmile</div>
   </div>
 );
 
@@ -181,8 +160,8 @@ const ExperienceItem = ({ exp }) => (
       </div>
       {exp.objective && (
         <div className="mb-4">
-           <h5 className="text-[10px] font-bold text-[#2E86C1] uppercase mb-1">Objectif</h5>
-           <p className="text-sm text-[#333333] leading-relaxed break-words" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.objective)}}></p>
+           <h5 className="text-[10px] font-bold text-[#2E86C1] uppercase mb-1 text-left">Objectif</h5>
+           <p className="text-sm text-[#333333] leading-relaxed break-words text-left" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.objective)}}></p>
         </div>
       )}
       <div className="mt-4 pt-4 border-t border-slate-50 space-y-4 text-left">
@@ -206,7 +185,6 @@ const ExperienceItem = ({ exp }) => (
 // --- COMPOSANTS UI FORMULAIRE ---
 
 const ButtonUI = ({ children, onClick, variant = "primary", className = "", disabled = false, title = "" }) => {
-  const baseStyle = "px-4 py-2 rounded-lg font-bold text-sm transition-all flex items-center gap-2 justify-center";
   const variants = {
     primary: "bg-[#2E86C1] text-white hover:bg-[#2573a7] shadow-md",
     secondary: "bg-slate-100 text-slate-600 hover:bg-slate-200",
@@ -215,7 +193,7 @@ const ButtonUI = ({ children, onClick, variant = "primary", className = "", disa
     ghost: "text-slate-500 hover:bg-slate-100",
     toolbar: "p-1.5 hover:bg-slate-200 rounded text-slate-600"
   };
-  return <button onClick={onClick} disabled={disabled} title={title} className={`${baseStyle} ${variants[variant]} ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}>{children}</button>;
+  return <button onClick={onClick} disabled={disabled} title={title} className={`px-4 py-2 rounded-lg font-bold text-sm transition-all flex items-center gap-2 justify-center ${variants[variant] || variants.primary} ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}>{children}</button>;
 };
 
 const InputUI = ({ label, value, onChange, placeholder, maxLength, type = "text" }) => (
@@ -230,14 +208,12 @@ const InputUI = ({ label, value, onChange, placeholder, maxLength, type = "text"
 
 const RichTextareaUI = ({ label, value, onChange, placeholder, maxLength }) => {
   const textareaRef = useRef(null);
-
   const handleTextChange = (e) => {
     const val = e.target.value;
     const lines = val.split('\n');
-    if (lines.length > 30) return; 
+    if (lines.length > 25) return; // Limite à 25 lignes pour la stabilité
     onChange(val);
   };
-
   const insertTag = (tag) => {
     const textarea = textareaRef.current;
     if (!textarea) return;
@@ -247,21 +223,9 @@ const RichTextareaUI = ({ label, value, onChange, placeholder, maxLength }) => {
     const selected = text.substring(start, end);
     const before = text.substring(0, start);
     const after = text.substring(end);
-
-    if (tag === 'b') {
-      onChange(`${before}<b>${selected}</b>${after}`);
-    } else if (tag === 'list') {
-      if (start !== end) {
-        const bulletedLines = selected.split('\n').map(line => 
-          line.trim() === "" ? line : (line.startsWith('• ') ? line : `• ${line}`)
-        ).join('\n');
-        onChange(before + bulletedLines + after);
-      } else {
-        onChange(`${before}• ${after}`);
-      }
-    }
+    if (tag === 'b') { onChange(`${before}<b>${selected}</b>${after}`); } 
+    else if (tag === 'list') { if (start !== end) { const bulletedLines = selected.split('\n').map(line => line.trim() === "" ? line : (line.startsWith('• ') ? line : `• ${line}`)).join('\n'); onChange(before + bulletedLines + after); } else { onChange(`${before}• ${after}`); } }
   };
-
   const copyToClipboard = (url) => {
     if (value) {
       const prompt = "Agis comme un expert Smile. Reformule ce texte pour un CV de consultant. Ton 'corporate', direct. Corrige les fautes. PAS de markdown. Texte : \n";
@@ -269,14 +233,12 @@ const RichTextareaUI = ({ label, value, onChange, placeholder, maxLength }) => {
     }
     window.open(url, '_blank');
   };
-
   const currentLines = String(value || '').split('\n').length;
-
   return (
     <div className="mb-6 text-left">
       <div className="flex justify-between items-end mb-1">
         <label className="text-xs font-bold text-[#333333] uppercase block">{label}</label>
-        <span className={`text-[9px] font-bold ${currentLines >= 30 ? 'text-red-500' : 'text-slate-400'}`}>{currentLines} / 30 lignes</span>
+        <span className={`text-[9px] font-bold ${currentLines >= 25 ? 'text-red-500' : 'text-slate-400'}`}>{currentLines} / 25 lignes</span>
       </div>
       <div className="bg-slate-50 border border-slate-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-[#2E86C1] transition-all shadow-sm">
         <div className="flex items-center gap-1 bg-white px-2 py-1.5 border-b border-slate-200">
@@ -292,42 +254,28 @@ const RichTextareaUI = ({ label, value, onChange, placeholder, maxLength }) => {
             </button>
           ))}
         </div>
-        <textarea 
-          ref={textareaRef} 
-          className="w-full px-4 py-3 bg-transparent text-sm h-32 resize-none focus:outline-none border-none shadow-inner" 
-          value={value || ''} 
-          onChange={handleTextChange} 
-          maxLength={maxLength} 
-          placeholder={placeholder} 
-        />
+        <textarea ref={textareaRef} className="w-full px-4 py-3 bg-transparent text-sm h-32 resize-none focus:outline-none border-none shadow-inner" value={value || ''} onChange={handleTextChange} maxLength={maxLength} placeholder={placeholder} />
       </div>
     </div>
   );
 };
 
-const DropZoneUI = ({ onFile, label = "Déposez une image", icon = <Upload size={16}/>, className = "" }) => {
-  const [isDragging, setIsDragging] = useState(false);
+const DropZoneUI = ({ onFile, label = "Image", icon = <Upload size={16}/>, className = "" }) => {
   const inputRef = useRef(null);
   return (
-    <div 
-      className={`border-2 border-dashed rounded-lg p-3 text-center cursor-pointer transition-all duration-200 flex flex-col items-center justify-center gap-1 ${isDragging ? 'border-[#2E86C1] bg-blue-50 scale-[1.02]' : 'border-slate-300 bg-white hover:border-[#2E86C1] hover:bg-slate-50'} ${className}`} 
-      onClick={() => inputRef.current.click()} 
-      onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }} 
-      onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); }} 
-      onDrop={(e) => { e.preventDefault(); setIsDragging(false); if(e.dataTransfer.files[0]) onFile(e.dataTransfer.files[0]); }}
-    >
-      <input type="file" ref={inputRef} className="hidden" accept="image/*" onChange={(e) => { if(e.target.files[0]) onFile(e.target.files[0]); }} />
-      <div className={`transition-colors ${isDragging ? 'text-[#2E86C1]' : 'text-slate-400'}`}>{icon}</div>
-      <span className={`text-[10px] font-bold uppercase transition-colors ${isDragging ? 'text-[#2E86C1]' : 'text-slate-500'}`}>{isDragging ? "Lâchez l'image !" : label}</span>
+    <div className={`border-2 border-dashed rounded-lg p-3 text-center cursor-pointer transition-all duration-200 flex flex-col items-center justify-center gap-1 ${className} border-slate-300 bg-white hover:border-[#2E86C1] hover:bg-slate-50`} onClick={() => inputRef.current.click()}>
+      <input type="file" ref={inputRef} className="hidden" accept="image/*" onChange={(e) => e.target.files[0] && onFile(e.target.files[0])} />
+      <div className="text-[#2E86C1]">{icon}</div>
+      <span className="text-[10px] font-bold uppercase text-slate-500">{label}</span>
     </div>
   );
 };
 
-const LogoSelectorUI = ({ onSelect, label = "Ajouter un logo" }) => {
+const LogoSelectorUI = ({ onSelect, label = "Ajouter" }) => {
   const [search, setSearch] = useState("");
-  const handleSearch = () => { if (!search.trim()) return; onSelect({ type: 'url', src: getIconUrl(search), name: search }); setSearch(""); };
+  const handleSearch = () => { if (search) onSelect({ type: 'url', src: getIconUrl(search), name: search }); setSearch(""); };
   return (
-    <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 shadow-inner">
+    <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 shadow-inner text-left">
       {label && <label className="text-[10px] font-bold text-[#333333] uppercase block mb-2">{label}</label>}
       <div className="flex gap-2">
         <input className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded text-xs" placeholder="Ex: Drupal" value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} />
@@ -351,7 +299,7 @@ export default function App() {
 
   const [cvData, setCvData] = useState(() => {
     try {
-      const saved = localStorage.getItem('smile_cv_data_final_v29_stable');
+      const saved = localStorage.getItem('smile_cv_data_final_v35_stable');
       if (saved) return JSON.parse(saved);
     } catch(e) { console.error(e); }
     return DEFAULT_CV_DATA;
@@ -361,13 +309,12 @@ export default function App() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      localStorage.setItem('smile_cv_data_final_v29_stable', JSON.stringify(cvData));
+      localStorage.setItem('smile_cv_data_final_v35_stable', JSON.stringify(cvData));
       setLastSaved(new Date());
     }, 1000);
     return () => clearTimeout(timer);
   }, [cvData]);
 
-  // Chargement de PDF.js
   useEffect(() => {
     const script = document.createElement('script');
     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
@@ -381,11 +328,9 @@ export default function App() {
     return `CV ${year} - ${clean(cvData.profile.lastname)} - ${clean(cvData.profile.firstname)}`;
   };
 
-  useEffect(() => { document.title = getFilenameBase(); }, [cvData.profile]);
-
-  // --- HANDLERS DÉCLARÉS AVANT LE RETURN ---
+  // --- HANDLERS DÉCLARÉS AVANT LE RETURN POUR ÉVITER ReferenceError ---
   
-  const resetCV = () => { if (confirm("Réinitialiser tout le CV ?")) { localStorage.removeItem('smile_cv_data_final_v29_stable'); setCvData(DEFAULT_CV_DATA); } };
+  const resetCV = () => { if (confirm("Réinitialiser tout le CV ?")) { localStorage.removeItem('smile_cv_data_final_v35_stable'); setCvData(DEFAULT_CV_DATA); } };
   
   const downloadJSON = () => { 
     const a = document.createElement('a'); 
@@ -435,7 +380,7 @@ export default function App() {
     const printWindow = window.open('', '_blank');
     const content = document.querySelector('.print-container').innerHTML;
     const styles = document.querySelector('style').innerHTML;
-    printWindow.document.write(`<html><head><title>${getFilenameBase()}</title><script src="https://cdn.tailwindcss.com"></script><style>${styles}</style><style>@page{size:A4;margin:0}body{margin:0;padding:0;width:210mm}.A4-page{box-shadow:none!important;margin:0!important;page-break-after:always}* {-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}</style></head><body onload="window.print();window.close()"><div class="flex flex-col">${content}</div></body></html>`);
+    printWindow.document.write(`<html><head><title>CV_Smile</title><script src="https://cdn.tailwindcss.com"></script><style>${styles}</style><style>@page{size:A4;margin:0}body{margin:0;padding:0;width:210mm}.A4-page{box-shadow:none!important;margin:0!important;page-break-after:always; height: auto !important; min-height: 297mm;}* {-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}</style></head><body onload="window.print();window.close()"><div class="flex flex-col">${content}</div></body></html>`);
     printWindow.document.close();
   };
 
@@ -445,17 +390,15 @@ export default function App() {
   const addTechLogo = (o) => setCvData(p => ({ ...p, profile: { ...p.profile, tech_logos: [...p.profile.tech_logos, o] } }));
   const removeTechLogo = (i) => setCvData(p => ({ ...p, profile: { ...p.profile, tech_logos: p.profile.tech_logos.filter((_, idx) => idx !== i) } }));
   const handleSmileLogo = (f) => { if(f) { const r = new FileReader(); r.onload = (ev) => setCvData(p => ({...p, smileLogo: ev.target.result})); r.readAsDataURL(f); } };
-  
   const moveExperience = (index, direction) => { const newExp = [...cvData.experiences]; const target = direction === 'up' ? index - 1 : index + 1; if (target >= 0 && target < newExp.length) { [newExp[index], newExp[target]] = [newExp[target], newExp[index]]; setCvData({ ...cvData, experiences: newExp }); } };
   const updateExperience = (id, f, v) => setCvData(p => ({ ...p, experiences: p.experiences.map(e => e.id === id ? { ...e, [f]: v } : e) }));
   const addExperience = () => setCvData(p => ({ ...p, experiences: [{ id: Date.now(), client_name: "", client_logo: null, period: "", role: "", objective: "", achievements: [], tech_stack: [], phases: "", forceNewPage: false }, ...p.experiences] }));
   const removeExperience = (id) => setCvData(p => ({ ...p, experiences: p.experiences.filter(e => e.id !== id) }));
-  
   const addSkillCategory = () => { if (newCategoryName) { setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [newCategoryName]: [] } })); setNewCategoryName(""); } };
   const deleteCategory = (n) => setCvData(p => { const newC = { ...p.skills_categories }; delete newC[n]; return { ...p, skills_categories: newC }; });
   const updateSkillInCategory = (cat, idx, f, v) => setCvData(p => { const s = [...p.skills_categories[cat]]; s[idx] = { ...s[idx], [f]: v }; return { ...p, skills_categories: { ...p.skills_categories, [cat]: s } }; });
   const addSkillToCategory = (cat) => { const i = newSkillsInput[cat] || { name: '', rating: 3 }; if (i.name) { setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [cat]: [...p.skills_categories[cat], { name: i.name, rating: i.rating }] } })); setNewSkillsInput(p => ({ ...p, [cat]: { name: '', rating: 3 } })); } };
-  const updateNewSkillInput = (cat, field, val) => { setNewSkillsInput(p => ({ ...p, [cat]: { ...(p[cat] || { name: '', rating: 3 }), [field]: val } })); };
+  const updateNewSkillInput = (cat, f, v) => { setNewSkillsInput(p => ({ ...p, [cat]: { ...(p[cat] || { name: '', rating: 3 }), [f]: v } })); };
   const removeSkillFromCategory = (cat, idx) => setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [cat]: p.skills_categories[cat].filter((_, i) => i !== idx) } }));
   const addSecteur = () => { if (newSecteur) { setCvData(p => ({ ...p, connaissances_sectorielles: [...(p.connaissances_sectorielles||[]), newSecteur] })); setNewSecteur(""); }};
   const removeSecteur = (idx) => setCvData(p => ({ ...p, connaissances_sectorielles: p.connaissances_sectorielles.filter((_, i) => i !== idx) }));
@@ -469,7 +412,7 @@ export default function App() {
   const formatNameHeader = () => {
     if (cvData.isAnonymous) return <>{String(cvData.profile.firstname?.[0] || '')}{String(cvData.profile.lastname?.[0] || '')}</>;
     return (
-      <div className="flex flex-col">
+      <div className="flex flex-col text-left">
         <span className="text-4xl font-semibold opacity-90 leading-tight">{String(cvData.profile.firstname)}</span>
         <span className="text-6xl font-black leading-tight">{String(cvData.profile.lastname)}</span>
       </div>
@@ -503,7 +446,7 @@ export default function App() {
           <div className="flex justify-between items-center mb-6"><h1 className="font-bold text-xl text-[#2E86C1]">Smile Editor</h1><span className="text-xs font-bold text-slate-400">Étape {step} / 4</span></div>
           <div className="flex gap-2">
             <ButtonUI variant="secondary" onClick={() => setStep(s => Math.max(1, s - 1))} disabled={step === 1} className="flex-1"><ArrowLeft size={16} /></ButtonUI>
-            {step < 4 ? <ButtonUI onClick={() => setStep(s => Math.min(4, s + 1))} className="flex-[2]">Suivant <ArrowRight size={16} /></ButtonUI> : <ButtonUI onClick={handlePrintPDF} className="flex-[2] bg-slate-900 hover:bg-black text-white">Imprimer PDF</ButtonUI>}
+            {step < 4 ? <ButtonUI onClick={() => setStep(s => Math.min(4, s + 1))} className="flex-[2]">Suivant <ArrowRight size={16} /></ButtonUI> : <ButtonUI onClick={handlePrintPDF} className="flex-[2] bg-slate-900 hover:bg-black text-white"><Printer size={16} /> Générer PDF</ButtonUI>}
           </div>
         </div>
 
@@ -534,18 +477,18 @@ export default function App() {
            )}
            {step === 2 && (
             <div className="space-y-6 animate-in slide-in-from-right transition-all">
-               <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><Hexagon size={24} /><h2 className="text-lg font-bold uppercase">Soft Skills</h2></div>
+               <div className="flex items-center gap-3 mb-4 text-[#2E86C1] text-left"><Hexagon size={24} /><h2 className="text-lg font-bold uppercase">Soft Skills</h2></div>
                {[0, 1, 2].map(i => (<InputUI key={i} label={`Hexagone #${i+1}`} value={cvData.soft_skills[i]} onChange={(v) => {const s = [...cvData.soft_skills]; s[i] = v; setCvData(p => ({...p, soft_skills: s}));}} />))}
             </div>
            )}
            {step === 3 && (
-             <div className="space-y-8 animate-in slide-in-from-right transition-all">
+             <div className="space-y-8 animate-in slide-in-from-right transition-all text-left">
                <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><GraduationCap size={24} /><h2 className="text-lg font-bold uppercase">Formation & Compétences</h2></div>
                <div className="grid grid-cols-2 gap-4">
                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm text-left">
                    <div className="flex justify-between items-center mb-3"><h3 className="text-[10px] font-black uppercase text-slate-400">Secteur</h3><button onClick={() => setCvData(p => ({...p, showSecteur: !p.showSecteur}))}>{cvData.showSecteur ? <ToggleRight className="text-green-500"/> : <ToggleLeft className="text-slate-300"/>}</button></div>
                    <div className="flex gap-1 mb-2"><input className="flex-1 px-2 py-1 text-xs border rounded" placeholder="Banque..." value={newSecteur} onChange={e => setNewSecteur(e.target.value)} onKeyDown={e => e.key === 'Enter' && addSecteur()} /><ButtonUI variant="primary" className="p-1 h-auto" onClick={addSecteur}><Plus size={10}/></ButtonUI></div>
-                   <div className="flex flex-wrap gap-1">{(cvData.connaissances_sectorielles || []).map((s, i) => (<span key={i} className="bg-white text-[9px] font-bold px-2 py-0.5 rounded border border-slate-200 flex items-center gap-1 uppercase">{s} <X size={10} className="cursor-pointer text-red-300" onClick={() => removeSecteur(i)}/></span>))}</div>
+                   <div className="flex flex-wrap gap-1">{cvData.connaissances_sectorielles.map((s, i) => (<span key={i} className="bg-white text-[9px] font-bold px-2 py-0.5 rounded border border-slate-200 flex items-center gap-1 uppercase">{s} <X size={10} className="cursor-pointer text-red-300" onClick={() => removeSecteur(i)}/></span>))}</div>
                  </div>
                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm text-left">
                    <div className="flex justify-between items-center mb-3"><h3 className="text-[10px] font-black uppercase text-slate-400">Certifs</h3><button onClick={() => setCvData(p => ({...p, showCertif: !p.showCertif}))}>{cvData.showCertif ? <ToggleRight className="text-green-500"/> : <ToggleLeft className="text-slate-300"/>}</button></div>
@@ -569,10 +512,10 @@ export default function App() {
                  <h3 className="text-[10px] font-black uppercase text-slate-400 mb-4">Compétences Notées</h3>
                  <div className="flex gap-2 mb-6"><input className="flex-1 px-3 py-2 bg-slate-50 border rounded text-xs" placeholder="Nouvelle Catégorie" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addSkillCategory()} /><ButtonUI variant="outline" className="px-3 py-1 text-xs" onClick={addSkillCategory}><Plus size={12}/> Ajouter</ButtonUI></div>
                  {Object.entries(cvData.skills_categories).map(([cat, skills]) => (
-                   <div key={cat} className="mb-4 p-3 bg-slate-50/50 rounded-lg border border-slate-100">
+                   <div key={cat} className="mb-4 p-3 bg-slate-50/50 rounded-lg border border-slate-100 text-left">
                      <div className="flex justify-between items-center mb-2"><h4 className="text-xs font-bold text-slate-700 uppercase">{cat}</h4><button onClick={() => deleteCategory(cat)} className="text-red-300 hover:text-red-500"><Trash2 size={12}/></button></div>
                      <div className="space-y-1">{skills.map((skill, idx) => (
-                       <div key={idx} className="flex items-center justify-between text-xs bg-white p-1.5 rounded shadow-sm">
+                       <div key={idx} className="flex items-center justify-between text-xs bg-white p-1.5 rounded shadow-sm text-left">
                          <input className="font-medium text-slate-600 bg-transparent border-none p-0 focus:ring-0 w-1/2" value={skill.name} onChange={(e) => updateSkillInCategory(cat, idx, 'name', e.target.value)} /><HexagonRating score={skill.rating} onChange={(r) => updateSkillInCategory(cat, idx, 'rating', r)} />
                        </div>
                      ))}</div>
@@ -588,7 +531,7 @@ export default function App() {
               {cvData.experiences.map((exp, index) => (
                 <div key={exp.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm relative group mb-4">
                   <div className="absolute top-4 right-4 flex gap-1"><button onClick={() => moveExperience(index, 'up')} disabled={index === 0} className="p-1 hover:bg-slate-100 rounded disabled:opacity-20" title="Monter"><ChevronUp size={14}/></button><button onClick={() => moveExperience(index, 'down')} disabled={index === cvData.experiences.length - 1} className="p-1 hover:bg-slate-100 rounded disabled:opacity-20" title="Descendre"><ChevronDown size={14}/></button><button onClick={() => removeExperience(exp.id)} className="p-1 text-red-400 hover:bg-red-50 rounded ml-2"><Trash2 size={14}/></button></div>
-                  <div className="mb-4"><span className="text-xs font-bold text-[#333333] uppercase block mb-2 text-left">Logo Client</span><LogoSelectorUI label="" onSelect={(logo) => updateExperience(exp.id, 'client_logo', logo.src)} /></div>
+                  <div className="mb-4 text-left"><span className="text-xs font-bold text-[#333333] uppercase block mb-2 text-left">Logo Client</span><LogoSelectorUI label="" onSelect={(logo) => updateExperience(exp.id, 'client_logo', logo.src)} /></div>
                   <div className="mb-4 flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-100"><div className="flex items-center gap-2"><FilePlus size={16} className="text-[#2E86C1]"/><span className="text-xs font-bold text-slate-600">Saut de page manuel</span></div><button onClick={() => updateExperience(exp.id, 'forceNewPage', !exp.forceNewPage)}>{exp.forceNewPage ? <ToggleRight className="text-green-500"/> : <ToggleLeft className="text-slate-300"/>}</button></div>
                   <InputUI label="Client" value={exp.client_name} onChange={(v) => updateExperience(exp.id, 'client_name', v)} />
                   <InputUI label="Rôle" value={exp.role} onChange={(v) => updateExperience(exp.id, 'role', v)} />
@@ -652,7 +595,7 @@ export default function App() {
             <A4Page>
               <CornerTriangle customLogo={cvData.smileLogo} />
               <HeaderSmall isAnonymous={cvData.isAnonymous} profile={cvData.profile} role={cvData.profile.current_role} />
-              <div className="grid grid-cols-12 gap-10 mt-20 h-full px-12 flex-1 pb-32 overflow-hidden print:overflow-visible text-left">
+              <div className="grid grid-cols-12 gap-10 mt-20 h-full px-12 flex-1 pb-32 overflow-hidden print:overflow-visible text-left text-left">
                   <div className="col-span-5 border-r border-slate-100 pr-8 text-left">
                     <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-8 flex items-center gap-2 text-left"><Cpu size={20}/> Mes Compétences</h3>
                     <div className="space-y-8">{Object.entries(cvData.skills_categories).map(([cat, skills]) => (<div key={cat}><h4 className="text-[10px] font-bold text-[#999999] uppercase tracking-widest border-b border-slate-100 pb-2 mb-3 text-left">{cat}</h4><div className="space-y-3">{skills.map((skill, i) => (<div key={i} className="flex items-center justify-between text-left"><span className="text-xs font-bold text-[#333333] uppercase text-left">{skill.name}</span><HexagonRating score={skill.rating} /></div>))}</div></div>))}</div>
@@ -660,7 +603,7 @@ export default function App() {
                   <div className="col-span-7 flex flex-col gap-10 text-left">
                     {cvData.showSecteur && cvData.connaissances_sectorielles.length > 0 && (<section><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2 text-left"><Factory size={20}/> Connaissances Sectorielles</h3><div className="flex flex-wrap gap-2">{cvData.connaissances_sectorielles.map((s, i) => (<span key={i} className="border-2 border-[#2E86C1] text-[#2E86C1] text-[10px] font-black px-3 py-1 rounded uppercase tracking-wider">{s}</span>))}</div></section>)}
                     {cvData.showCertif && cvData.certifications.length > 0 && (<section><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2 text-left"><Award size={20}/> Certifications</h3><div className="grid grid-cols-2 gap-4">{cvData.certifications.map((c, i) => (<div key={i} className="flex items-center gap-3 bg-slate-50 p-2 rounded text-left">{c.logo && <img src={c.logo} className="w-8 h-8 object-contain" alt={c.name} />}<span className="text-[10px] font-bold text-slate-700 uppercase leading-tight text-left">{c.name}</span></div>))}</div></section>)}
-                    <section><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-6 flex items-center gap-2 text-left"><GraduationCap size={20}/> Ma Formation</h3><div className="space-y-4">{cvData.education.map((edu, i) => (<div key={i} className="border-l-2 border-slate-100 pl-4 text-left"><span className="text-[10px] font-bold text-[#999999] block mb-1 text-left">{String(edu.year)}</span><h4 className="text-xs font-bold text-[#333333] uppercase leading-tight text-left">{String(edu.degree)}</h4><span className="text-[9px] text-[#2E86C1] font-medium uppercase text-left">{String(edu.location)}</span></div>))}</div></section>
+                    <section><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-6 flex items-center gap-2 text-left"><GraduationCap size={20}/> Ma Formation</h3><div className="space-y-4">{cvData.education.map((edu, i) => (<div key={i} className="border-l-2 border-slate-100 pl-4 text-left"><span className="text-[10px] font-bold text-[#999999] block mb-1 text-left">{edu.year}</span><h4 className="text-xs font-bold text-[#333333] uppercase leading-tight text-left">{edu.degree}</h4><span className="text-[9px] text-[#2E86C1] font-medium uppercase text-left">{edu.location}</span></div>))}</div></section>
                   </div>
               </div>
               <Footer />
@@ -692,7 +635,9 @@ export default function App() {
           .print-hidden { display: none !important; }
           .flex-1.bg-slate-800 { display: block !important; height: auto !important; overflow: visible !important; background: white !important; padding: 0 !important; }
           .print-container { transform: none !important; margin: 0 !important; width: 100% !important; display: block !important; gap: 0 !important; }
-          .A4-page { margin: 0 !important; box-shadow: none !important; page-break-after: always !important; break-after: page !important; width: 210mm !important; height: 297.1mm !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; }
+          .A4-page { margin: 0 !important; box-shadow: none !important; page-break-after: always !important; break-after: page !important; width: 210mm !important; height: 297mm !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; }
+          /* En impression, on autorise l'extension de la page si nécessaire */
+          .A4-page { height: auto !important; min-height: 297mm !important; overflow: visible !important; }
           .break-inside-avoid { break-inside: avoid !important; page-break-inside: avoid !important; }
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
