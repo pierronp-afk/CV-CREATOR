@@ -6,7 +6,7 @@ import {
   Save, FolderOpen, Eye, Shield, Check, Edit2,
   Bold, List, Copy, HelpCircle, RefreshCw, Cloud, Mail, Printer,
   ChevronUp, ChevronDown, Award, Factory, ToggleLeft, ToggleRight, FilePlus,
-  FileSearch, Loader2, Lock, Sparkles
+  FileSearch, Loader2, Lock, Sparkles, AlertCircle
 } from 'lucide-react';
 
 // --- CONFIGURATION & THÈME ---
@@ -18,16 +18,8 @@ const THEME = {
   bg: "#FFFFFF"
 };
 
-// Sécurisation de la clé pour éviter le crash build si import.meta est vide
-const getApiKey = () => {
-  try {
-    // @ts-ignore
-    return ""; // Clé vide par défaut selon les instructions d'environnement
-  } catch (e) {
-    return "";
-  }
-};
-const apiKey = getApiKey();
+// L'environnement injecte la clé automatiquement si la variable est une chaîne vide
+const apiKey = "";
 
 const getIconUrl = (slug) => `https://cdn.simpleicons.org/${String(slug || '').toLowerCase().replace(/\s+/g, '')}/white`;
 const getBrandIconUrl = (slug) => `https://cdn.simpleicons.org/${String(slug || '').toLowerCase().replace(/\s+/g, '')}`;
@@ -345,6 +337,7 @@ export default function App() {
   const pdfInputRef = useRef(null);
   const [newSecteur, setNewSecteur] = useState("");
   const [isImporting, setIsImporting] = useState(false);
+  const [importError, setImportError] = useState(null);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newSkillsInput, setNewSkillsInput] = useState({});
 
@@ -361,7 +354,11 @@ export default function App() {
   useEffect(() => {
     const script = document.createElement('script');
     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-    script.onload = () => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; };
+    script.onload = () => { 
+      if (window.pdfjsLib) {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; 
+      }
+    };
     document.head.appendChild(script);
   }, []);
 
@@ -382,6 +379,9 @@ export default function App() {
   useEffect(() => { document.title = getFilenameBase(); }, [cvData.profile]);
 
   const extractTextFromPDF = async (file) => {
+    if (!window.pdfjsLib) {
+      throw new Error("La bibliothèque d'analyse PDF est en cours de chargement. Veuillez réessayer dans quelques secondes.");
+    }
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     let fullText = "";
@@ -398,6 +398,7 @@ export default function App() {
     const file = e.target.files[0];
     if (!file) return;
     setIsImporting(true);
+    setImportError(null);
     try {
       const rawText = await extractTextFromPDF(file);
       
@@ -425,8 +426,18 @@ export default function App() {
         })
       });
 
+      if (!response.ok) {
+        throw new Error("Le service d'analyse IA est indisponible. Vérifiez votre connexion.");
+      }
+
       const data = await response.json();
-      const result = JSON.parse(data.candidates?.[0]?.content?.parts?.[0]?.text);
+      const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      
+      if (!content) {
+        throw new Error("L'IA n'a pas pu extraire de données exploitables de ce fichier.");
+      }
+
+      const result = JSON.parse(content);
       
       setCvData(prev => ({
         ...prev,
@@ -442,8 +453,11 @@ export default function App() {
 
     } catch (err) {
       console.error(err);
+      setImportError(err.message || "Une erreur inconnue est survenue lors de l'importation.");
     } finally {
       setIsImporting(false);
+      // Réinitialiser le champ file pour permettre de re-sélectionner le même fichier
+      e.target.value = null;
     }
   };
 
@@ -567,6 +581,18 @@ export default function App() {
               <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">Send</span>
             </button>
           </div>
+
+          {/* AFFICHAGE ERREUR IMPORT */}
+          {importError && (
+            <div className="bg-red-50 border border-red-200 p-3 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+              <AlertCircle size={18} className="text-red-500 shrink-0 mt-0.5"/>
+              <div className="flex-1">
+                <p className="text-xs font-bold text-red-600 uppercase mb-0.5">Erreur d'importation</p>
+                <p className="text-[11px] text-red-500 leading-tight">{importError}</p>
+              </div>
+              <button onClick={() => setImportError(null)} className="text-red-400 hover:text-red-600"><X size={14}/></button>
+            </div>
+          )}
         </div>
 
         <div className="p-6 border-b border-slate-100 bg-white sticky top-0 z-20">
