@@ -29,7 +29,7 @@ const getSafeApiKey = () => {
 };
 
 const apiKey = getSafeApiKey();
-const MODEL_NAME = "gemini-1.5-flash"; 
+const MODEL_NAME = "gemini-2.5-flash"; 
 
 const getIconUrl = (slug) => `https://cdn.simpleicons.org/${String(slug || '').toLowerCase().trim().split(' ')[0]}/white`;
 const getBrandIconUrl = (slug) => `https://cdn.simpleicons.org/${String(slug || '').toLowerCase().trim().split(' ')[0]}`;
