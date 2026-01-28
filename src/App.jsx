@@ -18,7 +18,7 @@ const THEME = {
   bg: "#FFFFFF"
 };
 
-const apiKey = ""; // La clé est injectée par l'environnement
+const apiKey = import.meta.env.VITE_GOOGLE_API_KEY; // La clé est injectée par l'environnement
 
 const getIconUrl = (slug) => `https://cdn.simpleicons.org/${String(slug || '').toLowerCase().replace(/\s+/g, '')}/white`;
 const getBrandIconUrl = (slug) => `https://cdn.simpleicons.org/${String(slug || '').toLowerCase().replace(/\s+/g, '')}`;
