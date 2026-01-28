@@ -33,8 +33,10 @@ const getApiKey = () => {
 
 const apiKey = getApiKey();
 
-const getIconUrl = (slug) => `https://cdn.simpleicons.org/${String(slug || '').toLowerCase().replace(/\s+/g, '')}/white`;
+// Helpers pour les logos
+const getIconUrl = (slug) => `https://cdn.simpleicons.org/${String(slug || '').toLowerCase().replace(/\s+/g, '')}`;
 const getBrandIconUrl = (slug) => `https://cdn.simpleicons.org/${String(slug || '').toLowerCase().replace(/\s+/g, '')}`;
+const getClearbitUrl = (domain) => `https://logo.clearbit.com/${String(domain || '').trim()}`;
 
 // --- DONNÉES PAR DÉFAUT ---
 const DEFAULT_CV_DATA = {
@@ -51,19 +53,19 @@ const DEFAULT_CV_DATA = {
     summary: "Forte expérience en gestion de projet Drupal et dans l'accompagnement de nos clients.",
     photo: null, 
     tech_logos: [
-      { type: 'url', src: 'https://cdn.simpleicons.org/php/white', name: 'PHP' },
-      { type: 'url', src: 'https://cdn.simpleicons.org/drupal/white', name: 'Drupal' },
-      { type: 'url', src: 'https://cdn.simpleicons.org/symfony/white', name: 'Symfony' }
+      { type: 'url', src: 'https://cdn.simpleicons.org/php', name: 'PHP' },
+      { type: 'url', src: 'https://cdn.simpleicons.org/drupal', name: 'Drupal' },
+      { type: 'url', src: 'https://cdn.simpleicons.org/symfony', name: 'Symfony' }
     ]
   },
   soft_skills: ["Agilité", "Rigueur", "Communication"],
   connaissances_sectorielles: ["Industrie", "E-commerce"],
-  certifications: [{ name: "Drupal certified", logo: "https://cdn.simpleicons.org/drupal/white" }],
+  certifications: [{ name: "Drupal certified", logo: "https://cdn.simpleicons.org/drupal" }],
   experiences: [
     {
       id: 1,
       client_name: "Disney",
-      client_logo: null,
+      client_logo: "https://logo.clearbit.com/disney.com",
       period: "Jan 2023 - Présent",
       role: "Développeur Frontend",
       objective: "Développer la partie frontend de l'outil Castresa...",
@@ -88,7 +90,7 @@ const formatTextForPreview = (text) => {
     .replace(/\n/g, "<br/>"); 
 };
 
-// Logique de pagination sans limite de pages (découpe par paires d'expériences)
+// Logique de pagination sans limite de pages
 const paginateExperiences = (experiences) => {
   if (!Array.isArray(experiences)) return [];
   const pages = [];
@@ -108,7 +110,7 @@ const paginateExperiences = (experiences) => {
   return pages;
 };
 
-// Gestionnaire pour masquer les images cassées ou non trouvées
+// Gestionnaire pour masquer les images cassées
 const handleImageError = (e) => {
   e.target.style.display = 'none';
 };
@@ -298,7 +300,8 @@ const RichTextareaUI = ({ label, value, onChange, placeholder, maxLength }) => {
           <span className="text-[9px] text-slate-400 font-bold mr-1 uppercase tracking-tighter">IA:</span>
           {[{ name: 'ChatGPT', url: 'https://chat.openai.com/', icon: 'openai' },
             { name: 'Gemini', url: 'https://gemini.google.com/', icon: 'googlegemini' },
-            { name: 'Claude', url: 'https://claude.ai/', icon: 'anthropic/000000' }].map((tool) => (
+            { name: 'Claude', url: 'https://claude.ai/', icon: 'anthropic/000000' },
+            { name: 'Mistral', url: 'https://chat.mistral.ai/', icon: 'mistral' }].map((tool) => (
             <button key={tool.name} onClick={() => copyToClipboard(tool.url)} className="p-1 hover:bg-slate-100 rounded transition-all hover:scale-110 grayscale hover:grayscale-0 opacity-70 hover:opacity-100" title={`Copier & Ouvrir ${tool.name}`}>
               <img src={getBrandIconUrl(tool.icon)} onError={handleImageError} className="w-4 h-4" alt={tool.name} />
             </button>
@@ -337,13 +340,46 @@ const DropZoneUI = ({ onFile, label = "Déposez une image", icon = <Upload size=
 
 const LogoSelectorUI = ({ onSelect, label = "Ajouter un logo" }) => {
   const [search, setSearch] = useState("");
-  const handleSearch = () => { if (!search.trim()) return; onSelect({ type: 'url', src: getIconUrl(search), name: search }); setSearch(""); };
-  const handleFile = (file) => { if (file) { const reader = new FileReader(); reader.onload = (ev) => onSelect({ type: 'file', src: ev.target.result, name: file.name.split('.')[0] }); reader.readAsDataURL(file); }};
+  
+  const handleSearch = () => {
+    const query = search.trim();
+    if (!query) return;
+    
+    let finalSrc = "";
+    if (query.includes('.')) {
+      // Si présence d'un point -> Clearbit (Domaine d'entreprise)
+      finalSrc = getClearbitUrl(query);
+    } else {
+      // Sinon -> Simple Icons (Technologie)
+      finalSrc = getIconUrl(query);
+    }
+    
+    onSelect({ type: 'url', src: finalSrc, name: query });
+    setSearch("");
+  };
+
+  const handleFile = (file) => {
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => onSelect({ type: 'file', src: ev.target.result, name: file.name.split('.')[0] });
+      reader.readAsDataURL(file);
+    }
+  };
+
   return (
     <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 shadow-inner text-left">
       {label && <label className="text-[10px] font-bold text-[#333333] uppercase block mb-2">{String(label)}</label>}
       <div className="flex gap-2 mb-2">
-        <div className="relative flex-1"><input className="w-full pl-7 pr-2 py-1.5 bg-white border border-slate-300 rounded text-xs" placeholder="Recherche (ex: Java)" value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} /><Search className="absolute left-2 top-2 text-slate-400" size={12} /></div>
+        <div className="relative flex-1">
+          <input 
+            className="w-full pl-7 pr-2 py-1.5 bg-white border border-slate-300 rounded text-xs" 
+            placeholder="Nom (PHP) ou Domaine (google.com)" 
+            value={search} 
+            onChange={(e) => setSearch(e.target.value)} 
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()} 
+          />
+          <Search className="absolute left-2 top-2 text-slate-400" size={12} />
+        </div>
         <ButtonUI variant="primary" className="px-2 py-1 text-xs h-auto" onClick={handleSearch}><Plus size={12}/></ButtonUI>
       </div>
       <div className="text-center text-[9px] text-slate-400 mb-2 font-bold uppercase">- OU -</div>
@@ -560,7 +596,6 @@ export default function App() {
   const handleEmailSend = () => {
     const subject = encodeURIComponent(`CV Smile : ${cvData.profile.firstname} ${cvData.profile.lastname}`);
     const body = encodeURIComponent(`Bonjour,\n\nVeuillez trouver ci-joint mon CV aux formats PDF et JSON.\n\nCordialement.`);
-    // Ouvre le lien mailto dans un nouvel onglet pour ne pas quitter l'éditeur
     window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
   };
 
@@ -679,7 +714,18 @@ export default function App() {
               <div className="grid grid-cols-2 gap-4"><InputUI label="Années XP" value={cvData.profile.years_experience} onChange={(v) => handleProfileChange('years_experience', v)} /><InputUI label="Techno Principale" value={cvData.profile.main_tech} onChange={(v) => handleProfileChange('main_tech', v)} /></div>
               <InputUI label="Poste Actuel" value={cvData.profile.current_role} onChange={(v) => handleProfileChange('current_role', v)} />
               <RichTextareaUI label="Bio / Résumé" value={cvData.profile.summary} onChange={(val) => handleProfileChange('summary', val)} maxLength={400} />
-              <div className="bg-white p-4 rounded-xl border border-slate-200 text-left"><label className="text-xs font-bold text-[#333333] uppercase block mb-3 text-left">Bandeau Technos</label><LogoSelectorUI onSelect={addTechLogo} label="Ajouter" /><div className="flex flex-wrap gap-2 mt-4">{cvData.profile.tech_logos.map((logo, i) => (<div key={i} className="relative group bg-slate-100 p-2 rounded-md border border-slate-200"><img src={logo.src} onError={handleImageError} className="w-6 h-6 object-contain" alt={logo.name} /><button onClick={() => removeTechLogo(i)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100"><X size={10} /></button></div>))}</div></div>
+              <div className="bg-white p-4 rounded-xl border border-slate-200 text-left">
+                <label className="text-xs font-bold text-[#333333] uppercase block mb-3 text-left">Bandeau Technos (Sera en blanc)</label>
+                <LogoSelectorUI onSelect={addTechLogo} label="Ajouter" />
+                <div className="flex flex-wrap gap-2 mt-4">
+                  {cvData.profile.tech_logos.map((logo, i) => (
+                    <div key={i} className="relative group bg-slate-100 p-2 rounded-md border border-slate-200">
+                      <img src={logo.src} onError={handleImageError} className="w-6 h-6 object-contain brightness-0 invert" alt={logo.name} />
+                      <button onClick={() => removeTechLogo(i)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100"><X size={10} /></button>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
            )}
 
@@ -694,14 +740,22 @@ export default function App() {
              <div className="space-y-8 animate-in slide-in-from-right transition-all text-left">
                <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><GraduationCap size={24} /><h2 className="text-lg font-bold uppercase">Formation & Compétences</h2></div>
                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm text-left">
-                 <h3 className="text-[10px] font-black uppercase text-slate-400 mb-4 text-left">Secteur & Certifs</h3>
+                 <h3 className="text-[10px] font-black uppercase text-slate-400 mb-4 text-left">Secteur & Certifs (En couleur)</h3>
                  <div className="flex gap-2 mb-4 text-left">
                    <input className="flex-1 px-3 py-1.5 border rounded text-xs text-left" placeholder="Secteur..." value={newSecteur} onChange={e=>setNewSecteur(e.target.value)} onKeyDown={e=>e.key==='Enter' && addSecteur()} />
                    <ButtonUI variant="primary" className="p-1 h-auto text-left" onClick={addSecteur}><Plus size={10}/></ButtonUI>
                  </div>
                  <div className="flex flex-wrap gap-1 mb-4 text-left">{(cvData.connaissances_sectorielles || []).map((s, i) => (<span key={i} className="bg-white text-[9px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 uppercase text-left">{s} <X size={10} className="cursor-pointer" onClick={() => removeSecteur(i)}/></span>))}</div>
                  <LogoSelectorUI onSelect={addCertification} label="Certifications" />
-                 <div className="mt-2 space-y-1 text-left">{(cvData.certifications || []).map((c, i) => (<div key={i} className="flex items-center justify-between text-[10px] bg-white p-1.5 rounded border uppercase font-bold text-left"><span>{c.name}</span><button onClick={()=>removeCertification(i)}><X size={10}/></button></div>))}</div>
+                 <div className="mt-2 space-y-1 text-left">
+                    {(cvData.certifications || []).map((c, i) => (
+                      <div key={i} className="flex items-center justify-between text-[10px] bg-white p-1.5 rounded border uppercase font-bold text-left gap-2">
+                        {c.logo && <img src={c.logo} onError={handleImageError} className="w-5 h-5 object-contain" alt="" />}
+                        <span className="flex-1">{c.name}</span>
+                        <button onClick={()=>removeCertification(i)}><X size={10}/></button>
+                      </div>
+                    ))}
+                 </div>
                </div>
                <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 shadow-sm text-left">
                  <h3 className="text-[10px] font-black uppercase text-slate-400 mb-4 text-left">Parcours Académique</h3>
@@ -728,7 +782,13 @@ export default function App() {
               {(cvData.experiences || []).map((exp, index) => (
                 <div key={exp.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm relative group mb-4 text-left">
                   <div className="absolute top-4 right-4 flex gap-1 text-left"><button onClick={() => moveExperience(index, 'up')} disabled={index===0} className="text-slate-300 hover:text-blue-500 text-left"><ChevronUp size={16}/></button><button onClick={() => moveExperience(index, 'down')} disabled={index === cvData.experiences.length - 1} className="p-1 hover:bg-slate-100 rounded disabled:opacity-20 text-left"><ChevronDown size={16}/></button><button onClick={() => removeExperience(exp.id)} className="text-red-300 hover:text-red-500 text-left"><Trash2 size={16}/></button></div>
-                  <div className="mb-4 text-left"><span className="text-xs font-bold text-[#333333] uppercase block mb-2 text-left">Logo Client</span><div className="flex items-center gap-4 text-left"><DropZoneUI label="Logo" onFile={(f) => {const r=new FileReader(); r.onload=(ev)=>updateExperience(exp.id, 'client_logo', ev.target.result); r.readAsDataURL(f);}} className="h-16 flex-1 text-left" />{exp.client_logo && <img src={exp.client_logo} onError={handleImageError} className="w-12 h-12 object-contain text-left" />}</div></div>
+                  <div className="mb-4 text-left">
+                    <span className="text-xs font-bold text-[#333333] uppercase block mb-2 text-left">Logo Client (En couleur)</span>
+                    <div className="flex items-center gap-4 text-left">
+                      <LogoSelectorUI label="" onSelect={(o) => updateExperience(exp.id, 'client_logo', o.src)} />
+                      {exp.client_logo && <img src={exp.client_logo} onError={handleImageError} className="w-12 h-12 object-contain text-left" alt="" />}
+                    </div>
+                  </div>
                   <div className="mb-4 flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-100 text-left"><div className="flex items-center gap-2 text-left"><FilePlus size={16} className="text-[#2E86C1] text-left"/><span className="text-xs font-bold text-slate-600 text-left">Saut de page manuel</span></div><button onClick={() => updateExperience(exp.id, 'forceNewPage', !exp.forceNewPage)} className="text-left">{exp.forceNewPage ? <ToggleRight className="text-green-500"/> : <ToggleLeft className="text-slate-300"/>}</button></div>
                   <InputUI label="Client" value={exp.client_name} onChange={(v) => updateExperience(exp.id, 'client_name', v)} />
                   <InputUI label="Rôle" value={exp.role} onChange={(v) => updateExperience(exp.id, 'role', v)} />
@@ -774,6 +834,7 @@ export default function App() {
                   <div className="px-24 mb-10 relative z-10 flex flex-col items-center text-center">
                      <p className="text-lg text-[#333333] leading-relaxed italic border-t border-slate-100 pt-8 text-center break-words w-full max-w-[160mm]" dangerouslySetInnerHTML={{__html: formatTextForPreview(`"${cvData.profile.summary}"`)}}></p>
                   </div>
+                  {/* BANDEAU TECHNO : TOUJOURS BLANC */}
                   <div className="w-full bg-[#2E86C1] py-6 px-16 mb-10 flex items-center justify-center gap-10 shadow-inner relative z-10 flex-shrink-0 text-left tech-banner">
                     {(cvData.profile.tech_logos || []).map((logo, i) => (
                       logo.src && logo.src !== "null" ? <img key={i} src={logo.src} onError={handleImageError} className="h-14 w-auto object-contain brightness-0 invert opacity-95 transition-transform" alt={String(logo.name)} /> : null
