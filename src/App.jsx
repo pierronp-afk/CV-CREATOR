@@ -18,8 +18,20 @@ const THEME = {
   bg: "#FFFFFF"
 };
 
-// L'environnement injecte la clé automatiquement si la variable est une chaîne vide
-const apiKey = "";
+// Récupération hybride de la clé API
+const getApiKey = () => {
+  try {
+    // @ts-ignore
+    const envKey = import.meta.env?.VITE_GOOGLE_API_KEY;
+    if (envKey && envKey !== "") return envKey;
+  } catch (e) {
+    // Silencieux si import.meta n'est pas supporté
+  }
+  // L'environnement Canvas injecte la clé automatiquement si la variable est une chaîne vide
+  return "";
+};
+
+const apiKey = getApiKey();
 
 const getIconUrl = (slug) => `https://cdn.simpleicons.org/${String(slug || '').toLowerCase().replace(/\s+/g, '')}/white`;
 const getBrandIconUrl = (slug) => `https://cdn.simpleicons.org/${String(slug || '').toLowerCase().replace(/\s+/g, '')}`;
