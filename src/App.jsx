@@ -18,20 +18,22 @@ const THEME = {
   bg: "#FFFFFF"
 };
 
-// Accès sécurisé à la clé API pour l'environnement (Vercel)
-const getSafeApiKey = () => {
+// Récupération de la clé API depuis Vercel (VITE_ prefixé pour le client)
+const getApiKey = () => {
   try {
-    // @ts-ignore
-    return import.meta.env?.VITE_GOOGLE_API_KEY || "";
+    // Tente de lire la variable d'environnement
+    return import.meta.env.VITE_GOOGLE_API_KEY || "";
   } catch (e) {
     return "";
   }
 };
 
-const apiKey = getSafeApiKey();
+const apiKey = getApiKey();
+// Pour un usage externe (Vercel), on utilise gemini-1.5-flash pour éviter le 404
+const MODEL_NAME = "gemini-1.5-flash"; 
 
-const getIconUrl = (slug) => `https://cdn.simpleicons.org/${String(slug || '').toLowerCase().trim().split(' ')[0]}/white`;
-const getBrandIconUrl = (slug) => `https://cdn.simpleicons.org/${String(slug || '').toLowerCase().trim().split(' ')[0]}`;
+const getIconUrl = (slug) => `https://cdn.simpleicons.org/${String(slug || '').toLowerCase().replace(/\s+/g, '')}/white`;
+const getBrandIconUrl = (slug) => `https://cdn.simpleicons.org/${String(slug || '').toLowerCase().replace(/\s+/g, '')}`;
 
 // --- DONNÉES PAR DÉFAUT ---
 const DEFAULT_CV_DATA = {
@@ -104,7 +106,7 @@ const paginateExperiences = (experiences) => {
   return pages;
 };
 
-// --- COMPOSANTS UI ATOMIQUES (DÉFINIS ICI POUR ÉVITER ReferenceError) ---
+// --- COMPOSANTS UI ATOMIQUES ---
 
 const HexagonRating = ({ score, onChange }) => (
   <div className="flex gap-1">
@@ -158,13 +160,6 @@ const RichTextareaUI = ({ label, value, onChange, placeholder, maxLength }) => {
     if (tag === 'b') { onChange(`${before}<b>${selected}</b>${after}`); } 
     else if (tag === 'list') { if (start !== end) { const bulletedLines = selected.split('\n').map(line => line.trim() === "" ? line : (line.startsWith('• ') ? line : `• ${line}`)).join('\n'); onChange(before + bulletedLines + after); } else { onChange(`${before}• ${after}`); } }
   };
-  const copyToClipboard = (url) => {
-    if (value) {
-      const prompt = "Agis comme un expert Smile. Reformule ce texte pour un CV de consultant. Ton 'corporate', direct. Corrige les fautes. PAS de markdown. Texte : \n";
-      navigator.clipboard.writeText(prompt + value);
-    }
-    window.open(url, '_blank');
-  };
   const currentLines = String(value || '').split('\n').length;
   return (
     <div className="mb-6 text-left">
@@ -181,7 +176,7 @@ const RichTextareaUI = ({ label, value, onChange, placeholder, maxLength }) => {
           {[{ name: 'ChatGPT', url: 'https://chat.openai.com/', icon: 'openai' },
             { name: 'Gemini', url: 'https://gemini.google.com/', icon: 'googlegemini' },
             { name: 'Claude', url: 'https://claude.ai/', icon: 'anthropic/000000' }].map((tool) => (
-            <button key={tool.name} onClick={() => copyToClipboard(tool.url)} className="p-1 hover:bg-slate-100 rounded transition-all hover:scale-110 grayscale hover:grayscale-0 opacity-70 hover:opacity-100" title={`Copier & Ouvrir ${tool.name}`}>
+            <button key={tool.name} onClick={() => window.open(tool.url, '_blank')} className="p-1 hover:bg-slate-100 rounded transition-all hover:scale-110 grayscale hover:grayscale-0 opacity-70 hover:opacity-100">
               <img src={getBrandIconUrl(tool.icon)} className="w-4 h-4" alt={tool.name} />
             </button>
           ))}
@@ -196,7 +191,7 @@ const DropZoneUI = ({ onFile, label = "Fichier", icon = <Upload size={16}/>, cla
   const inputRef = useRef(null);
   return (
     <div className={`border-2 border-dashed rounded-lg p-3 text-center cursor-pointer transition-all duration-200 flex flex-col items-center justify-center gap-1 ${className} border-slate-300 bg-white hover:border-[#2E86C1] hover:bg-slate-50`} onClick={() => inputRef.current.click()}>
-      <input type="file" ref={inputRef} className="hidden" accept="image/*" onChange={(e) => e.target.files[0] && onFile(e.target.files[0])} />
+      <input type="file" min="1" max="1" ref={inputRef} className="hidden" accept="image/*" onChange={(e) => e.target.files[0] && onFile(e.target.files[0])} />
       <div className="text-[#2E86C1]">{icon}</div>
       <span className="text-[10px] font-bold uppercase text-slate-500">{String(label)}</span>
     </div>
@@ -210,7 +205,7 @@ const LogoSelectorUI = ({ onSelect, label = "Ajouter" }) => {
     <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 shadow-inner text-left">
       {label && <label className="text-[10px] font-bold text-[#333333] uppercase block mb-2">{String(label)}</label>}
       <div className="flex gap-2">
-        <input className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded text-xs" placeholder="Ex: React" value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} />
+        <input className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded text-xs" placeholder="Drupal, React..." value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} />
         <ButtonUI variant="primary" className="px-2 py-1 h-auto" onClick={handleSearch}><Plus size={12}/></ButtonUI>
       </div>
     </div>
@@ -244,7 +239,7 @@ const HeaderSmall = ({ isAnonymous, profile, role }) => {
     <div className="flex justify-between items-start border-b-2 border-[#2E86C1] pb-4 pt-10 px-12 mt-8 flex-shrink-0">
       <div><div className="w-10 h-10"></div></div>
       <div className="text-right">
-        <h3 className="text-sm font-bold text-[#333333] uppercase">{nameDisplay}</h3>
+        <h3 className="text-sm font-bold text-[#333333] uppercase">{String(nameDisplay)}</h3>
         <p className="text-[10px] font-bold text-[#999999] uppercase">{String(role || '')}</p>
       </div>
     </div>
@@ -260,7 +255,7 @@ const Footer = () => (
 
 const ExperienceItem = ({ exp }) => (
   <div className="grid grid-cols-12 gap-6 mb-8 break-inside-avoid print:break-inside-avoid">
-    <div className="col-span-2 flex flex-col items-center pt-2 text-center text-center">
+    <div className="col-span-2 flex flex-col items-center pt-2 text-center">
       {exp.client_logo && (
         <div className="w-16 h-16 rounded-lg border border-slate-200 overflow-hidden flex items-center justify-center bg-white mb-2 p-1">
           <img src={exp.client_logo} className="max-w-full max-h-full object-contain" alt="Logo Client" />
@@ -280,8 +275,8 @@ const ExperienceItem = ({ exp }) => (
         </div>
       )}
       <div className="mt-4 pt-4 border-t border-slate-50 space-y-4 text-left">
-         <div><h5 className="text-[10px] font-bold text-[#999999] uppercase mb-1 text-left">Réalisation</h5><p className="text-xs font-medium text-[#333333] break-words text-left" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.phases)}}></p></div>
-         <div><h5 className="text-[10px] font-bold text-[#999999] uppercase mb-1 text-left">Environnement</h5><div className="flex flex-wrap gap-1">{(Array.isArray(exp.tech_stack) ? exp.tech_stack : []).map((t, i) => <span key={i} className="text-xs font-bold text-[#2E86C1] bg-blue-50 px-2 py-0.5 rounded">{String(t)}</span>)}</div></div>
+         <div><h5 className="text-[10px] font-bold text-[#999999] uppercase mb-1">Réalisation</h5><p className="text-xs font-medium text-[#333333] break-words text-left" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.phases)}}></p></div>
+         <div><h5 className="text-[10px] font-bold text-[#999999] uppercase mb-1">Environnement</h5><div className="flex flex-wrap gap-1">{(Array.isArray(exp.tech_stack) ? exp.tech_stack : []).map((t, i) => <span key={i} className="text-xs font-bold text-[#2E86C1] bg-blue-50 px-2 py-0.5 rounded">{String(t)}</span>)}</div></div>
       </div>
     </div>
   </div>
@@ -301,18 +296,21 @@ export default function App() {
 
   const [cvData, setCvData] = useState(() => {
     try {
-      const saved = localStorage.getItem('smile_cv_stability_final_v5');
+      const saved = localStorage.getItem('smile_cv_stability_v10_final');
       if (saved) return JSON.parse(saved);
     } catch(e) { console.error(e); }
     return DEFAULT_CV_DATA;
   });
 
-  useEffect(() => { localStorage.setItem('smile_cv_stability_final_v5', JSON.stringify(cvData)); }, [cvData]);
+  useEffect(() => { localStorage.setItem('smile_cv_stability_v10_final', JSON.stringify(cvData)); }, [cvData]);
 
   useEffect(() => {
     const script = document.createElement('script');
     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-    script.onload = () => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; };
+    script.onload = () => { 
+      // @ts-ignore
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; 
+    };
     document.head.appendChild(script);
   }, []);
 
@@ -331,7 +329,7 @@ export default function App() {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => { try { setCvData(JSON.parse(ev.target.result)); } catch (err) { alert("Format invalide"); } };
+    reader.onload = (ev) => { try { setCvData(JSON.parse(String(ev.target.result))); } catch (err) { alert("Format invalide"); } };
     reader.readAsText(file);
   };
 
@@ -345,10 +343,11 @@ export default function App() {
   const handlePDFImport = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (!apiKey) { alert("Clé API non configurée."); return; }
+    if (!apiKey) { alert("Variable VITE_GOOGLE_API_KEY manquante sur Vercel."); return; }
     setIsImporting(true);
     try {
       const arrayBuffer = await file.arrayBuffer();
+      // @ts-ignore
       const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       let rawText = "";
       for (let i = 1; i <= pdf.numPages; i++) {
@@ -356,10 +355,10 @@ export default function App() {
         const textContent = await page.getTextContent();
         rawText += textContent.items.map(it => it.str).join(" ") + "\n";
       }
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: `Analyse ce CV et renvoie uniquement un JSON structuré : ${rawText}` }] }],
+          contents: [{ parts: [{ text: `Analyse ce CV et renvoie UNIQUEMENT un JSON structuré (profile, experiences, education, soft_skills) : ${rawText}` }] }],
           generationConfig: { responseMimeType: "application/json" }
         })
       });
@@ -369,7 +368,7 @@ export default function App() {
         const result = JSON.parse(textResult);
         setCvData(prev => ({ ...prev, ...result, profile: { ...prev.profile, ...result.profile } }));
       }
-    } catch (err) { alert("Import échoué."); }
+    } catch (err) { alert("Import échoué. Vérifiez l'URL et le modèle Gemini."); }
     finally { setIsImporting(false); }
   };
 
@@ -387,9 +386,8 @@ export default function App() {
   const addTechLogo = (o) => setCvData(p => ({ ...p, profile: { ...p.profile, tech_logos: [...(p.profile.tech_logos || []), o] } }));
   const removeTechLogo = (i) => setCvData(p => ({ ...p, profile: { ...p.profile, tech_logos: p.profile.tech_logos.filter((_, idx) => idx !== i) } }));
   const handleSmileLogo = (f) => { if(f) { const r = new FileReader(); r.onload = (ev) => setCvData(p => ({...p, smileLogo: ev.target.result})); r.readAsDataURL(f); } };
-  
-  const moveExperience = (index, direction) => { const newExp = [...cvData.experiences]; const target = direction === 'up' ? index - 1 : index + 1; if (target >= 0 && target < newExp.length) { [newExp[index], newExp[target]] = [newExp[target], newExp[index]]; setCvData({ ...cvData, experiences: newExp }); } };
   const updateExperience = (id, f, v) => setCvData(p => ({ ...p, experiences: p.experiences.map(e => e.id === id ? { ...e, [f]: v } : e) }));
+  const moveExperience = (index, direction) => { const newExp = [...cvData.experiences]; const target = direction === 'up' ? index - 1 : index + 1; if (target >= 0 && target < newExp.length) { [newExp[index], newExp[target]] = [newExp[target], newExp[index]]; setCvData({ ...cvData, experiences: newExp }); } };
   const addExperience = () => setCvData(p => ({ ...p, experiences: [{ id: Date.now(), client_name: "", client_logo: null, period: "", role: "", objective: "", phases: "", tech_stack: [] }, ...p.experiences] }));
   const removeExperience = (id) => setCvData(p => ({ ...p, experiences: p.experiences.filter(e => e.id !== id) }));
   
@@ -397,8 +395,7 @@ export default function App() {
   const removeSecteur = (idx) => setCvData(p => ({ ...p, connaissances_sectorielles: p.connaissances_sectorielles.filter((_, i) => i !== idx) }));
   const addCertification = (o) => setCvData(p => ({ ...p, certifications: [...(p.certifications||[]), { name: o.name, logo: o.src }] }));
   const removeCertification = (idx) => setCvData(p => ({ ...p, certifications: p.certifications.filter((_, i) => i !== idx) }));
-  const updateCertification = (idx, field, val) => { const certs = [...cvData.certifications]; certs[idx][field] = val; setCvData({ ...cvData, certifications: certs }); };
-
+  
   const addSkillCategory = () => { if (newCategoryName) { setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [newCategoryName]: [] } })); setNewCategoryName(""); } };
   const deleteCategory = (cat) => setCvData(p => { const newC = { ...p.skills_categories }; delete newC[cat]; return { ...p, skills_categories: newC }; });
   const updateSkillInCategory = (cat, idx, f, v) => setCvData(p => { const s = [...p.skills_categories[cat]]; s[idx] = { ...s[idx], [f]: v }; return { ...p, skills_categories: { ...p.skills_categories, [cat]: s } }; });
@@ -408,16 +405,6 @@ export default function App() {
   const updateEducation = (i, f, v) => { const n = [...cvData.education]; n[i][f] = v; setCvData(p => ({ ...p, education: n })); };
   const addEducation = () => setCvData(p => ({ ...p, education: [...p.education, { year: "", degree: "", location: "" }] }));
   const removeEducation = (i) => setCvData(p => ({ ...p, education: p.education.filter((_, idx) => idx !== i) }));
-
-  const formatNameHeader = () => {
-    if (cvData.isAnonymous) return <div className="text-6xl font-black">{String(cvData.profile.firstname?.[0] || '')}{String(cvData.profile.lastname?.[0] || '')}</div>;
-    return (
-      <div className="flex flex-col text-left">
-        <span className="text-4xl font-semibold opacity-90 leading-tight">{String(cvData.profile.firstname)}</span>
-        <span className="text-6xl font-black leading-tight">{String(cvData.profile.lastname)}</span>
-      </div>
-    );
-  };
 
   const experiencePages = paginateExperiences(cvData.experiences);
 
@@ -472,7 +459,9 @@ export default function App() {
                   <div className="flex gap-2 mb-4">
                      <input className="flex-1 px-3 py-1.5 border rounded text-xs" placeholder="Ex: React" id="tech-search-input-ref-final" />
                      <ButtonUI variant="primary" className="p-1 h-auto" onClick={() => {
-                        const val = document.getElementById('tech-search-input-ref-final').value;
+                        const input = document.getElementById('tech-search-input-ref-final');
+                        // @ts-ignore
+                        const val = input?.value;
                         if(val) addTechLogo({ type: 'url', src: getIconUrl(val), name: val });
                      }}><Plus size={12}/></ButtonUI>
                   </div>
@@ -516,7 +505,7 @@ export default function App() {
                <div className="bg-white p-4 rounded-xl border border-slate-200 text-left">
                   <h3 className="text-[10px] font-black uppercase text-slate-400 mb-4 text-left">Niveau Compétences</h3>
                   <div className="flex gap-2 mb-4"><input className="flex-1 px-3 py-2 border rounded text-xs" placeholder="Catégorie (Outils...)" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addSkillCategory()} /><ButtonUI variant="outline" className="px-3" onClick={addSkillCategory}><Plus size={14}/></ButtonUI></div>
-                  {Object.entries(cvData.skills_categories).map(([cat, skills]) => (
+                  {Object.entries(cvData.skills_categories || {}).map(([cat, skills]) => (
                     <div key={cat} className="mb-4 p-3 bg-slate-50 rounded-lg">
                       <div className="flex justify-between items-center mb-2"><h4 className="text-xs font-bold uppercase">{cat}</h4><button onClick={() => deleteCategory(cat)} className="text-red-300"><Trash2 size={12}/></button></div>
                       <div className="space-y-1 mb-3">{(skills || []).map((skill, idx) => (<div key={idx} className="flex items-center justify-between text-xs bg-white p-1.5 rounded shadow-sm text-left text-left"><input className="bg-transparent outline-none w-1/2 font-medium" value={skill.name} onChange={(e) => updateSkillInCategory(cat, idx, 'name', e.target.value)} /><HexagonRating score={skill.rating} onChange={(r) => updateSkillInCategory(cat, idx, 'rating', r)} /></div>))}</div>
@@ -552,7 +541,7 @@ export default function App() {
 
       {/* --- PREVIEW AREA --- */}
       <div className="flex-1 bg-slate-800 overflow-hidden relative flex flex-col items-center">
-        <div className="absolute bottom-6 z-50 flex items-center gap-4 bg-white/90 backdrop-blur px-6 py-2 rounded-full shadow-2xl border border-white/20 print:hidden transition-all hover:scale-105">
+        <div className="absolute bottom-6 z-50 flex items-center gap-4 bg-white/90 backdrop-blur px-6 py-2 rounded-full shadow-2xl print:hidden transition-all hover:scale-105">
            <button onClick={() => setZoom(Math.max(0.2, zoom - 0.1))} className="p-2 hover:bg-slate-100 rounded-full"><ZoomOut size={18} /></button>
            <span className="text-xs font-bold text-slate-600 min-w-[3rem] text-center">{Math.round(zoom * 100)}%</span>
            <button onClick={() => setZoom(Math.min(1.5, zoom + 0.1))} className="p-2 hover:bg-slate-100 rounded-full"><ZoomIn size={18} /></button>
@@ -572,7 +561,7 @@ export default function App() {
                  <h1 className="uppercase leading-[0.85] mb-8 font-montserrat text-[#333333] text-left text-left">
                    {cvData.isAnonymous ? `${String(cvData.profile.firstname?.[0] || '')}${String(cvData.profile.lastname?.[0] || '')}` : <><span className="text-4xl block font-semibold opacity-90">{String(cvData.profile.firstname)}</span><span className="text-6xl font-black">{String(cvData.profile.lastname)}</span></>}
                  </h1>
-                 <div className="inline-block bg-[#2E86C1] text-white font-bold text-xl px-4 py-1 rounded-sm uppercase mb-6 tracking-wider shadow-sm">{String(cvData.profile.years_experience)} ans d'expérience</div>
+                 <div className="inline-block bg-[#2E86C1] text-white font-bold text-xl px-4 py-1 rounded-sm uppercase mb-6 tracking-wider shadow-sm">{cvData.profile.years_experience} ans d'expérience</div>
                  <h2 className="text-3xl font-black text-[#333333] uppercase mb-1 tracking-wide font-montserrat opacity-90 text-left text-left">{String(cvData.profile.current_role)}</h2>
                  <div className="text-lg text-[#666666] font-medium uppercase tracking-widest mb-10 border-l-4 border-[#2E86C1] pl-4 text-left text-left">{String(cvData.profile.main_tech)}</div>
               </div>
@@ -581,7 +570,7 @@ export default function App() {
                      <p className="text-lg text-[#333333] leading-relaxed italic border-t border-slate-100 pt-8 text-center break-words w-full max-w-[160mm]" dangerouslySetInnerHTML={{__html: formatTextForPreview(`"${cvData.profile.summary}"`)}}></p>
                   </div>
                   <div className="w-full bg-[#2E86C1] py-6 px-16 mb-8 flex items-center justify-center gap-10 shadow-inner relative z-10 flex-shrink-0">
-                    {(cvData.profile.tech_logos || []).map((logo, i) => (<img key={i} src={logo.src} className="h-14 w-auto object-contain brightness-0 invert opacity-95 transition-transform" alt={String(logo.name)} />))}
+                    {(cvData.profile.tech_logos || []).map((logo, i) => (<img key={i} src={logo.src} className="h-14 w-auto object-contain brightness-0 invert opacity-95 transition-transform" alt={logo.name} />))}
                   </div>
                   <div className="flex justify-center gap-12 relative z-10 px-10 flex-shrink-0 mt-12">
                     {(cvData.soft_skills || []).map((skill, i) => (
@@ -601,11 +590,11 @@ export default function App() {
               <div className="grid grid-cols-12 gap-10 mt-20 h-full px-12 flex-1 pb-32 overflow-hidden print:overflow-visible text-left text-left">
                   <div className="col-span-5 border-r border-slate-100 pr-8 text-left text-left">
                     <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-8 flex items-center gap-2 text-left text-left text-left"><Cpu size={20}/> Mes Compétences</h3>
-                    <div className="space-y-8 text-left text-left">{Object.entries(cvData.skills_categories).map(([cat, skills]) => (<div key={cat}><h4 className="text-[10px] font-bold text-[#999999] uppercase tracking-widest border-b border-slate-100 pb-2 mb-3 text-left text-left">{cat}</h4><div className="space-y-3">{(skills || []).map((skill, i) => (<div key={i} className="flex items-center justify-between text-left text-left text-left"><span className="text-xs font-bold text-[#333333] uppercase text-left text-left">{String(skill.name)}</span><HexagonRating score={skill.rating} /></div>))}</div></div>))}</div>
+                    <div className="space-y-8 text-left text-left">{Object.entries(cvData.skills_categories || {}).map(([cat, skills]) => (<div key={cat}><h4 className="text-[10px] font-bold text-[#999999] uppercase tracking-widest border-b border-slate-100 pb-2 mb-3 text-left text-left">{cat}</h4><div className="space-y-3">{(skills || []).map((skill, i) => (<div key={i} className="flex items-center justify-between text-left text-left text-left"><span className="text-xs font-bold text-[#333333] uppercase text-left text-left">{String(skill.name)}</span><HexagonRating score={skill.rating} /></div>))}</div></div>))}</div>
                   </div>
                   <div className="col-span-7 flex flex-col gap-10 text-left text-left">
                     {cvData.showSecteur && (cvData.connaissances_sectorielles || []).length > 0 && (<section className="text-left text-left"><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2 text-left text-left"><Factory size={20}/> Secteurs</h3><div className="flex flex-wrap gap-2">{(cvData.connaissances_sectorielles || []).map((s, i) => (<span key={i} className="border-2 border-[#2E86C1] text-[#2E86C1] text-[10px] font-black px-3 py-1 rounded uppercase tracking-wider">{String(s)}</span>))}</div></section>)}
-                    {cvData.showCertif && (cvData.certifications || []).length > 0 && (<section className="text-left text-left text-left"><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2 text-left text-left text-left"><Award size={20}/> Certifications</h3><div className="grid grid-cols-2 gap-4 text-left text-left">{cvData.certifications.map((c, i) => (<div key={i} className="flex items-center gap-3 bg-slate-50 p-2 rounded text-left text-left">{c.logo && <img src={c.logo} className="w-8 h-8 object-contain" alt={String(c.name)} />}<span className="text-[10px] font-bold text-slate-700 uppercase leading-tight text-left text-left">{String(c.name)}</span></div>))}</div></section>)}
+                    {cvData.showCertif && (cvData.certifications || []).length > 0 && (<section className="text-left text-left text-left"><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2 text-left text-left text-left"><Award size={20}/> Certifications</h3><div className="grid grid-cols-2 gap-4 text-left text-left">{(cvData.certifications || []).map((c, i) => (<div key={i} className="flex items-center gap-3 bg-slate-50 p-2 rounded text-left text-left">{c.logo && <img src={c.logo} className="w-8 h-8 object-contain" alt={String(c.name)} />}<span className="text-[10px] font-bold text-slate-700 uppercase leading-tight text-left text-left">{String(c.name)}</span></div>))}</div></section>)}
                     <section className="text-left text-left text-left text-left"><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-6 flex items-center gap-2 text-left text-left text-left text-left"><GraduationCap size={20}/> Ma Formation</h3><div className="space-y-4 text-left text-left text-left text-left">{(cvData.education || []).map((edu, i) => (<div key={i} className="border-l-2 border-slate-100 pl-4 text-left text-left text-left text-left"><span className="text-[10px] font-bold text-[#999999] block mb-1 text-left text-left text-left text-left">{String(edu.year)}</span><h4 className="text-xs font-bold text-[#333333] uppercase leading-tight text-left text-left text-left text-left">{String(edu.degree)}</h4><span className="text-[9px] text-[#2E86C1] font-medium uppercase text-left text-left text-left text-left">{String(edu.location)}</span></div>))}</div></section>
                   </div>
               </div>
