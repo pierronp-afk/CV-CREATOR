@@ -18,9 +18,10 @@ const THEME = {
   bg: "#FFFFFF"
 };
 
-// Gestion sécurisée de la clé pour éviter le crash sur l'aperçu si import.meta est vide
+// Sécurisation de la clé pour éviter le crash build si import.meta est vide
 const getApiKey = () => {
   try {
+    // @ts-ignore
     return import.meta.env?.VITE_GOOGLE_API_KEY || "";
   } catch (e) {
     return "";
@@ -137,7 +138,7 @@ const HeaderSmall = ({ isAnonymous, profile, role }) => {
 const Footer = () => (
   <div className="absolute bottom-8 left-12 right-12 border-t border-slate-100 pt-4 flex justify-between items-center bg-white flex-shrink-0 text-[8px] font-bold">
     <div className="text-[#999999] uppercase tracking-widest">Smile - IT is Open <span className="text-[#2E86C1] ml-1">CRÉATEUR D'EXPÉRIENCE DIGITALE OUVERTE</span></div>
-    <div className="text-[#333333]">#MadeWithSmile</div>
+    <div className="text-[8px] font-bold text-[#333333]">#MadeWithSmile</div>
   </div>
 );
 
@@ -154,6 +155,7 @@ const HexagonRating = ({ score, onChange }) => (
 const ExperienceItem = ({ exp }) => (
   <div className="grid grid-cols-12 gap-6 mb-8 break-inside-avoid print:break-inside-avoid">
     <div className="col-span-2 flex flex-col items-center pt-2">
+      {/* SÉCURITÉ IMAGE & NON-ROGNAGE */}
       {exp.client_logo && (
         <div className="w-16 h-16 rounded-lg border border-slate-200 overflow-hidden flex items-center justify-center bg-white mb-2 p-1">
           <img src={exp.client_logo} className="max-w-full max-h-full object-contain" alt="Logo Client" />
@@ -265,12 +267,6 @@ const RichTextareaUI = ({ label, value, onChange, placeholder, maxLength }) => {
   };
 
   const currentLines = String(value || '').split('\n').length;
-  
-  const llmTools = [
-    { name: 'ChatGPT', url: 'https://chat.openai.com/', icon: 'openai' },
-    { name: 'Gemini', url: 'https://gemini.google.com/', icon: 'googlegemini' },
-    { name: 'Claude', url: 'https://claude.ai/', icon: 'anthropic/000000' }
-  ];
 
   return (
     <div className="mb-6 text-left">
@@ -284,7 +280,9 @@ const RichTextareaUI = ({ label, value, onChange, placeholder, maxLength }) => {
           <ButtonUI variant="toolbar" onClick={() => insertTag('list')} title="Puce"><List size={12}/></ButtonUI>
           <div className="w-px h-3 bg-slate-300 mx-1"></div>
           <span className="text-[9px] text-slate-400 font-bold mr-1 uppercase tracking-tighter">IA:</span>
-          {llmTools.map((tool) => (
+          {[{ name: 'ChatGPT', url: 'https://chat.openai.com/', icon: 'openai' },
+            { name: 'Gemini', url: 'https://gemini.google.com/', icon: 'googlegemini' },
+            { name: 'Claude', url: 'https://claude.ai/', icon: 'anthropic/000000' }].map((tool) => (
             <button key={tool.name} onClick={() => copyToClipboard(tool.url)} className="p-1 hover:bg-slate-100 rounded transition-all hover:scale-110 grayscale hover:grayscale-0 opacity-70 hover:opacity-100" title={`Copier & Ouvrir ${tool.name}`}>
               <img src={getBrandIconUrl(tool.icon)} className="w-4 h-4" alt={tool.name} />
             </button>
@@ -293,7 +291,7 @@ const RichTextareaUI = ({ label, value, onChange, placeholder, maxLength }) => {
         <textarea 
           ref={textareaRef} 
           className="w-full px-4 py-3 bg-transparent text-sm h-32 resize-none focus:outline-none border-none shadow-inner" 
-          value={value} 
+          value={value || ''} 
           onChange={handleTextChange} 
           maxLength={maxLength} 
           placeholder={placeholder} 
@@ -327,12 +325,13 @@ const LogoSelectorUI = ({ onSelect, label = "Ajouter un logo" }) => {
   const handleFile = (file) => { if (file) { const reader = new FileReader(); reader.onload = (ev) => onSelect({ type: 'file', src: ev.target.result, name: file.name.split('.')[0] }); reader.readAsDataURL(file); }};
   return (
     <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 shadow-inner text-left">
-      {label && <label className="text-[10px] font-bold text-[#333333] uppercase block mb-2">{label}</label>}
+      {label && <label className="text-[10px] font-bold text-[#333333] uppercase block mb-2">{String(label)}</label>}
       <div className="flex gap-2 mb-2">
         <div className="relative flex-1"><input className="w-full pl-7 pr-2 py-1.5 bg-white border border-slate-300 rounded text-xs" placeholder="Recherche (ex: Java)" value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} /><Search className="absolute left-2 top-2 text-slate-400" size={12} /></div>
         <ButtonUI variant="primary" className="px-2 py-1 text-xs h-auto" onClick={handleSearch}><Plus size={12}/></ButtonUI>
       </div>
       <div className="text-center text-[9px] text-slate-400 mb-2 font-bold uppercase">- OU -</div>
+      {/* GLISSER-DEPOSER POUR LES CERTIFS/LOGOS */}
       <DropZoneUI onFile={handleFile} label="Glisser image" icon={<Upload size={14}/>} />
     </div>
   );
@@ -352,7 +351,7 @@ export default function App() {
 
   const [cvData, setCvData] = useState(() => {
     try {
-      const saved = localStorage.getItem('smile_cv_data_final_v29_stable');
+      const saved = localStorage.getItem('smile_cv_data_final_v30_stable');
       if (saved) return JSON.parse(saved);
     } catch(e) { console.error(e); }
     return DEFAULT_CV_DATA;
@@ -370,7 +369,7 @@ export default function App() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      localStorage.setItem('smile_cv_data_final_v29_stable', JSON.stringify(cvData));
+      localStorage.setItem('smile_cv_data_final_v30_stable', JSON.stringify(cvData));
       setLastSaved(new Date());
     }, 1000);
     return () => clearTimeout(timer);
@@ -452,16 +451,10 @@ export default function App() {
     }
   };
 
-  const handleEmailSend = () => {
-    const subject = encodeURIComponent(`CV Smile : ${cvData.profile.firstname} ${cvData.profile.lastname}`);
-    const body = encodeURIComponent(`Bonjour,\n\nVoici le CV de ${cvData.profile.firstname} ${cvData.profile.lastname} généré avec Smile Editor.\n\nCordialement.`);
-    window.location.href = `mailto:?subject=${subject}&body=${body}`;
-  };
-
   // --- HANDLERS CLASSIQUES ---
   const handleProfileChange = (f, v) => setCvData(p => ({ ...p, profile: { ...p.profile, [f]: v } }));
   const handlePhotoUpload = (file) => { if(file) { const reader = new FileReader(); reader.onload = (ev) => setCvData(prev => ({...prev, profile: { ...prev.profile, photo: ev.target.result }})); reader.readAsDataURL(file); } };
-  const addTechLogo = (o) => setCvData(p => ({ ...p, profile: { ...p.profile, tech_logos: [...p.profile.tech_logos, o] } }));
+  const addTechLogo = (o) => setCvData(p => ({ ...p, profile: { ...p.profile, tech_logos: [...(p.profile.tech_logos || []), o] } }));
   const removeTechLogo = (i) => setCvData(p => ({ ...p, profile: { ...p.profile, tech_logos: p.profile.tech_logos.filter((_, idx) => idx !== i) } }));
   const handleSmileLogo = (f) => { if(f) { const r = new FileReader(); r.onload = (ev) => setCvData(p => ({...p, smileLogo: ev.target.result})); r.readAsDataURL(f); } };
   
@@ -475,38 +468,33 @@ export default function App() {
   };
 
   const updateExperience = (id, f, v) => setCvData(p => ({ ...p, experiences: p.experiences.map(e => e.id === id ? { ...e, [f]: v } : e) }));
-  const addExperience = () => setCvData(p => ({ ...p, experiences: [{ id: Date.now(), client_name: "", client_logo: null, period: "", role: "", objective: "", achievements: [], tech_stack: [], phases: "", forceNewPage: false }, ...p.experiences] }));
+  const addExperience = () => setCvData(p => ({ ...p, experiences: [{ id: Date.now(), client_name: "", client_logo: null, period: "", role: "", objective: "", phases: "", tech_stack: [] }, ...p.experiences] }));
   const removeExperience = (id) => setCvData(p => ({ ...p, experiences: p.experiences.filter(e => e.id !== id) }));
-  
   const addSkillCategory = () => { if (newCategoryName) { setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [newCategoryName]: [] } })); setNewCategoryName(""); } };
   const deleteCategory = (n) => setCvData(p => { const newC = { ...p.skills_categories }; delete newC[n]; return { ...p, skills_categories: newC }; });
   const updateSkillInCategory = (cat, idx, f, v) => setCvData(p => { const s = [...p.skills_categories[cat]]; s[idx] = { ...s[idx], [f]: v }; return { ...p, skills_categories: { ...p.skills_categories, [cat]: s } }; });
   const addSkillToCategory = (cat) => { const i = newSkillsInput[cat] || { name: '', rating: 3 }; if (i.name) { setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [cat]: [...p.skills_categories[cat], { name: i.name, rating: i.rating }] } })); setNewSkillsInput(p => ({ ...p, [cat]: { name: '', rating: 3 } })); } };
   const updateNewSkillInput = (cat, field, val) => { setNewSkillsInput(p => ({ ...p, [cat]: { ...(p[cat] || { name: '', rating: 3 }), [field]: val } })); };
   const removeSkillFromCategory = (cat, idx) => setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [cat]: p.skills_categories[cat].filter((_, i) => i !== idx) } }));
-  
-  const addSecteur = () => { if (newSecteur) { setCvData(p => ({ ...p, connaissances_sectorielles: [...p.connaissances_sectorielles, newSecteur] })); setNewSecteur(""); }};
+  const addSecteur = () => { if (newSecteur) { setCvData(p => ({ ...p, connaissances_sectorielles: [...(p.connaissances_sectorielles||[]), newSecteur] })); setNewSecteur(""); }};
   const removeSecteur = (idx) => setCvData(p => ({ ...p, connaissances_sectorielles: p.connaissances_sectorielles.filter((_, i) => i !== idx) }));
-  const addCertification = (o) => setCvData(p => ({ ...p, certifications: [...p.certifications, { name: o.name, logo: o.src }] }));
+  const addCertification = (o) => setCvData(p => ({ ...p, certifications: [...(p.certifications||[]), { name: o.name, logo: o.src }] }));
   const updateCertification = (idx, field, val) => { const certs = [...cvData.certifications]; certs[idx][field] = val; setCvData({ ...cvData, certifications: certs }); };
   const removeCertification = (idx) => setCvData(p => ({ ...p, certifications: p.certifications.filter((_, i) => i !== idx) }));
-  
   const updateEducation = (i, f, v) => { const n = [...cvData.education]; n[i][f] = v; setCvData(p => ({ ...p, education: n })); };
   const addEducation = () => setCvData(p => ({ ...p, education: [...p.education, { year: "", degree: "", location: "" }] }));
   const removeEducation = (i) => setCvData(p => ({ ...p, education: p.education.filter((_, idx) => idx !== i) }));
   
   const resetCV = () => { if (confirm("Réinitialiser tout le CV ?")) { localStorage.removeItem('smile_cv_data_final_v29_stable'); setCvData(DEFAULT_CV_DATA); } };
   const downloadJSON = () => { const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(cvData)); a.download = `${getFilenameBase()}.json`; a.click(); };
-  const uploadJSON = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (ev) => { try { setCvData(JSON.parse(ev.target.result)); } catch (err) { alert("Invalide"); } }; reader.readAsText(file); };
+  const uploadJSON = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (ev) => { try { setCvData(JSON.parse(String(ev.target.result))); } catch (err) { alert("Format invalide"); } }; reader.readAsText(file); };
   
   const formatNameHeader = () => {
-    if (cvData.isAnonymous) {
-      return <>{cvData.profile.firstname?.[0] || ''}{cvData.profile.lastname?.[0] || ''}</>;
-    }
+    if (cvData.isAnonymous) return <>{String(cvData.profile.firstname?.[0] || '')}{String(cvData.profile.lastname?.[0] || '')}</>;
     return (
-      <div className="flex flex-col">
-        <span className="text-4xl font-semibold opacity-90">{cvData.profile.firstname}</span>
-        <span className="text-6xl font-black">{cvData.profile.lastname}</span>
+      <div className="flex flex-col text-left">
+        <span className="text-4xl font-semibold opacity-90 leading-tight">{String(cvData.profile.firstname)}</span>
+        <span className="text-6xl font-black leading-tight">{String(cvData.profile.lastname)}</span>
       </div>
     );
   };
@@ -517,25 +505,14 @@ export default function App() {
       const printWindow = window.open('', '_blank');
       const content = document.querySelector('.print-container').innerHTML;
       const styles = document.querySelector('style').innerHTML;
-      
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>${getFilenameBase()}</title>
-            <script src="https://cdn.tailwindcss.com"></script>
-            <style>${styles}</style>
-            <style>
-              @page { size: A4; margin: 0; }
-              body { margin: 0; padding: 0; background: white; width: 210mm; }
-              .A4-page { box-shadow: none !important; margin: 0 !important; page-break-after: always; height: auto !important; min-height: 297mm; }
-            </style>
-          </head>
-          <body onload="window.print();window.close()">
-            <div class="flex flex-col">${content}</div>
-          </body>
-        </html>
-      `);
+      printWindow.document.write(`<html><head><title>${getFilenameBase()}</title><script src="https://cdn.tailwindcss.com"></script><style>${styles}</style><style>@page{size:A4;margin:0}body{margin:0;padding:0;width:210mm}.A4-page{box-shadow:none!important;margin:0!important;page-break-after:always;height:auto!important;min-height:297mm}</style></head><body onload="window.print();window.close()"><div class="flex flex-col">${content}</div></body></html>`);
       printWindow.document.close();
+  };
+
+  const handleEmail = () => {
+    const subject = encodeURIComponent(`CV Smile : ${cvData.profile.firstname} ${cvData.profile.lastname}`);
+    const body = encodeURIComponent(`Bonjour,\n\nVeuillez trouver ci-joint le CV de ${cvData.profile.firstname} ${cvData.profile.lastname} aux formats PDF et JSON.\n\nCordialement.`);
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
   };
 
   return (
@@ -549,7 +526,7 @@ export default function App() {
              <ButtonUI variant="ghost" className="px-2 py-1 h-7 text-slate-400" onClick={downloadJSON} title="Save"><Save size={14}/></ButtonUI>
              <ButtonUI variant="ghost" className="px-2 py-1 h-7 text-slate-400" onClick={() => jsonInputRef.current.click()} title="Load"><FolderOpen size={14}/></ButtonUI>
              <input type="file" ref={jsonInputRef} className="hidden" accept=".json" onChange={uploadJSON} />
-             <ButtonUI variant="ghost" className="px-2 py-1 h-7 text-slate-400" onClick={handleEmailSend} title="Email"><Mail size={14}/></ButtonUI>
+             <ButtonUI variant="ghost" className="px-2 py-1 h-7 text-slate-400" onClick={handleEmail} title="Email"><Mail size={14}/></ButtonUI>
              <div className="w-px h-4 bg-slate-300 mx-1"></div>
              <ButtonUI variant="primary" className="px-3 py-1 h-9 text-xs font-bold bg-[#006898] hover:bg-[#004a6d] flex items-center gap-2 shadow-sm" onClick={() => pdfInputRef.current.click()} disabled={isImporting}>
                {isImporting ? <Loader2 size={14} className="animate-spin text-white"/> : <FileSearch size={14} className="text-white"/>} 
@@ -558,7 +535,7 @@ export default function App() {
              <input type="file" ref={pdfInputRef} className="hidden" accept=".pdf" onChange={handlePDFImport} />
            </div>
            <ButtonUI variant={cvData.isAnonymous ? "danger" : "secondary"} className="px-2 py-1 h-7" onClick={() => setCvData(p => ({...p, isAnonymous: !p.isAnonymous}))}>
-              <Lock size={12}/> {cvData.isAnonymous ? "Visible" : "Anonymiser"}
+             <Lock size={12}/> {cvData.isAnonymous ? "Visible" : "Anonymiser"}
            </ButtonUI>
         </div>
 
@@ -574,25 +551,20 @@ export default function App() {
            {step === 1 && (
             <div className="space-y-6 animate-in slide-in-from-right transition-all">
               <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><User size={24} /><h2 className="text-lg font-bold uppercase">Profil</h2></div>
-              
               <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex gap-3 text-left">
                 <div className="text-[#2E86C1] shrink-0 mt-0.5"><HelpCircle size={18} /></div>
                 <div>
                   <h4 className="text-xs font-bold text-[#2E86C1] uppercase mb-1 text-left">Aide IA</h4>
-                  <p className="text-[11px] text-slate-600 leading-tight text-left">Utilisez l'import PDF pour remplir votre profil. Les icônes IA au dessus des champs texte copient votre texte avec un prompt optimisé pour les outils comme ChatGPT.</p>
+                  <p className="text-[11px] text-slate-600 leading-tight text-left">Utilisez l'import PDF pour remplir votre profil. Les icônes IA copient le texte avec un prompt optimisé. <strong>COLLEZ-LE</strong> ensuite dans l'outil IA qui s'ouvre.</p>
                 </div>
               </div>
-
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="p-3 border border-blue-100 bg-blue-50/50 rounded-lg flex flex-col gap-2">
                   <span className="text-[10px] font-bold text-[#2E86C1] uppercase text-left">Logo Entreprise</span>
                   <DropZoneUI onFile={handleSmileLogo} label={cvData.smileLogo ? "Changer" : "Logo"} className="h-24 bg-white" />
                 </div>
                 <div className="p-3 border border-slate-200 bg-slate-50 rounded-lg flex flex-col gap-2">
-                  <span className="text-[10px] font-bold text-slate-600 uppercase flex items-center justify-between">
-                    Photo Profil
-                    {cvData.isAnonymous && <span className="text-[9px] bg-red-100 text-red-600 px-1 rounded uppercase">Cachée</span>}
-                  </span>
+                  <span className="text-[10px] font-bold text-slate-600 uppercase flex items-center justify-between">Photo Profil</span>
                   <DropZoneUI onFile={handlePhotoUpload} label={cvData.profile.photo ? "Changer" : "Photo"} icon={<User size={16}/>} className="h-24 bg-white" />
                 </div>
               </div>
@@ -621,7 +593,12 @@ export default function App() {
                    <ButtonUI variant="primary" className="p-1 h-auto text-left" onClick={addSecteur}><Plus size={10}/></ButtonUI>
                  </div>
                  <div className="flex flex-wrap gap-1 mb-4 text-left">{(cvData.connaissances_sectorielles || []).map((s, i) => (<span key={i} className="bg-white text-[9px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 uppercase text-left">{s} <X size={10} className="cursor-pointer" onClick={() => removeSecteur(i)}/></span>))}</div>
-                 <LogoSelectorUI onSelect={addCertification} label="Certifications" />
+                 {/* LOGO SELECTOR AVEC DROPZONE POUR CERTIFICATIONS */}
+                 <div className="space-y-2">
+                    <LogoSelectorUI onSelect={addCertification} label="Certifications" />
+                    <div className="text-[9px] text-slate-400 uppercase font-bold mt-1 text-center">- OU -</div>
+                    <DropZoneUI onFile={(f) => {const r=new FileReader(); r.onload=(ev)=>addCertification({name: f.name.split('.')[0], logo: ev.target.result}); r.readAsDataURL(f);}} label="Fichier Certif" />
+                 </div>
                  <div className="mt-2 space-y-1 text-left">{(cvData.certifications || []).map((c, i) => (<div key={i} className="flex items-center justify-between text-[10px] bg-white p-1.5 rounded border uppercase font-bold text-left"><span>{c.name}</span><button onClick={()=>removeCertification(i)}><X size={10}/></button></div>))}</div>
                </div>
                <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 shadow-sm text-left">
@@ -681,7 +658,7 @@ export default function App() {
               <CornerTriangle customLogo={cvData.smileLogo} />
               {!cvData.isAnonymous && cvData.profile.photo && (
                 <div className="absolute top-12 right-12 w-44 h-44 rounded-full overflow-hidden border-4 border-white shadow-xl z-20 bg-white">
-                  <img src={cvData.profile.photo} className="w-full h-full object-cover" alt="Portrait" />
+                  <img src={cvData.profile.photo} className="w-full h-full object-contain" alt="Portrait" />
                 </div>
               )}
               <div className="pt-36 px-16 pb-0 flex-shrink-0 text-left">
@@ -697,9 +674,9 @@ export default function App() {
                      <p className="text-lg text-[#333333] leading-relaxed italic border-t border-slate-100 pt-8 text-center break-words w-full max-w-[160mm]" dangerouslySetInnerHTML={{__html: formatTextForPreview(`"${cvData.profile.summary}"`)}}></p>
                   </div>
                   <div className="w-full bg-[#2E86C1] py-6 px-16 mb-10 flex items-center justify-center gap-10 shadow-inner relative z-10 flex-shrink-0 text-left">
-                    {(cvData.profile.tech_logos || []).map((logo, i) => (<img key={i} src={logo.src} className="h-14 w-auto object-contain brightness-0 invert opacity-95 transition-transform" alt={String(logo.name)} />))}
+                    {(cvData.profile.tech_logos || []).map((logo, i) => (logo.src ? <img key={i} src={logo.src} className="h-14 w-auto object-contain brightness-0 invert opacity-95 transition-transform" alt={String(logo.name)} /> : null))}
                   </div>
-                  <div className="flex justify-center gap-12 relative z-10 px-10 flex-shrink-0 mt-12 text-left">
+                  <div className="flex justify-center gap-12 relative z-10 px-10 flex-shrink-0 mt-6 text-left">
                     {(cvData.soft_skills || []).map((skill, i) => (
                       <div key={i} className="relative w-40 h-44 flex items-center justify-center text-left">
                         <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full text-[#2E86C1] fill-current drop-shadow-xl text-left"><polygon points="50 0, 100 25, 100 75, 50 100, 0 75, 0 25" /></svg>
@@ -717,10 +694,10 @@ export default function App() {
               <div className="grid grid-cols-12 gap-10 mt-20 h-full px-12 flex-1 pb-32 overflow-hidden print:overflow-visible text-left">
                   <div className="col-span-5 border-r border-slate-100 pr-8 text-left">
                     <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-8 flex items-center gap-2 text-left"><Cpu size={20}/> Mes Compétences</h3>
-                    <div className="space-y-8 text-left">{Object.entries(cvData.skills_categories).map(([cat, skills]) => (<div key={cat}><h4 className="text-[10px] font-bold text-[#999999] uppercase tracking-widest border-b border-slate-100 pb-2 mb-3 text-left">{cat}</h4><div className="space-y-3 text-left">{(skills || []).map((skill, i) => (<div key={i} className="flex items-center justify-between text-left"><span className="text-xs font-bold text-[#333333] uppercase text-left">{String(skill.name)}</span><HexagonRating score={skill.rating} /></div>))}</div></div>))}</div>
+                    <div className="space-y-8 text-left">{Object.entries(cvData.skills_categories || {}).map(([cat, skills]) => (<div key={cat}><h4 className="text-[10px] font-bold text-[#999999] uppercase tracking-widest border-b border-slate-100 pb-2 mb-3 text-left">{cat}</h4><div className="space-y-3 text-left">{(skills || []).map((skill, i) => (<div key={i} className="flex items-center justify-between text-left"><span className="text-xs font-bold text-[#333333] uppercase text-left">{String(skill.name)}</span><HexagonRating score={skill.rating} /></div>))}</div></div>))}</div>
                   </div>
                   <div className="col-span-7 flex flex-col gap-10 text-left">
-                    {cvData.showSecteur && (cvData.connaissances_sectorielles || []).length > 0 && (<section className="text-left"><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2 text-left"><Factory size={20}/> Connaissances Sectorielles</h3><div className="flex flex-wrap gap-2 text-left">{(cvData.connaissances_sectorielles || []).map((s, i) => (<span key={i} className="border-2 border-[#2E86C1] text-[#2E86C1] text-[10px] font-black px-3 py-1 rounded uppercase tracking-wider text-left">{String(s)}</span>))}</div></section>)}
+                    {cvData.showSecteur && (cvData.connaissances_sectorielles || []).length > 0 && (<section className="text-left"><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2 text-left"><Factory size={20}/> Secteurs</h3><div className="flex flex-wrap gap-2">{(cvData.connaissances_sectorielles || []).map((s, i) => (<span key={i} className="border-2 border-[#2E86C1] text-[#2E86C1] text-[10px] font-black px-3 py-1 rounded uppercase tracking-wider">{String(s)}</span>))}</div></section>)}
                     {cvData.showCertif && (cvData.certifications || []).length > 0 && (<section className="text-left"><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2 text-left"><Award size={20}/> Certifications</h3><div className="grid grid-cols-2 gap-4 text-left">{cvData.certifications.map((c, i) => (<div key={i} className="flex items-center gap-3 bg-slate-50 p-2 rounded text-left">{c.logo && <img src={c.logo} className="w-8 h-8 object-contain" alt={String(c.name)} />}<span className="text-[10px] font-bold text-slate-700 uppercase leading-tight text-left">{String(c.name)}</span></div>))}</div></section>)}
                     <section className="text-left"><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-6 flex items-center gap-2 text-left"><GraduationCap size={20}/> Ma Formation</h3><div className="space-y-4 text-left">{(cvData.education || []).map((edu, i) => (<div key={i} className="border-l-2 border-slate-100 pl-4 text-left"><span className="text-[10px] font-bold text-[#999999] block mb-1 text-left">{String(edu.year)}</span><h4 className="text-xs font-bold text-[#333333] uppercase leading-tight text-left">{String(edu.degree)}</h4><span className="text-[9px] text-[#2E86C1] font-medium uppercase text-left">{String(edu.location)}</span></div>))}</div></section>
                   </div>
