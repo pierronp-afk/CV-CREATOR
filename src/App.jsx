@@ -18,21 +18,17 @@ const THEME = {
   bg: "#FFFFFF"
 };
 
-// Récupération hybride de la clé API
 const getApiKey = () => {
   try {
     // @ts-ignore
     const envKey = import.meta.env?.VITE_GOOGLE_API_KEY;
     if (envKey && envKey !== "") return envKey;
-  } catch (e) {
-    // Silencieux si import.meta n'est pas supporté
-  }
+  } catch (e) {}
   return "";
 };
 
 const apiKey = getApiKey();
 
-// Helpers pour les logos
 const getIconUrl = (slug) => `https://cdn.simpleicons.org/${String(slug || '').toLowerCase().replace(/\s+/g, '')}`;
 const getBrandIconUrl = (slug) => `https://cdn.simpleicons.org/${String(slug || '').toLowerCase().replace(/\s+/g, '')}`;
 const getClearbitUrl = (domain) => `https://logo.clearbit.com/${String(domain || '').trim()}`;
@@ -89,7 +85,6 @@ const formatTextForPreview = (text) => {
     .replace(/\n/g, "<br/>"); 
 };
 
-// Logique de pagination
 const paginateExperiences = (experiences) => {
   if (!Array.isArray(experiences)) return [];
   const pages = [];
@@ -115,18 +110,18 @@ const handleImageError = (e) => {
 
 // --- SOUS-COMPOSANTS ---
 
-const ModalUI = ({ title, children, onClose, onConfirm }) => (
-  <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+const ModalUI = ({ title, children, onClose, onConfirm, confirmText = "Confirmer", icon = <AlertCircle size={32} />, danger = true }) => (
+  <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 text-left">
     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
       <div className="p-6 text-center">
-        <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-          <AlertCircle size={32} />
+        <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${danger ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-[#2E86C1]'}`}>
+          {icon}
         </div>
         <h3 className="text-xl font-bold text-slate-900 mb-2">{String(title)}</h3>
-        <div className="text-sm text-slate-500 mb-8">{children}</div>
+        <div className="text-sm text-slate-500 mb-8 text-left">{children}</div>
         <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-bold transition-colors">Annuler</button>
-          <button onClick={onConfirm} className="flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold shadow-lg shadow-red-200 transition-colors">Confirmer</button>
+          {onClose && <button onClick={onClose} className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-bold transition-colors">Annuler</button>}
+          <button onClick={onConfirm} className={`flex-1 px-4 py-3 text-white rounded-xl font-bold shadow-lg transition-colors ${danger ? 'bg-red-500 hover:bg-red-600 shadow-red-200' : 'bg-[#2E86C1] hover:bg-[#2573a7] shadow-blue-200'}`}>{confirmText}</button>
         </div>
       </div>
     </div>
@@ -144,13 +139,7 @@ const CornerTriangle = ({ customLogo }) => (
     <div className="absolute top-0 left-0 w-full h-full bg-[#2E86C1] triangle-bg" style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)' }}></div>
     {customLogo && customLogo !== "null" && (
       <div className="absolute top-[12px] left-[12px] w-[100px] h-[100px] flex items-center justify-center">
-         <img 
-           src={customLogo} 
-           onError={handleImageError}
-           className="max-w-full max-h-full object-contain brightness-0 invert" 
-           style={{ transform: 'rotate(-45deg)' }} 
-           alt="Logo" 
-         />
+         <img src={customLogo} onError={handleImageError} className="max-w-full max-h-full object-contain brightness-0 invert" style={{ transform: 'rotate(-45deg)' }} alt="Logo" />
       </div>
     )}
   </div>
@@ -189,7 +178,7 @@ const HexagonRating = ({ score, onChange }) => (
 );
 
 const ExperienceItem = ({ exp }) => (
-  <div className="grid grid-cols-12 gap-6 mb-8 break-inside-avoid print:break-inside-avoid">
+  <div className="grid grid-cols-12 gap-6 mb-8 break-inside-avoid print:break-inside-avoid text-left">
     <div className="col-span-2 flex flex-col items-center pt-2">
       {exp.client_logo && exp.client_logo !== "null" && (
         <div className="w-16 h-16 rounded-lg border border-slate-200 overflow-hidden flex items-center justify-center bg-white mb-2 p-1">
@@ -363,10 +352,8 @@ const LogoSelectorUI = ({ onSelect, label = "Ajouter un logo" }) => {
     
     let finalSrc = "";
     if (query.includes('.')) {
-      // Si présence d'un point -> Clearbit (Domaine d'entreprise)
       finalSrc = getClearbitUrl(query);
     } else {
-      // Sinon -> Simple Icons (Technologie)
       finalSrc = getIconUrl(query);
     }
     
@@ -398,7 +385,7 @@ const LogoSelectorUI = ({ onSelect, label = "Ajouter un logo" }) => {
         </div>
         <ButtonUI variant="primary" className="px-2 py-1 text-xs h-auto" onClick={handleSearch}><Plus size={12}/></ButtonUI>
       </div>
-      <p className="text-[9px] text-slate-400 mb-2 font-medium italic">Logo non trouvé ? Téléchargez-le manuellement ci-dessous.</p>
+      <p className="text-[9px] text-slate-400 mb-2 font-medium italic text-left">Logo non trouvé ? Téléchargez-le manuellement ci-dessous.</p>
       <DropZoneUI onFile={handleFile} label="Glisser image" icon={<Upload size={14}/>} />
     </div>
   );
@@ -410,6 +397,10 @@ export default function App() {
   const [step, setStep] = useState(1);
   const [zoom, setZoom] = useState(0.55);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showPrivacyNotice, setShowPrivacyNotice] = useState(false);
+  const [showAIConsent, setShowAIConsent] = useState(false);
+  const [showPurgeConfirm, setShowPurgeConfirm] = useState(false);
+  const [pendingFile, setPendingFile] = useState(null);
   const jsonInputRef = useRef(null);
   const pdfInputRef = useRef(null);
   const [newSecteur, setNewSecteur] = useState("");
@@ -426,7 +417,12 @@ export default function App() {
     return DEFAULT_CV_DATA;
   });
 
-  const [lastSaved, setLastSaved] = useState(null);
+  useEffect(() => {
+    const accepted = localStorage.getItem('smile_cv_privacy_accepted');
+    if (!accepted) {
+      setShowPrivacyNotice(true);
+    }
+  }, []);
 
   useEffect(() => {
     const script = document.createElement('script');
@@ -442,22 +438,23 @@ export default function App() {
   useEffect(() => {
     const timer = setTimeout(() => {
       localStorage.setItem('smile_cv_data_final_v30_stable', JSON.stringify(cvData));
-      setLastSaved(new Date());
     }, 1000);
     return () => clearTimeout(timer);
   }, [cvData]);
 
+  // ANONYMISATION DU NOM DE FICHIER
   const getFilenameBase = () => {
     const year = new Date().getFullYear();
+    if (cvData.isAnonymous) return `CV_Anonyme_${year}`;
     const clean = (str) => String(str || "").replace(/[^a-z0-9]/gi, '_').toUpperCase();
     return `CV ${year} - ${clean(cvData.profile.lastname)} - ${clean(cvData.profile.firstname)}`;
   };
 
-  useEffect(() => { document.title = getFilenameBase(); }, [cvData.profile]);
+  useEffect(() => { document.title = getFilenameBase(); }, [cvData.profile, cvData.isAnonymous]);
 
   const extractTextFromPDF = async (file) => {
     if (!window.pdfjsLib) {
-      throw new Error("La bibliothèque d'analyse PDF est en cours de chargement. Veuillez réessayer dans quelques secondes.");
+      throw new Error("La bibliothèque d'analyse PDF est en cours de chargement.");
     }
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -471,30 +468,39 @@ export default function App() {
     return fullText;
   };
 
-  const handlePDFImport = async (e) => {
+  const handlePDFImport = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    setPendingFile(file);
+    setShowAIConsent(true);
+    e.target.value = null; 
+  };
+
+  const confirmAIAnalysis = async () => {
+    if (!pendingFile) return;
+    setShowAIConsent(false);
     setIsImporting(true);
     setImportError(null);
     try {
-      let rawText = await extractTextFromPDF(file);
-      // Nettoyage du texte pour optimiser le contexte de l'IA
+      let rawText = await extractTextFromPDF(pendingFile);
+      // OPTIMISATION : Nettoyage du texte source pour éviter les coupures
       rawText = rawText.replace(/\s+/g, ' ').trim();
       
-      const systemPrompt = `Tu es un expert en analyse de CV. Tu reçois du texte extrait d'un PDF.
-      Transforme-le en JSON respectant exactement ce schéma :
+      // OPTIMISATION : Prompt renforcé pour l'exhaustivité
+      const systemPrompt = `Tu es un expert en analyse de CV. Tu reçois du texte extrait d'un PDF. 
+      TA MISSION : Transformer ce texte en un JSON valide.
+      RÈGLES D'EXTRACTION CRITIQUES :
+      1. EXHAUSTIVITÉ ABSOLUE : Tu dois extraire TOUTES les expériences professionnelles mentionnées dans le texte, sans exception, de la plus récente à la plus ancienne.
+      2. PAS DE RÉSUMÉ : Ne fusionne pas les expériences. Ne résume pas les descriptions. Conserve le maximum de détails.
+      3. STRUCTURE DU JSON : Respecte strictement ce schéma :
       {
         "profile": { "firstname": "", "lastname": "", "years_experience": "", "current_role": "", "main_tech": "", "summary": "" },
-        "soft_skills": ["max 3 strings"],
-        "connaissances_sectorielles": ["strings"],
+        "soft_skills": ["3 maximum"],
+        "connaissances_sectorielles": ["toutes celles trouvées"],
         "education": [{ "year": "", "degree": "", "location": "" }],
         "experiences": [{ "client_name": "", "period": "", "role": "", "objective": "", "phases": "", "tech_stack": [] }]
       }
-      Règles CRITIQUES pour une importation complète :
-      - NE SAUTE AUCUNE EXPÉRIENCE. Extrait l'intégralité du parcours sans exception, même si le document est très long.
-      - Retourne UNIQUEMENT le JSON brut sans balises markdown.
-      - Si une donnée est manquante, laisse une chaîne vide "".
-      - Pour years_experience, extrait uniquement le chiffre entier.`;
+      4. QUALITÉ : Si une donnée est absente, laisse une chaîne vide "". Pour "years_experience", n'extrais que le nombre entier.`;
 
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
         method: 'POST',
@@ -504,25 +510,19 @@ export default function App() {
           systemInstruction: { parts: [{ text: systemPrompt }] },
           generationConfig: { 
             responseMimeType: "application/json",
-            maxOutputTokens: 8192, // Permet des réponses très longues
-            temperature: 0.1 // Plus de précision pour l'extraction
+            maxOutputTokens: 8192,
+            temperature: 0.1
           }
         })
       });
 
-      if (!response.ok) {
-        throw new Error("Le service d'analyse IA est indisponible. Vérifiez votre connexion.");
-      }
+      if (!response.ok) throw new Error("Le service d'analyse IA est indisponible.");
 
       const data = await response.json();
       const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      
-      if (!content) {
-        throw new Error("L'IA n'a pas pu extraire de données exploitables. Essayez avec un PDF moins complexe.");
-      }
+      if (!content) throw new Error("L'IA n'a pas pu extraire de données.");
 
       const result = JSON.parse(content);
-      
       setCvData(prev => ({
         ...prev,
         ...result,
@@ -534,13 +534,11 @@ export default function App() {
           forceNewPage: false 
         }))
       }));
-
     } catch (err) {
-      console.error(err);
       setImportError(err.message || "Une erreur est survenue lors de l'analyse IA.");
     } finally {
       setIsImporting(false);
-      e.target.value = null;
+      setPendingFile(null);
     }
   };
 
@@ -550,7 +548,6 @@ export default function App() {
   const removeTechLogo = (i) => setCvData(p => ({ ...p, profile: { ...p.profile, tech_logos: p.profile.tech_logos.filter((_, idx) => idx !== i) } }));
   const handleSmileLogo = (f) => { if(f) { const r = new FileReader(); r.onload = (ev) => setCvData(p => ({...p, smileLogo: ev.target.result})); r.readAsDataURL(f); } };
   
-  // Fonction générique pour déplacer des éléments (Education ou Expérience)
   const moveItem = (listName, index, direction) => {
     const list = [...cvData[listName]];
     const target = direction === 'up' ? index - 1 : index + 1;
@@ -580,84 +577,111 @@ export default function App() {
   
   const updateEducation = (i, f, v) => { const n = [...cvData.education]; n[i][f] = v; setCvData(p => ({ ...p, education: n })); };
   const addEducation = () => setCvData(p => ({ ...p, education: [...p.education, { year: "", degree: "", location: "" }] }));
-  const removeEducation = (i) => setCvData(p => ({ ...p, education: p.education.filter((_, idx) => idx !== i) }));
+  const removeEducation = (i) => setCvData(p => { const n = p.education.filter((_, idx) => idx !== i); setCvData(p => ({ ...p, education: n })); });
   
+  const acceptPrivacy = () => {
+    localStorage.setItem('smile_cv_privacy_accepted', 'true');
+    setShowPrivacyNotice(false);
+  };
+
+  const handlePurgeData = () => {
+    localStorage.removeItem('smile_cv_data_final_v30_stable');
+    localStorage.removeItem('smile_cv_privacy_accepted');
+    setCvData(DEFAULT_CV_DATA);
+    setShowPurgeConfirm(false);
+    setShowPrivacyNotice(true); 
+  };
+
   const resetCV = () => { setCvData(DEFAULT_CV_DATA); setShowResetConfirm(false); };
   const downloadJSON = () => { const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(cvData)); a.download = `${getFilenameBase()}.json`; a.click(); };
   const uploadJSON = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (ev) => { try { setCvData(JSON.parse(String(ev.target.result))); } catch (err) { } }; reader.readAsText(file); };
   
+  // ANONYMISATION DE L'EMAIL
+  const handleEmailSend = () => {
+    const namePart = cvData.isAnonymous ? "Anonyme" : `${cvData.profile.firstname} ${cvData.profile.lastname}`;
+    const subject = encodeURIComponent(`CV Smile : ${namePart}`);
+    const body = encodeURIComponent(`Bonjour,\n\nVeuillez trouver ci-joint mon CV aux formats PDF et JSON.\n\nCordialement.`);
+    window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
+  };
+
   const experiencePages = paginateExperiences(cvData.experiences);
 
   const handlePrint = () => {
       const printWindow = window.open('', '_blank');
       const content = document.querySelector('.print-container').innerHTML;
       const styles = Array.from(document.querySelectorAll('style')).map(s => s.innerHTML).join('\n');
-      
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>${getFilenameBase()}</title>
-            <script src="https://cdn.tailwindcss.com"></script>
-            <style>${styles}</style>
-            <style>
-              @page { size: A4; margin: 0; }
-              body { margin: 0; padding: 0; background: white; width: 210mm; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-              .A4-page { box-shadow: none !important; margin: 0 !important; page-break-after: always !important; height: 297mm !important; width: 210mm !important; display: flex !important; flex-direction: column !important; }
-              .triangle-bg, .bg-[#2E86C1], .bg-blue-50, .hexagon-fill { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; background-color: inherit !important; fill: inherit !important; }
-              * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-            </style>
-          </head>
-          <body onload="setTimeout(() => { window.print(); window.close(); }, 1000)">
-            <div class="flex flex-col">${content}</div>
-          </body>
-        </html>
-      `);
+      printWindow.document.write(`<html><head><title>${getFilenameBase()}</title><script src="https://cdn.tailwindcss.com"></script><style>${styles}</style><style>@page { size: A4; margin: 0; } body { margin: 0; padding: 0; background: white; width: 210mm; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } .A4-page { box-shadow: none !important; margin: 0 !important; page-break-after: always !important; height: 297mm !important; width: 210mm !important; display: flex !important; flex-direction: column !important; } .triangle-bg, .bg-[#2E86C1], .bg-blue-50, .hexagon-fill { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; background-color: inherit !important; fill: inherit !important; } * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }</style></head><body onload="setTimeout(() => { window.print(); window.close(); }, 1000)"><div class="flex flex-col">${content}</div></body></html>`);
       printWindow.document.close();
-  };
-
-  const handleEmailSend = () => {
-    const subject = encodeURIComponent(`CV Smile : ${cvData.profile.firstname} ${cvData.profile.lastname}`);
-    const body = encodeURIComponent(`Bonjour,\n\nVeuillez trouver ci-joint mon CV aux formats PDF et JSON.\n\nCordialement.`);
-    window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
   };
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col md:flex-row h-screen overflow-hidden font-sans text-left">
       
-      {showResetConfirm && (
+      {showPrivacyNotice && (
         <ModalUI 
-          title="Réinitialiser le CV ?" 
-          onClose={() => setShowResetConfirm(false)} 
-          onConfirm={resetCV}
+          title="Notice de Confidentialité & RGPD" 
+          confirmText="J'ai compris et j'accepte"
+          onConfirm={acceptPrivacy}
+          icon={<Shield size={32} />}
+          danger={false}
         >
-          Toutes les modifications non sauvegardées seront définitivement perdues. Voulez-vous vraiment repartir de zéro ?
+          <div className="space-y-3">
+            <p>Pour garantir la protection de vos données personnelles conformément au RGPD :</p>
+            <ul className="list-disc pl-4 space-y-1 text-xs text-left">
+              <li><strong>Stockage Local :</strong> Vos données sont enregistrées exclusivement dans votre navigateur (localStorage). Elles ne sont jamais stockées sur nos serveurs.</li>
+              <li><strong>Intelligence Artificielle :</strong> L'importation PDF utilise l'API Google Gemini. Le texte est transmis pour analyse mais n'est pas utilisé pour entraîner leurs modèles.</li>
+              <li><strong>Services Tiers :</strong> L'affichage des logos s'appuie sur SimpleIcons et Clearbit.</li>
+            </ul>
+          </div>
+        </ModalUI>
+      )}
+
+      {showAIConsent && (
+        <ModalUI 
+          title="Autoriser l'analyse par l'IA ?" 
+          confirmText="Autoriser et Analyser"
+          onClose={() => { setShowAIConsent(false); setPendingFile(null); }}
+          onConfirm={confirmAIAnalysis}
+          icon={<Sparkles size={32} />}
+          danger={false}
+        >
+          <div className="space-y-3 text-left text-left text-left">
+            <p>Le contenu de votre fichier sera envoyé à l'intelligence artificielle <strong>Google Gemini</strong>.</p>
+            <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 text-[11px] text-blue-700">
+              Note : Les données sont traitées de manière éphémère. Google ne les utilise pas pour l'entraînement de ses modèles.
+            </div>
+          </div>
+        </ModalUI>
+      )}
+
+      {showResetConfirm && (
+        <ModalUI title="Réinitialiser le formulaire ?" onClose={() => setShowResetConfirm(false)} onConfirm={resetCV}>
+          <p>Toutes les modifications non sauvegardées seront perdues. Le cache de votre navigateur ne sera pas vidé.</p>
+        </ModalUI>
+      )}
+
+      {showPurgeConfirm && (
+        <ModalUI title="Supprimer définitivement ?" onClose={() => setShowPurgeConfirm(false)} onConfirm={handlePurgeData} confirmText="Oui, purger tout">
+          <p>Toutes vos données (CV, photos, logos) seront supprimées de votre navigateur. Cette action est irréversible.</p>
         </ModalUI>
       )}
 
       {/* FORMULAIRE */}
       <div className="w-full md:w-[500px] bg-white border-r border-slate-200 flex flex-col h-full z-10 shadow-xl print:hidden">
         
-        {/* EN-TÊTE TYPE IMAGE */}
         <div className="p-4 bg-slate-50/50 border-b border-slate-200 space-y-4">
-          <div className="flex gap-2">
-            <button 
-              className="flex-1 bg-[#2E86C1] hover:bg-[#2573a7] text-white py-3 rounded-xl font-bold flex items-center justify-center gap-3 shadow-md transition-all uppercase text-sm"
-              onClick={() => pdfInputRef.current.click()} 
-              disabled={isImporting}
-            >
+          <div className="flex gap-2 text-left text-left text-left">
+            <button className="flex-1 bg-[#2E86C1] hover:bg-[#2573a7] text-white py-3 rounded-xl font-bold flex items-center justify-center gap-3 shadow-md transition-all uppercase text-sm" onClick={() => pdfInputRef.current.click()} disabled={isImporting}>
               {isImporting ? <Loader2 size={18} className="animate-spin text-white"/> : <FileSearch size={18} className="text-white"/>}
               <span className="drop-shadow-sm">{isImporting ? "Analyse..." : "Import PDF"}</span>
             </button>
-            <button 
-              className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 border transition-all text-sm uppercase ${cvData.isAnonymous ? 'bg-red-50 text-red-600 border-red-200 shadow-sm' : 'bg-white text-slate-600 border-slate-200 shadow-sm hover:bg-slate-50'}`}
-              onClick={() => setCvData(p => ({...p, isAnonymous: !p.isAnonymous}))}
-            >
+            <button className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 border transition-all text-sm uppercase ${cvData.isAnonymous ? 'bg-red-50 text-red-600 border-red-200 shadow-sm' : 'bg-white text-slate-600 border-slate-200 shadow-sm hover:bg-slate-50'}`} onClick={() => setCvData(p => ({...p, isAnonymous: !p.isAnonymous}))}>
               <Lock size={16}/> {cvData.isAnonymous ? "Anonyme" : "Anonymiser"}
             </button>
             <input type="file" ref={pdfInputRef} className="hidden" accept=".pdf" onChange={handlePDFImport} />
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm flex items-center justify-between px-2 py-4">
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm flex items-center justify-between px-2 py-4 text-left text-left text-left">
             <button className="flex-1 flex flex-col items-center gap-1.5 group" onClick={() => setShowResetConfirm(true)}>
               <RefreshCw size={22} className="text-slate-400 group-hover:text-[#2E86C1] transition-colors"/>
               <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">Refresh</span>
@@ -676,156 +700,121 @@ export default function App() {
             <div className="w-px h-10 bg-slate-100"></div>
             <button className="flex-1 flex flex-col items-center gap-1.5 group" onClick={handleEmailSend}>
               <Mail size={22} className="text-slate-400 group-hover:text-[#2E86C1] transition-colors"/>
-              <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">Send</span>
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter text-left text-left">Send</span>
             </button>
           </div>
-
-          {/* AFFICHAGE ERREUR IMPORT */}
-          {importError && (
-            <div className="bg-red-50 border border-red-200 p-3 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
-              <AlertCircle size={18} className="text-red-500 shrink-0 mt-0.5"/>
-              <div className="flex-1">
-                <p className="text-xs font-bold text-red-600 uppercase mb-0.5">Erreur d'importation</p>
-                <p className="text-[11px] text-red-500 leading-tight">{importError}</p>
-              </div>
-              <button onClick={() => setImportError(null)} className="text-red-400 hover:text-red-600"><X size={14}/></button>
-            </div>
-          )}
         </div>
 
         <div className="p-6 border-b border-slate-100 bg-white sticky top-0 z-20">
           <div className="flex justify-between items-center mb-6 text-left"><h1 className="font-bold text-xl text-[#2E86C1]">Smile Editor</h1><span className="text-xs font-bold text-slate-400">Étape {step} / 4</span></div>
-          <div className="flex gap-2">
-            <button 
-              className="flex-1 bg-slate-100 text-slate-600 hover:bg-slate-200 px-4 py-2 rounded-lg font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={() => setStep(s => Math.max(1, s - 1))} 
-              disabled={step === 1}
-            >
-              <ArrowLeft size={16} />
-            </button>
+          <div className="flex gap-2 text-left text-left text-left">
+            <button className="flex-1 bg-slate-100 text-slate-600 hover:bg-slate-200 px-4 py-2 rounded-lg font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed" onClick={() => setStep(s => Math.max(1, s - 1))} disabled={step === 1}><ArrowLeft size={16} /></button>
             {step < 4 ? (
-              <button 
-                className="flex-[2] bg-[#2E86C1] text-white hover:bg-[#2573a7] px-4 py-2 rounded-lg font-bold text-sm shadow-md transition-all flex items-center gap-2 justify-center"
-                onClick={() => setStep(s => Math.min(4, s + 1))}
-              >
-                Suivant <ArrowRight size={16} />
-              </button>
+              <button className="flex-[2] bg-[#2E86C1] text-white hover:bg-[#2573a7] px-4 py-2 rounded-lg font-bold text-sm shadow-md transition-all flex items-center gap-2 justify-center" onClick={() => setStep(s => Math.min(4, s + 1))}>Suivant <ArrowRight size={16} /></button>
             ) : (
-              <button 
-                className="flex-[2] bg-slate-900 hover:bg-black text-white px-4 py-2 rounded-lg font-bold text-sm shadow-md transition-all flex items-center gap-2 justify-center"
-                onClick={handlePrint}
-              >
-                <Printer size={16} /> Générer PDF
-              </button>
+              <button className="flex-[2] bg-slate-900 hover:bg-black text-white px-4 py-2 rounded-lg font-bold text-sm shadow-md transition-all flex items-center gap-2 justify-center" onClick={handlePrint}><Printer size={16} /> Générer PDF</button>
             )}
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-8 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto px-6 py-8 custom-scrollbar text-left text-left text-left">
            {step === 1 && (
             <div className="space-y-6 animate-in slide-in-from-right transition-all">
-              <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><User size={24} /><h2 className="text-lg font-bold uppercase">Profil</h2></div>
-              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex gap-3 text-left">
-                <div className="text-[#2E86C1] shrink-0 mt-0.5"><HelpCircle size={18} /></div>
-                <div>
-                  <h4 className="text-xs font-bold text-[#2E86C1] uppercase mb-1 text-left">Aide IA</h4>
-                  <p className="text-[11px] text-slate-600 leading-tight text-left">Utilisez l'import PDF pour remplir votre profil. Les icônes IA copient le texte avec un prompt optimisé. <strong>COLLEZ-LE</strong> ensuite dans l'outil IA qui s'ouvre.</p>
-                </div>
-              </div>
+              <div className="flex items-center gap-3 mb-4 text-[#2E86C1] text-left text-left text-left"><User size={24} /><h2 className="text-lg font-bold uppercase text-left text-left text-left">Profil</h2></div>
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="p-3 border border-blue-100 bg-blue-50/50 rounded-lg flex flex-col gap-2 text-left">
                   <span className="text-[10px] font-bold text-[#2E86C1] uppercase">Logo Entreprise (Réservé Smile Group)</span>
                   <DropZoneUI onFile={handleSmileLogo} label={cvData.smileLogo ? "Changer Logo" : "Charger Logo"} className="h-24 bg-white" />
                 </div>
                 <div className="p-3 border border-slate-200 bg-slate-50 rounded-lg flex flex-col gap-2 text-left">
-                  <span className="text-[10px] font-bold text-slate-600 uppercase flex items-center justify-between">Photo Profil</span>
-                  <DropZoneUI onFile={handlePhotoUpload} label={cvData.profile.photo ? "Changer" : "Glisser-déposer ou charger votre photo"} icon={<User size={16}/>} className="h-24 bg-white" />
+                  <span className="text-[10px] font-bold text-slate-600 uppercase flex items-center justify-between text-left text-left text-left">Photo Profil</span>
+                  <DropZoneUI onFile={handlePhotoUpload} label={cvData.profile.photo ? "Changer" : "Glisser-déposer ou charger votre photo"} icon={<User size={16}/>} className="h-24 bg-white text-left text-left text-left" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4"><InputUI label="Prénom" value={cvData.profile.firstname} onChange={(v) => handleProfileChange('firstname', v)} /><InputUI label="NOM" value={cvData.profile.lastname} onChange={(v) => handleProfileChange('lastname', v)} /></div>
-              
               <InputUI label="Poste Actuel" value={cvData.profile.current_role} onChange={(v) => handleProfileChange('current_role', v)} />
-              
-              <div className="grid grid-cols-2 gap-4">
-                <InputUI label="Années XP" value={cvData.profile.years_experience} onChange={(v) => handleProfileChange('years_experience', v)} />
-                <InputUI label="Techno Principale" value={cvData.profile.main_tech} onChange={(v) => handleProfileChange('main_tech', v)} />
-              </div>
-              
+              <div className="grid grid-cols-2 gap-4"><InputUI label="Années XP" value={cvData.profile.years_experience} onChange={(v) => handleProfileChange('years_experience', v)} /><InputUI label="Techno Principale" value={cvData.profile.main_tech} onChange={(v) => handleProfileChange('main_tech', v)} /></div>
               <RichTextareaUI label="Bio / Résumé" value={cvData.profile.summary} onChange={(val) => handleProfileChange('summary', val)} maxLength={400} />
               
               <div className="bg-white p-4 rounded-xl border border-slate-200 text-left">
                 <label className="text-xs font-bold text-[#333333] uppercase block mb-3 text-left">Bandeau Technos (Sera en blanc)</label>
                 <LogoSelectorUI onSelect={addTechLogo} label="Ajouter" />
-                
                 <div className="flex flex-wrap gap-2 mt-4 p-4 bg-slate-900 rounded-lg border border-slate-800 shadow-inner">
                   {cvData.profile.tech_logos.map((logo, i) => (
-                    <div key={i} className="relative group bg-white/10 p-2 rounded-md border border-white/5 transition-colors hover:bg-white/20">
+                    <div key={i} className="relative group bg-white/10 p-2 rounded-md border border-white/5 transition-colors hover:bg-white/20 text-left text-left text-left text-left">
                       <img src={logo.src} onError={handleImageError} className="w-6 h-6 object-contain brightness-0 invert" alt={logo.name} />
                       <button onClick={() => removeTechLogo(i)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 shadow-sm"><X size={10} /></button>
                     </div>
                   ))}
-                  {cvData.profile.tech_logos.length === 0 && (
-                    <span className="text-[10px] text-slate-500 italic uppercase font-bold tracking-tighter">Aucun logo sélectionné</span>
-                  )}
                 </div>
+              </div>
+
+              {/* LIENS RGPD */}
+              <div className="flex flex-wrap gap-4 pt-4 border-t border-slate-100">
+                <button onClick={() => setShowPrivacyNotice(true)} className="text-[10px] text-slate-400 hover:text-[#2E86C1] flex items-center gap-1 uppercase font-bold transition-colors">
+                  <Shield size={12}/> Notice de confidentialité
+                </button>
+                <button onClick={() => setShowPurgeConfirm(true)} className="text-[10px] text-slate-400 hover:text-red-500 flex items-center gap-1 uppercase font-bold transition-colors">
+                  <Trash2 size={12}/> Supprimer mes données
+                </button>
               </div>
             </div>
            )}
 
            {step === 2 && (
-            <div className="space-y-6 animate-in slide-in-from-right transition-all">
+            <div className="space-y-6 animate-in slide-in-from-right transition-all text-left">
                 <div className="flex items-center gap-3 mb-4 text-[#2E86C1] text-left"><Hexagon size={24} /><h2 className="text-lg font-bold uppercase text-left">Soft Skills</h2></div>
                 {[0, 1, 2].map(i => (<InputUI key={i} label={`Hexagone #${i+1}`} value={cvData.soft_skills[i]} onChange={(v) => {const s = [...cvData.soft_skills]; s[i] = v; setCvData(p => ({...p, soft_skills: s}));}} />))}
             </div>
            )}
 
            {step === 3 && (
-             <div className="space-y-8 animate-in slide-in-from-right transition-all text-left">
-               <div className="flex items-center gap-3 mb-4 text-[#2E86C1]"><GraduationCap size={24} /><h2 className="text-lg font-bold uppercase">Formation & Compétences</h2></div>
+             <div className="space-y-8 animate-in slide-in-from-right transition-all text-left text-left text-left text-left">
+               <div className="flex items-center gap-3 mb-4 text-[#2E86C1] text-left"><GraduationCap size={24} /><h2 className="text-lg font-bold uppercase text-left text-left text-left text-left">Formation & Compétences</h2></div>
                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm text-left">
                  <h3 className="text-[10px] font-black uppercase text-slate-400 mb-4 text-left">Secteur & Certifs (En couleur)</h3>
-                 <div className="flex gap-2 mb-4 text-left">
-                   <input className="flex-1 px-3 py-1.5 border rounded text-xs text-left" placeholder="Secteur..." value={newSecteur} onChange={e=>setNewSecteur(e.target.value)} onKeyDown={e=>e.key==='Enter' && addSecteur()} />
+                 <div className="flex gap-2 mb-4 text-left text-left text-left text-left">
+                   <input className="flex-1 px-3 py-1.5 border rounded text-xs text-left text-left text-left text-left" placeholder="Secteur..." value={newSecteur} onChange={e=>setNewSecteur(e.target.value)} onKeyDown={e=>e.key==='Enter' && addSecteur()} />
                    <ButtonUI variant="primary" className="p-1 h-auto text-left" onClick={addSecteur}><Plus size={10}/></ButtonUI>
                  </div>
-                 <div className="flex flex-wrap gap-1 mb-4 text-left">{(cvData.connaissances_sectorielles || []).map((s, i) => (<span key={i} className="bg-white text-[9px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 uppercase text-left">{s} <X size={10} className="cursor-pointer" onClick={() => removeSecteur(i)}/></span>))}</div>
+                 <div className="flex flex-wrap gap-1 mb-4 text-left">{(cvData.connaissances_sectorielles || []).map((s, i) => (<span key={i} className="bg-white text-[9px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 uppercase text-left text-left text-left">{s} <X size={10} className="cursor-pointer text-left text-left text-left" onClick={() => removeSecteur(i)}/></span>))}</div>
                  <LogoSelectorUI onSelect={addCertification} label="Certifications" />
-                 <div className="mt-2 space-y-1 text-left">
+                 <div className="mt-2 space-y-1 text-left text-left text-left text-left">
                     {(cvData.certifications || []).map((c, i) => (
-                      <div key={i} className="flex items-center justify-between text-[10px] bg-white p-1.5 rounded border uppercase font-bold text-left gap-2">
-                        {c.logo && <img src={c.logo} onError={handleImageError} className="w-5 h-5 object-contain" alt="" />}
-                        <span className="flex-1">{c.name}</span>
+                      <div key={i} className="flex items-center justify-between text-[10px] bg-white p-1.5 rounded border uppercase font-bold text-left gap-2 text-left text-left text-left text-left">
+                        {c.logo && <img src={c.logo} onError={handleImageError} className="w-5 h-5 object-contain text-left" alt="" />}
+                        <span className="flex-1 text-left text-left text-left text-left">{c.name}</span>
                         <button onClick={()=>removeCertification(i)}><X size={10}/></button>
                       </div>
                     ))}
                  </div>
                </div>
-               <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 shadow-sm text-left">
+               <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 shadow-sm text-left text-left text-left text-left text-left">
                  <h3 className="text-[10px] font-black uppercase text-slate-400 mb-4 text-left">Parcours Académique</h3>
                  {(cvData.education || []).map((edu, i) => (
                     <div key={i} className="bg-white p-3 rounded-lg border mb-3 relative group shadow-sm text-left">
-                      <div className="absolute top-2 right-2 flex gap-1">
-                        <button onClick={() => moveItem('education', i, 'up')} disabled={i === 0} className="text-slate-300 hover:text-blue-500 disabled:opacity-20 transition-colors"><ChevronUp size={16}/></button>
-                        <button onClick={() => moveItem('education', i, 'down')} disabled={i === cvData.education.length - 1} className="text-slate-300 hover:text-blue-500 disabled:opacity-20 transition-colors"><ChevronDown size={16}/></button>
-                        <button onClick={() => removeEducation(i)} className="text-slate-300 hover:text-red-500 ml-1"><Trash2 size={14}/></button>
+                      <div className="absolute top-2 right-2 flex gap-1 text-left text-left text-left">
+                        <button onClick={() => moveItem('education', i, 'up')} disabled={i === 0} className="text-slate-300 hover:text-blue-500 disabled:opacity-20 transition-colors text-left text-left text-left"><ChevronUp size={16}/></button>
+                        <button onClick={() => moveItem('education', i, 'down')} disabled={i === cvData.education.length - 1} className="text-slate-300 hover:text-blue-500 disabled:opacity-20 transition-colors text-left text-left text-left"><ChevronDown size={16}/></button>
+                        <button onClick={() => removeEducation(i)} className="text-slate-300 hover:text-red-500 ml-1 text-left text-left text-left"><Trash2 size={14}/></button>
                       </div>
                       <InputUI label="Diplôme" value={edu.degree} onChange={v => updateEducation(i, 'degree', v)} />
-                      <div className="grid grid-cols-2 gap-2 text-left">
+                      <div className="grid grid-cols-2 gap-2 text-left text-left text-left text-left">
                         <InputUI label="Année" value={edu.year} onChange={v => updateEducation(i, 'year', v)} />
                         <InputUI label="Lieu" value={edu.location} onChange={v => updateEducation(i, 'location', v)} />
                       </div>
                     </div>
                  ))}
-                 <ButtonUI onClick={addEducation} variant="secondary" className="w-full text-xs py-2 mt-2 shadow-sm text-left">Ajouter Formation</ButtonUI>
+                 <ButtonUI onClick={addEducation} variant="secondary" className="w-full text-xs py-2 mt-2 shadow-sm text-left text-left text-left text-left">Ajouter Formation</ButtonUI>
                </div>
                <div className="bg-white p-4 rounded-xl border border-slate-200 text-left">
                   <h3 className="text-[10px] font-black uppercase text-slate-400 mb-4 text-left">Niveau Compétences</h3>
-                  <div className="flex gap-2 mb-4 text-left"><input className="flex-1 px-3 py-2 border rounded text-xs text-left" placeholder="Catégorie (Outils...)" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addSkillCategory()} /><ButtonUI variant="outline" className="px-3 text-left" onClick={addSkillCategory}><Plus size={14}/></ButtonUI></div>
+                  <div className="flex gap-2 mb-4 text-left text-left text-left text-left text-left"><input className="flex-1 px-3 py-2 border rounded text-xs text-left text-left text-left text-left text-left" placeholder="Catégorie (Outils...)" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addSkillCategory()} /><ButtonUI variant="outline" className="px-3 text-left text-left text-left text-left text-left" onClick={addSkillCategory}><Plus size={14}/></ButtonUI></div>
                   {Object.entries(cvData.skills_categories).map(([cat, skills]) => (
-                    <div key={cat} className="mb-4 p-3 bg-slate-50 rounded-lg text-left">
-                      <div className="flex justify-between items-center mb-2 text-left"><h4 className="text-xs font-bold uppercase text-left">{cat}</h4><button onClick={() => deleteCategory(cat)} className="text-red-300 text-left"><Trash2 size={12}/></button></div>
-                      <div className="space-y-1 mb-3 text-left">{(skills || []).map((skill, idx) => (<div key={idx} className="flex items-center justify-between text-xs bg-white p-1.5 rounded shadow-sm text-left"><input className="bg-transparent outline-none w-1/2 font-medium text-left" value={skill.name} onChange={(e) => updateSkillInCategory(cat, idx, 'name', e.target.value)} /><HexagonRating score={skill.rating} onChange={(r) => updateSkillInCategory(cat, idx, 'rating', r)} /></div>))}</div>
-                      <div className="flex gap-1 text-left"><input className="flex-1 px-2 py-1 text-[10px] border rounded text-left" placeholder="Ajouter..." value={newSkillsInput[cat]?.name || ''} onChange={(e) => updateNewSkillInput(cat, 'name', e.target.value)} /><ButtonUI variant="primary" className="p-1 h-auto text-left" onClick={() => addSkillToCategory(cat)}><Plus size={10}/></ButtonUI></div>
+                    <div key={cat} className="mb-4 p-3 bg-slate-50 rounded-lg text-left text-left text-left text-left">
+                      <div className="flex justify-between items-center mb-2 text-left text-left text-left text-left text-left text-left text-left"><h4 className="text-xs font-bold uppercase text-left text-left text-left text-left text-left">{cat}</h4><button onClick={() => deleteCategory(cat)} className="text-red-300 text-left text-left text-left text-left"><Trash2 size={12}/></button></div>
+                      <div className="space-y-1 mb-3 text-left text-left text-left text-left">{(skills || []).map((skill, idx) => (<div key={idx} className="flex items-center justify-between text-xs bg-white p-1.5 rounded shadow-sm text-left text-left text-left text-left text-left text-left text-left"><input className="bg-transparent outline-none w-1/2 font-medium text-left" value={skill.name} onChange={(e) => updateSkillInCategory(cat, idx, 'name', e.target.value)} /><HexagonRating score={skill.rating} onChange={(r) => updateSkillInCategory(cat, idx, 'rating', r)} /></div>))}</div>
+                      <div className="flex gap-1 text-left text-left text-left text-left text-left"><input className="flex-1 px-2 py-1 text-[10px] border rounded text-left text-left text-left text-left text-left" placeholder="Ajouter..." value={newSkillsInput[cat]?.name || ''} onChange={(e) => updateNewSkillInput(cat, 'name', e.target.value)} /><ButtonUI variant="primary" className="p-1 h-auto text-left text-left text-left text-left" onClick={() => addSkillToCategory(cat)}><Plus size={10}/></ButtonUI></div>
                     </div>
                   ))}
                </div>
@@ -833,18 +822,18 @@ export default function App() {
            )}
 
            {step === 4 && (
-            <div className="space-y-8 animate-in slide-in-from-right duration-300 text-left">
-              <div className="flex justify-between items-center mb-4 text-[#2E86C1] text-left"><div className="flex items-center gap-3 text-left"><Briefcase size={24} /><h2 className="text-lg font-bold uppercase text-left">Expériences</h2></div><ButtonUI onClick={addExperience} variant="outline" className="px-3 py-1 text-xs text-left"><Plus size={14} /> Ajouter</ButtonUI></div>
+            <div className="space-y-8 animate-in slide-in-from-right duration-300 text-left text-left text-left text-left">
+              <div className="flex justify-between items-center mb-4 text-[#2E86C1] text-left text-left text-left text-left text-left"><div className="flex items-center gap-3 text-left text-left text-left text-left text-left text-left"><Briefcase size={24} /><h2 className="text-lg font-bold uppercase text-left text-left text-left text-left text-left text-left">Expériences</h2></div><ButtonUI onClick={addExperience} variant="outline" className="px-3 py-1 text-xs text-left text-left text-left text-left"><Plus size={14} /> Ajouter</ButtonUI></div>
               {(cvData.experiences || []).map((exp, index) => (
-                <div key={exp.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm relative group mb-4 text-left">
-                  <div className="absolute top-4 right-4 flex gap-1 text-left">
-                    <button onClick={() => moveItem('experiences', index, 'up')} disabled={index === 0} className="text-slate-300 hover:text-blue-500 disabled:opacity-20 transition-colors"><ChevronUp size={18}/></button>
-                    <button onClick={() => moveItem('experiences', index, 'down')} disabled={index === cvData.experiences.length - 1} className="text-slate-300 hover:text-blue-500 disabled:opacity-20 transition-colors"><ChevronDown size={18}/></button>
-                    <button onClick={() => removeExperience(exp.id)} className="text-red-300 hover:text-red-500 ml-1"><Trash2 size={16}/></button>
+                <div key={exp.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm relative group mb-4 text-left text-left text-left text-left text-left">
+                  <div className="absolute top-4 right-4 flex gap-1 text-left text-left text-left text-left">
+                    <button onClick={() => moveItem('experiences', index, 'up')} disabled={index === 0} className="text-slate-300 hover:text-blue-500 disabled:opacity-20 transition-colors text-left text-left text-left text-left"><ChevronUp size={18}/></button>
+                    <button onClick={() => moveItem('experiences', index, 'down')} disabled={index === cvData.experiences.length - 1} className="text-slate-300 hover:text-blue-500 disabled:opacity-20 transition-colors text-left text-left text-left text-left"><ChevronDown size={18}/></button>
+                    <button onClick={() => removeExperience(exp.id)} className="text-red-300 hover:text-red-500 ml-1 text-left text-left text-left text-left"><Trash2 size={16}/></button>
                   </div>
-                  <div className="mb-4 text-left">
-                    <span className="text-xs font-bold text-[#333333] uppercase block mb-2 text-left">Logo Client (En couleur)</span>
-                    <div className="flex items-center gap-4 text-left">
+                  <div className="mb-4 text-left text-left text-left">
+                    <span className="text-xs font-bold text-[#333333] uppercase block mb-2 text-left text-left text-left text-left text-left">Logo Client (En couleur)</span>
+                    <div className="flex items-center gap-4 text-left text-left text-left text-left">
                       <DropZoneUI 
                         onFile={(file) => {
                           const reader = new FileReader();
@@ -852,15 +841,15 @@ export default function App() {
                           reader.readAsDataURL(file);
                         }} 
                         label="Glisser ou charger logo client" 
-                        className="flex-1" 
+                        className="flex-1 text-left text-left text-left text-left" 
                       />
-                      {exp.client_logo && <img src={exp.client_logo} onError={handleImageError} className="w-12 h-12 object-contain text-left" alt="" />}
+                      {exp.client_logo && <img src={exp.client_logo} onError={handleImageError} className="w-12 h-12 object-contain text-left text-left text-left text-left text-left" alt="" />}
                     </div>
                   </div>
-                  <div className="mb-4 flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-100 text-left"><div className="flex items-center gap-2 text-left"><FilePlus size={16} className="text-[#2E86C1] text-left"/><span className="text-xs font-bold text-slate-600 text-left">Saut de page manuel</span></div><button onClick={() => updateExperience(exp.id, 'forceNewPage', !exp.forceNewPage)} className="text-left">{exp.forceNewPage ? <ToggleRight className="text-green-500"/> : <ToggleLeft className="text-slate-300"/>}</button></div>
+                  <div className="mb-4 flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-100 text-left text-left text-left text-left text-left"><div className="flex items-center gap-2 text-left text-left text-left text-left text-left"><FilePlus size={16} className="text-[#2E86C1] text-left text-left text-left text-left"/><span className="text-xs font-bold text-slate-600 text-left text-left text-left text-left">Saut de page manuel</span></div><button onClick={() => updateExperience(exp.id, 'forceNewPage', !exp.forceNewPage)} className="text-left text-left text-left text-left">{exp.forceNewPage ? <ToggleRight className="text-green-500 text-left text-left text-left"/> : <ToggleLeft className="text-slate-300 text-left text-left"/>}</button></div>
                   <InputUI label="Client" value={exp.client_name} onChange={(v) => updateExperience(exp.id, 'client_name', v)} />
                   <InputUI label="Rôle" value={exp.role} onChange={(v) => updateExperience(exp.id, 'role', v)} />
-                  <div className="grid grid-cols-2 gap-4 text-left">
+                  <div className="grid grid-cols-2 gap-4 text-left text-left text-left text-left">
                     <InputUI label="Période" value={exp.period} onChange={(v) => updateExperience(exp.id, 'period', v)} />
                     <InputUI label="Environnement Tech" value={Array.isArray(exp.tech_stack) ? exp.tech_stack.join(', ') : exp.tech_stack} onChange={(v) => updateExperience(exp.id, 'tech_stack', String(v).split(',').map(s=>s.trim()))} />
                   </div>
@@ -874,45 +863,45 @@ export default function App() {
       </div>
 
       {/* --- PREVIEW AREA --- */}
-      <div className="flex-1 bg-slate-800 overflow-hidden relative flex flex-col items-center">
-        <div className="absolute bottom-6 z-50 flex items-center gap-4 bg-white/90 backdrop-blur px-6 py-2 rounded-full shadow-2xl print:hidden transition-all hover:scale-105">
+      <div className="flex-1 bg-slate-800 overflow-hidden relative flex flex-col items-center text-left text-left text-left text-left">
+        <div className="absolute bottom-6 z-50 flex items-center gap-4 bg-white/90 backdrop-blur px-6 py-2 rounded-full shadow-2xl print:hidden transition-all hover:scale-105 text-left text-left">
            <button onClick={() => setZoom(Math.max(0.2, zoom - 0.1))} className="p-2 hover:bg-slate-100 rounded-full"><ZoomOut size={18} /></button>
            <span className="text-xs font-bold text-slate-600 min-w-[3rem] text-center">{Math.round(zoom * 100)}%</span>
            <button onClick={() => setZoom(Math.min(1.5, zoom + 0.1))} className="p-2 hover:bg-slate-100 rounded-full"><ZoomIn size={18} /></button>
         </div>
 
-        <div className="flex-1 overflow-auto w-full p-8 flex justify-center custom-scrollbar border-l border-slate-700 text-left">
-          <div className="print-container block origin-top transition-transform duration-300" style={{ transform: `scale(${zoom})`, marginBottom: `${zoom * 100}px`, minHeight: 'max-content' }}>
+        <div className="flex-1 overflow-auto w-full p-8 flex justify-center custom-scrollbar border-l border-slate-700 text-left text-left text-left text-left">
+          <div className="print-container block origin-top transition-transform duration-300 text-left text-left text-left text-left" style={{ transform: `scale(${zoom})`, marginBottom: `${zoom * 100}px`, minHeight: 'max-content' }}>
             <A4Page>
               <CornerTriangle customLogo={cvData.smileLogo} />
+              {/* SÉCURITÉ : Ne pas rendre la photo si anonyme */}
               {!cvData.isAnonymous && cvData.profile.photo && cvData.profile.photo !== "null" && (
-                <div className="absolute top-12 right-12 w-44 h-44 rounded-full overflow-hidden border-4 border-white shadow-xl z-20 bg-white flex items-center justify-center">
-                  <img src={cvData.profile.photo} onError={handleImageError} className="max-w-full max-h-full object-contain" alt="Portrait" />
+                <div className="absolute top-12 right-12 w-44 h-44 rounded-full overflow-hidden border-4 border-white shadow-xl z-20 bg-white flex items-center justify-center text-left text-left">
+                  <img src={cvData.profile.photo} onError={handleImageError} className="max-w-full max-h-full object-contain text-left text-left" alt="Portrait" />
                 </div>
               )}
-              <div className="pt-36 px-16 pb-0 flex-shrink-0 text-left">
-                 <h1 className="uppercase leading-[0.85] mb-8 font-montserrat text-[#333333] text-left">
-                   {cvData.isAnonymous ? `${String(cvData.profile.firstname?.[0] || '')}${String(cvData.profile.lastname?.[0] || '')}` : <><span className="text-4xl block font-semibold opacity-90 text-left">{String(cvData.profile.firstname)}</span><span className="text-6xl font-black text-left">{String(cvData.profile.lastname)}</span></>}
+              <div className="pt-36 px-16 pb-0 flex-shrink-0 text-left text-left text-left text-left text-left">
+                 <h1 className="uppercase leading-[0.85] mb-8 font-montserrat text-[#333333] text-left text-left text-left text-left">
+                   {cvData.isAnonymous ? `${String(cvData.profile.firstname?.[0] || '')}${String(cvData.profile.lastname?.[0] || '')}` : <><span className="text-4xl block font-semibold opacity-90 text-left text-left text-left">{String(cvData.profile.firstname)}</span><span className="text-6xl font-black text-left text-left text-left">{String(cvData.profile.lastname)}</span></>}
                  </h1>
-                 <div className="inline-block bg-[#2E86C1] text-white font-bold text-xl px-4 py-1 rounded-sm uppercase mb-6 tracking-wider shadow-sm text-left">{String(cvData.profile.years_experience)} ans d'expérience</div>
-                 <h2 className="text-3xl font-black text-[#333333] uppercase mb-1 tracking-wide font-montserrat opacity-90 text-left">{String(cvData.profile.current_role)}</h2>
-                 <div className="text-lg text-[#666666] font-medium uppercase tracking-widest mb-10 border-l-4 border-[#2E86C1] pl-4 text-left">{String(cvData.profile.main_tech)}</div>
+                 <div className="inline-block bg-[#2E86C1] text-white font-bold text-xl px-4 py-1 rounded-sm uppercase mb-6 tracking-wider shadow-sm text-left text-left text-left text-left">{String(cvData.profile.years_experience)} ans d'expérience</div>
+                 <h2 className="text-3xl font-black text-[#333333] uppercase mb-1 tracking-wide font-montserrat opacity-90 text-left text-left text-left">{String(cvData.profile.current_role)}</h2>
+                 <div className="text-lg text-[#666666] font-medium uppercase tracking-widest mb-10 border-l-4 border-[#2E86C1] pl-4 text-left text-left text-left">{String(cvData.profile.main_tech)}</div>
               </div>
-              <div className="flex-1 flex flex-col justify-start pt-0 pb-12 overflow-hidden text-center">
+              <div className="flex-1 flex flex-col justify-start pt-0 pb-12 overflow-hidden text-center text-left text-left text-left text-left">
                   <div className="px-24 mb-10 relative z-10 flex flex-col items-center text-center">
-                     <p className="text-lg text-[#333333] leading-relaxed italic border-t border-slate-100 pt-8 text-center break-words w-full max-w-[160mm]" dangerouslySetInnerHTML={{__html: formatTextForPreview(`"${cvData.profile.summary}"`)}}></p>
+                     <p className="text-lg text-[#333333] leading-relaxed italic border-t border-slate-100 pt-8 text-center break-words w-full max-w-[160mm] text-left text-left text-left" dangerouslySetInnerHTML={{__html: formatTextForPreview(`"${cvData.profile.summary}"`)}}></p>
                   </div>
-                  {/* BANDEAU TECHNO : TOUJOURS BLANC */}
                   <div className="w-full bg-[#2E86C1] py-6 px-16 mb-10 flex items-center justify-center gap-10 shadow-inner relative z-10 flex-shrink-0 text-left tech-banner">
                     {(cvData.profile.tech_logos || []).map((logo, i) => (
-                      logo.src && logo.src !== "null" ? <img key={i} src={logo.src} onError={handleImageError} className="h-14 w-auto object-contain brightness-0 invert opacity-95 transition-transform" alt={String(logo.name)} /> : null
+                      logo.src && logo.src !== "null" ? <img key={i} src={logo.src} onError={handleImageError} className="h-14 w-auto object-contain brightness-0 invert opacity-95 transition-transform text-left text-left text-left" alt={String(logo.name)} /> : null
                     ))}
                   </div>
-                  <div className="flex justify-center gap-12 relative z-10 px-10 flex-shrink-0 mt-8 text-left">
+                  <div className="flex justify-center gap-12 relative z-10 px-10 flex-shrink-0 mt-8 text-left text-left text-left text-left">
                     {(cvData.soft_skills || []).map((skill, i) => (
-                      <div key={i} className="relative w-40 h-44 flex items-center justify-center text-left">
+                      <div key={i} className="relative w-40 h-44 flex items-center justify-center text-left text-left text-left text-left">
                         <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full text-[#2E86C1] fill-current drop-shadow-xl text-left hexagon-shape"><polygon points="50 0, 100 25, 100 75, 50 100, 0 75, 0 25" /></svg>
-                        <span className="relative z-10 text-white font-bold text-sm uppercase text-center px-4 leading-tight font-montserrat text-left">{String(skill || "Skill")}</span>
+                        <span className="relative z-10 text-white font-bold text-sm uppercase text-center px-4 leading-tight font-montserrat text-left text-left text-left text-left">{String(skill || "Skill")}</span>
                       </div>
                     ))}
                   </div>
@@ -923,27 +912,27 @@ export default function App() {
             <A4Page>
               <CornerTriangle customLogo={cvData.smileLogo} />
               <HeaderSmall isAnonymous={cvData.isAnonymous} profile={cvData.profile} role={cvData.profile.current_role} logo={cvData.smileLogo} />
-              <div className="grid grid-cols-12 gap-10 mt-20 h-full px-12 flex-1 pb-32 overflow-hidden print:overflow-visible text-left">
-                  <div className="col-span-5 border-r border-slate-100 pr-8 text-left">
-                    <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-8 flex items-center gap-2 text-left"><Cpu size={20}/> Mes Compétences</h3>
-                    <div className="space-y-8 text-left">{Object.entries(cvData.skills_categories || {}).map(([cat, skills]) => (<div key={cat}><h4 className="text-[10px] font-bold text-[#999999] uppercase tracking-widest border-b border-slate-100 pb-2 mb-3 text-left">{cat}</h4><div className="space-y-3 text-left">{(skills || []).map((skill, i) => (<div key={i} className="flex items-center justify-between text-left"><span className="text-xs font-bold text-[#333333] uppercase text-left">{String(skill.name)}</span><HexagonRating score={skill.rating} /></div>))}</div></div>))}</div>
+              <div className="grid grid-cols-12 gap-10 mt-20 h-full px-12 flex-1 pb-32 overflow-hidden print:overflow-visible text-left text-left text-left text-left text-left text-left">
+                  <div className="col-span-5 border-r border-slate-100 pr-8 text-left text-left text-left text-left">
+                    <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-8 flex items-center gap-2 text-left text-left text-left"><Cpu size={20}/> Mes Compétences</h3>
+                    <div className="space-y-8 text-left text-left text-left text-left text-left">{Object.entries(cvData.skills_categories || {}).map(([cat, skills]) => (<div key={cat}><h4 className="text-[10px] font-bold text-[#999999] uppercase tracking-widest border-b border-slate-100 pb-2 mb-3 text-left text-left text-left text-left text-left">{String(cat)}</h4><div className="space-y-3 text-left text-left text-left">{(skills || []).map((skill, i) => (<div key={i} className="flex items-center justify-between text-left text-left text-left text-left"><span className="text-xs font-bold text-[#333333] uppercase text-left text-left text-left">{String(skill.name)}</span><HexagonRating score={skill.rating} /></div>))}</div></div>))}</div>
                   </div>
-                  <div className="col-span-7 flex flex-col gap-10 text-left">
-                    {cvData.showSecteur && (cvData.connaissances_sectorielles || []).length > 0 && (<section className="text-left"><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2 text-left"><Factory size={20}/> Connaissances Sectorielles</h3><div className="flex flex-wrap gap-2 text-left">{(cvData.connaissances_sectorielles || []).map((s, i) => (<span key={i} className="border-2 border-[#2E86C1] text-[#2E86C1] text-[10px] font-black px-3 py-1 rounded uppercase tracking-wider text-left">{String(s)}</span>))}</div></section>)}
+                  <div className="col-span-7 flex flex-col gap-10 text-left text-left text-left text-left text-left">
+                    {cvData.showSecteur && (cvData.connaissances_sectorielles || []).length > 0 && (<section className="text-left text-left text-left text-left text-left text-left"><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2 text-left text-left text-left text-left"><Factory size={20}/> Connaissances Sectorielles</h3><div className="flex flex-wrap gap-2 text-left text-left text-left text-left text-left text-left">{(cvData.connaissances_sectorielles || []).map((s, i) => (<span key={i} className="border-2 border-[#2E86C1] text-[#2E86C1] text-[10px] font-black px-3 py-1 rounded uppercase tracking-wider text-left text-left text-left text-left">{String(s)}</span>))}</div></section>)}
                     {cvData.showCertif && (cvData.certifications || []).length > 0 && (
-                      <section className="text-left">
-                        <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2 text-left"><Award size={20}/> Certifications</h3>
-                        <div className="grid grid-cols-2 gap-4 text-left">
+                      <section className="text-left text-left text-left text-left text-left text-left text-left">
+                        <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2 text-left text-left text-left text-left text-left"><Award size={20}/> Certifications</h3>
+                        <div className="grid grid-cols-2 gap-4 text-left text-left text-left text-left text-left">
                           {cvData.certifications.map((c, i) => (
-                            <div key={i} className="flex items-center gap-3 bg-slate-50 p-2 rounded text-left">
-                              {c.logo && c.logo !== "null" && <img src={c.logo} onError={handleImageError} className="w-8 h-8 object-contain text-left" alt={String(c.name)} />}
-                              <span className="text-[10px] font-bold text-slate-700 uppercase leading-tight text-left">{String(c.name)}</span>
+                            <div key={i} className="flex items-center gap-3 bg-slate-50 p-2 rounded text-left text-left text-left text-left text-left">
+                              {c.logo && c.logo !== "null" && <img src={c.logo} onError={handleImageError} className="w-8 h-8 object-contain text-left text-left text-left text-left" alt={String(c.name)} />}
+                              <span className="text-[10px] font-bold text-slate-700 uppercase leading-tight text-left text-left text-left text-left text-left text-left">{String(c.name)}</span>
                             </div>
                           ))}
                         </div>
                       </section>
                     )}
-                    <section className="text-left"><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-6 flex items-center gap-2 text-left"><GraduationCap size={20}/> Ma Formation</h3><div className="space-y-4 text-left">{(cvData.education || []).map((edu, i) => (<div key={i} className="border-l-2 border-slate-100 pl-4 text-left"><span className="text-[10px] font-bold text-[#999999] block mb-1 text-left">{String(edu.year)}</span><h4 className="text-xs font-bold text-[#333333] uppercase leading-tight text-left">{String(edu.degree)}</h4><span className="text-[9px] text-[#2E86C1] font-medium uppercase text-left">{String(edu.location)}</span></div>))}</div></section>
+                    <section className="text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left"><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-6 flex items-center gap-2 text-left text-left text-left text-left text-left text-left text-left"><GraduationCap size={20}/> Ma Formation</h3><div className="space-y-4 text-left text-left text-left text-left text-left">{(cvData.education || []).map((edu, i) => (<div key={i} className="border-l-2 border-slate-100 pl-4 text-left text-left text-left text-left text-left text-left text-left"><span className="text-[10px] font-bold text-[#999999] block mb-1 text-left text-left text-left text-left text-left text-left">{String(edu.year)}</span><h4 className="text-xs font-bold text-[#333333] uppercase leading-tight text-left text-left text-left text-left text-left text-left">{String(edu.degree)}</h4><span className="text-[9px] text-[#2E86C1] font-medium uppercase text-left text-left text-left text-left text-left text-left">{String(edu.location)}</span></div>))}</div></section>
                   </div>
               </div>
               <Footer />
@@ -953,8 +942,8 @@ export default function App() {
               <A4Page key={pageIndex}>
                 <CornerTriangle customLogo={cvData.smileLogo} />
                 <HeaderSmall isAnonymous={cvData.isAnonymous} profile={cvData.profile} role={cvData.profile.current_role} logo={cvData.smileLogo} />
-                <div className="flex justify-between items-end border-b border-slate-200 pb-2 mb-8 mt-16 px-12 flex-shrink-0 text-left"><h3 className="text-xl font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat">{pageIndex === 0 ? "Mes dernières expériences" : "Expériences (Suite)"}</h3><span className="text-[10px] font-bold text-[#666666] uppercase">Références</span></div>
-                <div className="flex-1 px-12 pb-32 overflow-hidden print:overflow-visible text-left">{chunk.map((exp) => (<ExperienceItem key={exp.id} exp={exp} />))}</div>
+                <div className="flex justify-between items-end border-b border-slate-200 pb-2 mb-8 mt-16 px-12 flex-shrink-0 text-left text-left text-left text-left text-left text-left text-left text-left"><h3 className="text-xl font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat">{pageIndex === 0 ? "Mes dernières expériences" : "Expériences (Suite)"}</h3><span className="text-[10px] font-bold text-[#666666] uppercase text-left text-left">Références</span></div>
+                <div className="flex-1 px-12 pb-32 overflow-hidden print:overflow-visible text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left">{chunk.map((exp) => (<ExperienceItem key={exp.id} exp={exp} />))}</div>
                 <Footer />
               </A4Page>
             ))}
@@ -973,10 +962,8 @@ export default function App() {
           body { margin: 0; padding: 0; background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .print-hidden { display: none !important; }
           .flex-1.bg-slate-800 { display: block !important; height: auto !important; overflow: visible !important; background: white !important; padding: 0 !important; }
-          .print-container { transform: none !important; margin: 0 !important; width: 100% !important; display: block !important; gap: 0 !important; }
+          .print-container { transform: none !important; margin: 0 !important; width: 100% !important; display: block !important; }
           .A4-page { margin: 0 !important; box-shadow: none !important; page-break-after: always !important; break-after: page !important; width: 210mm !important; height: 297mm !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; }
-          .A4-page { height: auto !important; min-height: 297mm !important; overflow: visible !important; }
-          .break-inside-avoid { break-inside: avoid !important; page-break-inside: avoid !important; }
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
       `}</style>
