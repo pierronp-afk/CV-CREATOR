@@ -602,7 +602,7 @@ export default function App() {
             <style>
               @page { size: A4; margin: 0; }
               body { margin: 0; padding: 0; background: white; width: 210mm; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-              .A4-page { box-shadow: none !important; margin: 0 !important; page-break-after: always !important; height: 297mm !important; width: 210mm !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; display: flex !important; flex-direction: column !important; }
+              .A4-page { box-shadow: none !important; margin: 0 !important; page-break-after: always !important; height: 297mm !important; width: 210mm !important; display: flex !important; flex-direction: column !important; }
               .triangle-bg, .bg-[#2E86C1], .bg-blue-50, .hexagon-fill { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; background-color: inherit !important; fill: inherit !important; }
               * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             </style>
@@ -851,7 +851,7 @@ export default function App() {
                           reader.onload = (ev) => updateExperience(exp.id, 'client_logo', ev.target.result);
                           reader.readAsDataURL(file);
                         }} 
-                        label="Charger logo client" 
+                        label="Glisser ou charger logo client" 
                         className="flex-1" 
                       />
                       {exp.client_logo && <img src={exp.client_logo} onError={handleImageError} className="w-12 h-12 object-contain text-left" alt="" />}
@@ -898,7 +898,7 @@ export default function App() {
                  <h2 className="text-3xl font-black text-[#333333] uppercase mb-1 tracking-wide font-montserrat opacity-90 text-left">{String(cvData.profile.current_role)}</h2>
                  <div className="text-lg text-[#666666] font-medium uppercase tracking-widest mb-10 border-l-4 border-[#2E86C1] pl-4 text-left">{String(cvData.profile.main_tech)}</div>
               </div>
-              <div className="flex-1 flex flex-col justify-start pt-0 pb-12 overflow-hidden text-center text-center">
+              <div className="flex-1 flex flex-col justify-start pt-0 pb-12 overflow-hidden text-center">
                   <div className="px-24 mb-10 relative z-10 flex flex-col items-center text-center">
                      <p className="text-lg text-[#333333] leading-relaxed italic border-t border-slate-100 pt-8 text-center break-words w-full max-w-[160mm]" dangerouslySetInnerHTML={{__html: formatTextForPreview(`"${cvData.profile.summary}"`)}}></p>
                   </div>
@@ -923,27 +923,27 @@ export default function App() {
             <A4Page>
               <CornerTriangle customLogo={cvData.smileLogo} />
               <HeaderSmall isAnonymous={cvData.isAnonymous} profile={cvData.profile} role={cvData.profile.current_role} logo={cvData.smileLogo} />
-              <div className="grid grid-cols-12 gap-10 mt-20 h-full px-12 flex-1 pb-32 overflow-hidden print:overflow-visible text-left text-left">
-                  <div className="col-span-5 border-r border-slate-100 pr-8 text-left text-left">
+              <div className="grid grid-cols-12 gap-10 mt-20 h-full px-12 flex-1 pb-32 overflow-hidden print:overflow-visible text-left">
+                  <div className="col-span-5 border-r border-slate-100 pr-8 text-left">
                     <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-8 flex items-center gap-2 text-left"><Cpu size={20}/> Mes Compétences</h3>
                     <div className="space-y-8 text-left">{Object.entries(cvData.skills_categories || {}).map(([cat, skills]) => (<div key={cat}><h4 className="text-[10px] font-bold text-[#999999] uppercase tracking-widest border-b border-slate-100 pb-2 mb-3 text-left">{cat}</h4><div className="space-y-3 text-left">{(skills || []).map((skill, i) => (<div key={i} className="flex items-center justify-between text-left"><span className="text-xs font-bold text-[#333333] uppercase text-left">{String(skill.name)}</span><HexagonRating score={skill.rating} /></div>))}</div></div>))}</div>
                   </div>
-                  <div className="col-span-7 flex flex-col gap-10 text-left text-left">
+                  <div className="col-span-7 flex flex-col gap-10 text-left">
                     {cvData.showSecteur && (cvData.connaissances_sectorielles || []).length > 0 && (<section className="text-left"><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2 text-left"><Factory size={20}/> Connaissances Sectorielles</h3><div className="flex flex-wrap gap-2 text-left">{(cvData.connaissances_sectorielles || []).map((s, i) => (<span key={i} className="border-2 border-[#2E86C1] text-[#2E86C1] text-[10px] font-black px-3 py-1 rounded uppercase tracking-wider text-left">{String(s)}</span>))}</div></section>)}
                     {cvData.showCertif && (cvData.certifications || []).length > 0 && (
-                      <section className="text-left text-left">
+                      <section className="text-left">
                         <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2 text-left"><Award size={20}/> Certifications</h3>
                         <div className="grid grid-cols-2 gap-4 text-left">
                           {cvData.certifications.map((c, i) => (
                             <div key={i} className="flex items-center gap-3 bg-slate-50 p-2 rounded text-left">
-                              {c.logo && c.logo !== "null" && <img src={c.logo} onError={handleImageError} className="w-8 h-8 object-contain text-left text-left" alt={String(c.name)} />}
-                              <span className="text-[10px] font-bold text-slate-700 uppercase leading-tight text-left text-left">{String(c.name)}</span>
+                              {c.logo && c.logo !== "null" && <img src={c.logo} onError={handleImageError} className="w-8 h-8 object-contain text-left" alt={String(c.name)} />}
+                              <span className="text-[10px] font-bold text-slate-700 uppercase leading-tight text-left">{String(c.name)}</span>
                             </div>
                           ))}
                         </div>
                       </section>
                     )}
-                    <section className="text-left text-left"><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-6 flex items-center gap-2 text-left"><GraduationCap size={20}/> Ma Formation</h3><div className="space-y-4 text-left">{(cvData.education || []).map((edu, i) => (<div key={i} className="border-l-2 border-slate-100 pl-4 text-left"><span className="text-[10px] font-bold text-[#999999] block mb-1 text-left">{String(edu.year)}</span><h4 className="text-xs font-bold text-[#333333] uppercase leading-tight text-left">{String(edu.degree)}</h4><span className="text-[9px] text-[#2E86C1] font-medium uppercase text-left">{String(edu.location)}</span></div>))}</div></section>
+                    <section className="text-left"><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-6 flex items-center gap-2 text-left"><GraduationCap size={20}/> Ma Formation</h3><div className="space-y-4 text-left">{(cvData.education || []).map((edu, i) => (<div key={i} className="border-l-2 border-slate-100 pl-4 text-left"><span className="text-[10px] font-bold text-[#999999] block mb-1 text-left">{String(edu.year)}</span><h4 className="text-xs font-bold text-[#333333] uppercase leading-tight text-left">{String(edu.degree)}</h4><span className="text-[9px] text-[#2E86C1] font-medium uppercase text-left">{String(edu.location)}</span></div>))}</div></section>
                   </div>
               </div>
               <Footer />
@@ -953,8 +953,8 @@ export default function App() {
               <A4Page key={pageIndex}>
                 <CornerTriangle customLogo={cvData.smileLogo} />
                 <HeaderSmall isAnonymous={cvData.isAnonymous} profile={cvData.profile} role={cvData.profile.current_role} logo={cvData.smileLogo} />
-                <div className="flex justify-between items-end border-b border-slate-200 pb-2 mb-8 mt-16 px-12 flex-shrink-0 text-left text-left"><h3 className="text-xl font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat">{pageIndex === 0 ? "Mes dernières expériences" : "Expériences (Suite)"}</h3><span className="text-[10px] font-bold text-[#666666] uppercase">Références</span></div>
-                <div className="flex-1 px-12 pb-32 overflow-hidden print:overflow-visible text-left text-left">{chunk.map((exp) => (<ExperienceItem key={exp.id} exp={exp} />))}</div>
+                <div className="flex justify-between items-end border-b border-slate-200 pb-2 mb-8 mt-16 px-12 flex-shrink-0 text-left"><h3 className="text-xl font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat">{pageIndex === 0 ? "Mes dernières expériences" : "Expériences (Suite)"}</h3><span className="text-[10px] font-bold text-[#666666] uppercase">Références</span></div>
+                <div className="flex-1 px-12 pb-32 overflow-hidden print:overflow-visible text-left">{chunk.map((exp) => (<ExperienceItem key={exp.id} exp={exp} />))}</div>
                 <Footer />
               </A4Page>
             ))}
