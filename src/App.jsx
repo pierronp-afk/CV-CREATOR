@@ -27,7 +27,6 @@ const getApiKey = () => {
   } catch (e) {
     // Silencieux si import.meta n'est pas supporté
   }
-  // L'environnement Canvas injecte la clé automatiquement si la variable est une chaîne vide
   return "";
 };
 
@@ -90,7 +89,7 @@ const formatTextForPreview = (text) => {
     .replace(/\n/g, "<br/>"); 
 };
 
-// Logique de pagination sans limite de pages
+// Logique de pagination
 const paginateExperiences = (experiences) => {
   if (!Array.isArray(experiences)) return [];
   const pages = [];
@@ -110,12 +109,29 @@ const paginateExperiences = (experiences) => {
   return pages;
 };
 
-// Gestionnaire pour masquer les images cassées
 const handleImageError = (e) => {
   e.target.style.display = 'none';
 };
 
-// --- SOUS-COMPOSANTS DE STRUCTURE PDF ---
+// --- SOUS-COMPOSANTS ---
+
+const ModalUI = ({ title, children, onClose, onConfirm }) => (
+  <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="p-6 text-center">
+        <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+          <AlertCircle size={32} />
+        </div>
+        <h3 className="text-xl font-bold text-slate-900 mb-2">{String(title)}</h3>
+        <div className="text-sm text-slate-500 mb-8">{children}</div>
+        <div className="flex gap-3">
+          <button onClick={onClose} className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-bold transition-colors">Annuler</button>
+          <button onClick={onConfirm} className="flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold shadow-lg shadow-red-200 transition-colors">Confirmer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+);
 
 const A4Page = ({ children, className = "" }) => (
   <div className={`A4-page bg-white relative overflow-hidden mx-auto shadow-2xl flex-shrink-0 mb-10 ${className}`} style={{ width: '210mm', height: '297mm', display: 'flex', flexDirection: 'column' }}>
@@ -382,7 +398,7 @@ const LogoSelectorUI = ({ onSelect, label = "Ajouter un logo" }) => {
         </div>
         <ButtonUI variant="primary" className="px-2 py-1 text-xs h-auto" onClick={handleSearch}><Plus size={12}/></ButtonUI>
       </div>
-      <div className="text-center text-[9px] text-slate-400 mb-2 font-bold uppercase">- OU -</div>
+      <p className="text-[9px] text-slate-400 mb-2 font-medium italic">Logo non trouvé ? Téléchargez-le manuellement ci-dessous.</p>
       <DropZoneUI onFile={handleFile} label="Glisser image" icon={<Upload size={14}/>} />
     </div>
   );
@@ -393,6 +409,7 @@ const LogoSelectorUI = ({ onSelect, label = "Ajouter un logo" }) => {
 export default function App() {
   const [step, setStep] = useState(1);
   const [zoom, setZoom] = useState(0.55);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const jsonInputRef = useRef(null);
   const pdfInputRef = useRef(null);
   const [newSecteur, setNewSecteur] = useState("");
@@ -533,34 +550,39 @@ export default function App() {
   const removeTechLogo = (i) => setCvData(p => ({ ...p, profile: { ...p.profile, tech_logos: p.profile.tech_logos.filter((_, idx) => idx !== i) } }));
   const handleSmileLogo = (f) => { if(f) { const r = new FileReader(); r.onload = (ev) => setCvData(p => ({...p, smileLogo: ev.target.result})); r.readAsDataURL(f); } };
   
-  const moveExperience = (index, direction) => {
-    const newExp = [...cvData.experiences];
+  // Fonction générique pour déplacer des éléments (Education ou Expérience)
+  const moveItem = (listName, index, direction) => {
+    const list = [...cvData[listName]];
     const target = direction === 'up' ? index - 1 : index + 1;
-    if (target >= 0 && target < newExp.length) {
-      [newExp[index], newExp[target]] = [newExp[target], newExp[index]];
-      setCvData({ ...cvData, experiences: newExp });
+    if (target >= 0 && target < list.length) {
+      [list[index], list[target]] = [list[target], list[index]];
+      setCvData(p => ({ ...p, [listName]: list }));
     }
   };
 
   const updateExperience = (id, f, v) => setCvData(p => ({ ...p, experiences: p.experiences.map(e => e.id === id ? { ...e, [f]: v } : e) }));
   const addExperience = () => setCvData(p => ({ ...p, experiences: [{ id: Date.now(), client_name: "", client_logo: null, period: "", role: "", objective: "", achievements: [], tech_stack: [], phases: "", forceNewPage: false }, ...p.experiences] }));
-  const removeExperience = (id) => setCvData(p => ({ ...p, experiences: p.experiences.filter(e => e.id !== id) }));
+  const removeExperience = (id) => setCvData(p => { const newE = p.experiences.filter(e => e.id !== id); return { ...p, experiences: newE }; });
+  
   const addSkillCategory = () => { if (newCategoryName) { setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [newCategoryName]: [] } })); setNewCategoryName(""); } };
   const deleteCategory = (n) => setCvData(p => { const newC = { ...p.skills_categories }; delete newC[n]; return { ...p, skills_categories: newC }; });
   const updateSkillInCategory = (cat, idx, f, v) => setCvData(p => { const s = [...p.skills_categories[cat]]; s[idx] = { ...s[idx], [f]: v }; return { ...p, skills_categories: { ...p.skills_categories, [cat]: s } }; });
   const addSkillToCategory = (cat) => { const i = newSkillsInput[cat] || { name: '', rating: 3 }; if (i.name) { setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [cat]: [...p.skills_categories[cat], { name: i.name, rating: i.rating }] } })); setNewSkillsInput(p => ({ ...p, [cat]: { name: '', rating: 3 } })); } };
   const updateNewSkillInput = (cat, field, val) => { setNewSkillsInput(p => ({ ...p, [cat]: { ...(p[cat] || { name: '', rating: 3 }), [field]: val } })); };
   const removeSkillFromCategory = (cat, idx) => setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [cat]: p.skills_categories[cat].filter((_, i) => i !== idx) } }));
+  
   const addSecteur = () => { if (newSecteur) { setCvData(p => ({ ...p, connaissances_sectorielles: [...p.connaissances_sectorielles, newSecteur] })); setNewSecteur(""); }};
   const removeSecteur = (idx) => setCvData(p => ({ ...p, connaissances_sectorielles: p.connaissances_sectorielles.filter((_, i) => i !== idx) }));
+  
   const addCertification = (o) => setCvData(p => ({ ...p, certifications: [...p.certifications, { name: o.name, logo: o.src }] }));
   const updateCertification = (idx, field, val) => { const certs = [...cvData.certifications]; certs[idx][field] = val; setCvData({ ...cvData, certifications: certs }); };
   const removeCertification = (idx) => setCvData(p => ({ ...p, certifications: p.certifications.filter((_, i) => i !== idx) }));
+  
   const updateEducation = (i, f, v) => { const n = [...cvData.education]; n[i][f] = v; setCvData(p => ({ ...p, education: n })); };
   const addEducation = () => setCvData(p => ({ ...p, education: [...p.education, { year: "", degree: "", location: "" }] }));
   const removeEducation = (i) => setCvData(p => ({ ...p, education: p.education.filter((_, idx) => idx !== i) }));
   
-  const resetCV = () => { setCvData(DEFAULT_CV_DATA); };
+  const resetCV = () => { setCvData(DEFAULT_CV_DATA); setShowResetConfirm(false); };
   const downloadJSON = () => { const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(cvData)); a.download = `${getFilenameBase()}.json`; a.click(); };
   const uploadJSON = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (ev) => { try { setCvData(JSON.parse(String(ev.target.result))); } catch (err) { } }; reader.readAsText(file); };
   
@@ -602,6 +624,16 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col md:flex-row h-screen overflow-hidden font-sans text-left">
       
+      {showResetConfirm && (
+        <ModalUI 
+          title="Réinitialiser le CV ?" 
+          onClose={() => setShowResetConfirm(false)} 
+          onConfirm={resetCV}
+        >
+          Toutes les modifications non sauvegardées seront définitivement perdues. Voulez-vous vraiment repartir de zéro ?
+        </ModalUI>
+      )}
+
       {/* FORMULAIRE */}
       <div className="w-full md:w-[500px] bg-white border-r border-slate-200 flex flex-col h-full z-10 shadow-xl print:hidden">
         
@@ -626,7 +658,7 @@ export default function App() {
           </div>
 
           <div className="bg-white border border-slate-200 rounded-2xl shadow-sm flex items-center justify-between px-2 py-4">
-            <button className="flex-1 flex flex-col items-center gap-1.5 group" onClick={resetCV}>
+            <button className="flex-1 flex flex-col items-center gap-1.5 group" onClick={() => setShowResetConfirm(true)}>
               <RefreshCw size={22} className="text-slate-400 group-hover:text-[#2E86C1] transition-colors"/>
               <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">Refresh</span>
             </button>
@@ -701,29 +733,40 @@ export default function App() {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="p-3 border border-blue-100 bg-blue-50/50 rounded-lg flex flex-col gap-2">
-                  <span className="text-[10px] font-bold text-[#2E86C1] uppercase text-left">Logo Entreprise</span>
-                  <DropZoneUI onFile={handleSmileLogo} label={cvData.smileLogo ? "Changer" : "Logo"} className="h-24 bg-white" />
+                <div className="p-3 border border-blue-100 bg-blue-50/50 rounded-lg flex flex-col gap-2 text-left">
+                  <span className="text-[10px] font-bold text-[#2E86C1] uppercase">Logo Entreprise (Réservé Smile Group)</span>
+                  <DropZoneUI onFile={handleSmileLogo} label={cvData.smileLogo ? "Changer Logo" : "Charger Logo"} className="h-24 bg-white" />
                 </div>
                 <div className="p-3 border border-slate-200 bg-slate-50 rounded-lg flex flex-col gap-2 text-left">
                   <span className="text-[10px] font-bold text-slate-600 uppercase flex items-center justify-between">Photo Profil</span>
-                  <DropZoneUI onFile={handlePhotoUpload} label={cvData.profile.photo ? "Changer" : "Photo"} icon={<User size={16}/>} className="h-24 bg-white" />
+                  <DropZoneUI onFile={handlePhotoUpload} label={cvData.profile.photo ? "Changer" : "Glisser-déposer ou charger votre photo"} icon={<User size={16}/>} className="h-24 bg-white" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4"><InputUI label="Prénom" value={cvData.profile.firstname} onChange={(v) => handleProfileChange('firstname', v)} /><InputUI label="NOM" value={cvData.profile.lastname} onChange={(v) => handleProfileChange('lastname', v)} /></div>
-              <div className="grid grid-cols-2 gap-4"><InputUI label="Années XP" value={cvData.profile.years_experience} onChange={(v) => handleProfileChange('years_experience', v)} /><InputUI label="Techno Principale" value={cvData.profile.main_tech} onChange={(v) => handleProfileChange('main_tech', v)} /></div>
+              
               <InputUI label="Poste Actuel" value={cvData.profile.current_role} onChange={(v) => handleProfileChange('current_role', v)} />
+              
+              <div className="grid grid-cols-2 gap-4">
+                <InputUI label="Années XP" value={cvData.profile.years_experience} onChange={(v) => handleProfileChange('years_experience', v)} />
+                <InputUI label="Techno Principale" value={cvData.profile.main_tech} onChange={(v) => handleProfileChange('main_tech', v)} />
+              </div>
+              
               <RichTextareaUI label="Bio / Résumé" value={cvData.profile.summary} onChange={(val) => handleProfileChange('summary', val)} maxLength={400} />
+              
               <div className="bg-white p-4 rounded-xl border border-slate-200 text-left">
                 <label className="text-xs font-bold text-[#333333] uppercase block mb-3 text-left">Bandeau Technos (Sera en blanc)</label>
                 <LogoSelectorUI onSelect={addTechLogo} label="Ajouter" />
-                <div className="flex flex-wrap gap-2 mt-4">
+                
+                <div className="flex flex-wrap gap-2 mt-4 p-4 bg-slate-900 rounded-lg border border-slate-800 shadow-inner">
                   {cvData.profile.tech_logos.map((logo, i) => (
-                    <div key={i} className="relative group bg-slate-100 p-2 rounded-md border border-slate-200">
+                    <div key={i} className="relative group bg-white/10 p-2 rounded-md border border-white/5 transition-colors hover:bg-white/20">
                       <img src={logo.src} onError={handleImageError} className="w-6 h-6 object-contain brightness-0 invert" alt={logo.name} />
-                      <button onClick={() => removeTechLogo(i)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100"><X size={10} /></button>
+                      <button onClick={() => removeTechLogo(i)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 shadow-sm"><X size={10} /></button>
                     </div>
                   ))}
+                  {cvData.profile.tech_logos.length === 0 && (
+                    <span className="text-[10px] text-slate-500 italic uppercase font-bold tracking-tighter">Aucun logo sélectionné</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -759,7 +802,20 @@ export default function App() {
                </div>
                <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 shadow-sm text-left">
                  <h3 className="text-[10px] font-black uppercase text-slate-400 mb-4 text-left">Parcours Académique</h3>
-                 {(cvData.education || []).map((edu, i) => (<div key={i} className="bg-white p-3 rounded-lg border mb-3 relative group shadow-sm text-left"><button onClick={() => removeEducation(i)} className="absolute top-2 right-2 text-slate-300 hover:text-red-500 text-left"><Trash2 size={12}/></button><InputUI label="Diplôme" value={edu.degree} onChange={v => updateEducation(i, 'degree', v)} /><div className="grid grid-cols-2 gap-2 text-left"><InputUI label="Année" value={edu.year} onChange={v => updateEducation(i, 'year', v)} /><InputUI label="Lieu" value={edu.location} onChange={v => updateEducation(i, 'location', v)} /></div></div>))}
+                 {(cvData.education || []).map((edu, i) => (
+                    <div key={i} className="bg-white p-3 rounded-lg border mb-3 relative group shadow-sm text-left">
+                      <div className="absolute top-2 right-2 flex gap-1">
+                        <button onClick={() => moveItem('education', i, 'up')} disabled={i === 0} className="text-slate-300 hover:text-blue-500 disabled:opacity-20 transition-colors"><ChevronUp size={16}/></button>
+                        <button onClick={() => moveItem('education', i, 'down')} disabled={i === cvData.education.length - 1} className="text-slate-300 hover:text-blue-500 disabled:opacity-20 transition-colors"><ChevronDown size={16}/></button>
+                        <button onClick={() => removeEducation(i)} className="text-slate-300 hover:text-red-500 ml-1"><Trash2 size={14}/></button>
+                      </div>
+                      <InputUI label="Diplôme" value={edu.degree} onChange={v => updateEducation(i, 'degree', v)} />
+                      <div className="grid grid-cols-2 gap-2 text-left">
+                        <InputUI label="Année" value={edu.year} onChange={v => updateEducation(i, 'year', v)} />
+                        <InputUI label="Lieu" value={edu.location} onChange={v => updateEducation(i, 'location', v)} />
+                      </div>
+                    </div>
+                 ))}
                  <ButtonUI onClick={addEducation} variant="secondary" className="w-full text-xs py-2 mt-2 shadow-sm text-left">Ajouter Formation</ButtonUI>
                </div>
                <div className="bg-white p-4 rounded-xl border border-slate-200 text-left">
@@ -781,11 +837,23 @@ export default function App() {
               <div className="flex justify-between items-center mb-4 text-[#2E86C1] text-left"><div className="flex items-center gap-3 text-left"><Briefcase size={24} /><h2 className="text-lg font-bold uppercase text-left">Expériences</h2></div><ButtonUI onClick={addExperience} variant="outline" className="px-3 py-1 text-xs text-left"><Plus size={14} /> Ajouter</ButtonUI></div>
               {(cvData.experiences || []).map((exp, index) => (
                 <div key={exp.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm relative group mb-4 text-left">
-                  <div className="absolute top-4 right-4 flex gap-1 text-left"><button onClick={() => moveExperience(index, 'up')} disabled={index===0} className="text-slate-300 hover:text-blue-500 text-left"><ChevronUp size={16}/></button><button onClick={() => moveExperience(index, 'down')} disabled={index === cvData.experiences.length - 1} className="p-1 hover:bg-slate-100 rounded disabled:opacity-20 text-left"><ChevronDown size={16}/></button><button onClick={() => removeExperience(exp.id)} className="text-red-300 hover:text-red-500 text-left"><Trash2 size={16}/></button></div>
+                  <div className="absolute top-4 right-4 flex gap-1 text-left">
+                    <button onClick={() => moveItem('experiences', index, 'up')} disabled={index === 0} className="text-slate-300 hover:text-blue-500 disabled:opacity-20 transition-colors"><ChevronUp size={18}/></button>
+                    <button onClick={() => moveItem('experiences', index, 'down')} disabled={index === cvData.experiences.length - 1} className="text-slate-300 hover:text-blue-500 disabled:opacity-20 transition-colors"><ChevronDown size={18}/></button>
+                    <button onClick={() => removeExperience(exp.id)} className="text-red-300 hover:text-red-500 ml-1"><Trash2 size={16}/></button>
+                  </div>
                   <div className="mb-4 text-left">
                     <span className="text-xs font-bold text-[#333333] uppercase block mb-2 text-left">Logo Client (En couleur)</span>
                     <div className="flex items-center gap-4 text-left">
-                      <LogoSelectorUI label="" onSelect={(o) => updateExperience(exp.id, 'client_logo', o.src)} />
+                      <DropZoneUI 
+                        onFile={(file) => {
+                          const reader = new FileReader();
+                          reader.onload = (ev) => updateExperience(exp.id, 'client_logo', ev.target.result);
+                          reader.readAsDataURL(file);
+                        }} 
+                        label="Charger logo client" 
+                        className="flex-1" 
+                      />
                       {exp.client_logo && <img src={exp.client_logo} onError={handleImageError} className="w-12 h-12 object-contain text-left" alt="" />}
                     </div>
                   </div>
@@ -830,7 +898,7 @@ export default function App() {
                  <h2 className="text-3xl font-black text-[#333333] uppercase mb-1 tracking-wide font-montserrat opacity-90 text-left">{String(cvData.profile.current_role)}</h2>
                  <div className="text-lg text-[#666666] font-medium uppercase tracking-widest mb-10 border-l-4 border-[#2E86C1] pl-4 text-left">{String(cvData.profile.main_tech)}</div>
               </div>
-              <div className="flex-1 flex flex-col justify-start pt-0 pb-12 overflow-hidden text-center">
+              <div className="flex-1 flex flex-col justify-start pt-0 pb-12 overflow-hidden text-center text-center">
                   <div className="px-24 mb-10 relative z-10 flex flex-col items-center text-center">
                      <p className="text-lg text-[#333333] leading-relaxed italic border-t border-slate-100 pt-8 text-center break-words w-full max-w-[160mm]" dangerouslySetInnerHTML={{__html: formatTextForPreview(`"${cvData.profile.summary}"`)}}></p>
                   </div>
@@ -855,27 +923,27 @@ export default function App() {
             <A4Page>
               <CornerTriangle customLogo={cvData.smileLogo} />
               <HeaderSmall isAnonymous={cvData.isAnonymous} profile={cvData.profile} role={cvData.profile.current_role} logo={cvData.smileLogo} />
-              <div className="grid grid-cols-12 gap-10 mt-20 h-full px-12 flex-1 pb-32 overflow-hidden print:overflow-visible text-left">
-                  <div className="col-span-5 border-r border-slate-100 pr-8 text-left">
+              <div className="grid grid-cols-12 gap-10 mt-20 h-full px-12 flex-1 pb-32 overflow-hidden print:overflow-visible text-left text-left">
+                  <div className="col-span-5 border-r border-slate-100 pr-8 text-left text-left">
                     <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-8 flex items-center gap-2 text-left"><Cpu size={20}/> Mes Compétences</h3>
                     <div className="space-y-8 text-left">{Object.entries(cvData.skills_categories || {}).map(([cat, skills]) => (<div key={cat}><h4 className="text-[10px] font-bold text-[#999999] uppercase tracking-widest border-b border-slate-100 pb-2 mb-3 text-left">{cat}</h4><div className="space-y-3 text-left">{(skills || []).map((skill, i) => (<div key={i} className="flex items-center justify-between text-left"><span className="text-xs font-bold text-[#333333] uppercase text-left">{String(skill.name)}</span><HexagonRating score={skill.rating} /></div>))}</div></div>))}</div>
                   </div>
-                  <div className="col-span-7 flex flex-col gap-10 text-left">
+                  <div className="col-span-7 flex flex-col gap-10 text-left text-left">
                     {cvData.showSecteur && (cvData.connaissances_sectorielles || []).length > 0 && (<section className="text-left"><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2 text-left"><Factory size={20}/> Connaissances Sectorielles</h3><div className="flex flex-wrap gap-2 text-left">{(cvData.connaissances_sectorielles || []).map((s, i) => (<span key={i} className="border-2 border-[#2E86C1] text-[#2E86C1] text-[10px] font-black px-3 py-1 rounded uppercase tracking-wider text-left">{String(s)}</span>))}</div></section>)}
                     {cvData.showCertif && (cvData.certifications || []).length > 0 && (
-                      <section className="text-left">
+                      <section className="text-left text-left">
                         <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2 text-left"><Award size={20}/> Certifications</h3>
                         <div className="grid grid-cols-2 gap-4 text-left">
                           {cvData.certifications.map((c, i) => (
                             <div key={i} className="flex items-center gap-3 bg-slate-50 p-2 rounded text-left">
-                              {c.logo && c.logo !== "null" && <img src={c.logo} onError={handleImageError} className="w-8 h-8 object-contain text-left" alt={String(c.name)} />}
-                              <span className="text-[10px] font-bold text-slate-700 uppercase leading-tight text-left">{String(c.name)}</span>
+                              {c.logo && c.logo !== "null" && <img src={c.logo} onError={handleImageError} className="w-8 h-8 object-contain text-left text-left" alt={String(c.name)} />}
+                              <span className="text-[10px] font-bold text-slate-700 uppercase leading-tight text-left text-left">{String(c.name)}</span>
                             </div>
                           ))}
                         </div>
                       </section>
                     )}
-                    <section className="text-left"><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-6 flex items-center gap-2 text-left"><GraduationCap size={20}/> Ma Formation</h3><div className="space-y-4 text-left">{(cvData.education || []).map((edu, i) => (<div key={i} className="border-l-2 border-slate-100 pl-4 text-left"><span className="text-[10px] font-bold text-[#999999] block mb-1 text-left">{String(edu.year)}</span><h4 className="text-xs font-bold text-[#333333] uppercase leading-tight text-left">{String(edu.degree)}</h4><span className="text-[9px] text-[#2E86C1] font-medium uppercase text-left">{String(edu.location)}</span></div>))}</div></section>
+                    <section className="text-left text-left"><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-6 flex items-center gap-2 text-left"><GraduationCap size={20}/> Ma Formation</h3><div className="space-y-4 text-left">{(cvData.education || []).map((edu, i) => (<div key={i} className="border-l-2 border-slate-100 pl-4 text-left"><span className="text-[10px] font-bold text-[#999999] block mb-1 text-left">{String(edu.year)}</span><h4 className="text-xs font-bold text-[#333333] uppercase leading-tight text-left">{String(edu.degree)}</h4><span className="text-[9px] text-[#2E86C1] font-medium uppercase text-left">{String(edu.location)}</span></div>))}</div></section>
                   </div>
               </div>
               <Footer />
@@ -885,8 +953,8 @@ export default function App() {
               <A4Page key={pageIndex}>
                 <CornerTriangle customLogo={cvData.smileLogo} />
                 <HeaderSmall isAnonymous={cvData.isAnonymous} profile={cvData.profile} role={cvData.profile.current_role} logo={cvData.smileLogo} />
-                <div className="flex justify-between items-end border-b border-slate-200 pb-2 mb-8 mt-16 px-12 flex-shrink-0 text-left"><h3 className="text-xl font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat">{pageIndex === 0 ? "Mes dernières expériences" : "Expériences (Suite)"}</h3><span className="text-[10px] font-bold text-[#666666] uppercase">Références</span></div>
-                <div className="flex-1 px-12 pb-32 overflow-hidden print:overflow-visible text-left">{chunk.map((exp) => (<ExperienceItem key={exp.id} exp={exp} />))}</div>
+                <div className="flex justify-between items-end border-b border-slate-200 pb-2 mb-8 mt-16 px-12 flex-shrink-0 text-left text-left"><h3 className="text-xl font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat">{pageIndex === 0 ? "Mes dernières expériences" : "Expériences (Suite)"}</h3><span className="text-[10px] font-bold text-[#666666] uppercase">Références</span></div>
+                <div className="flex-1 px-12 pb-32 overflow-hidden print:overflow-visible text-left text-left">{chunk.map((exp) => (<ExperienceItem key={exp.id} exp={exp} />))}</div>
                 <Footer />
               </A4Page>
             ))}
