@@ -18,19 +18,10 @@ const THEME = {
   bg: "#FFFFFF"
 };
 
-const getApiKey = () => {
-  try {
-    // @ts-ignore
-    const envKey = import.meta.env?.VITE_GOOGLE_API_KEY;
-    if (envKey && envKey !== "") return envKey;
-  } catch (e) {}
-  return "";
-};
-
-const apiKey = getApiKey();
+// Environnement Gemini API
+const apiKey = ""; 
 
 const getIconUrl = (slug) => `https://cdn.simpleicons.org/${String(slug || '').toLowerCase().replace(/\s+/g, '')}`;
-const getBrandIconUrl = (slug) => `https://cdn.simpleicons.org/${String(slug || '').toLowerCase().replace(/\s+/g, '')}`;
 const getClearbitUrl = (domain) => `https://logo.clearbit.com/${String(domain || '').trim()}`;
 
 // --- DONNÉES PAR DÉFAUT ---
@@ -112,12 +103,12 @@ const handleImageError = (e) => {
 
 const ModalUI = ({ title, children, onClose, onConfirm, confirmText = "Confirmer", icon = <AlertCircle size={32} />, danger = true }) => (
   <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 text-left">
-    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-      <div className="p-6 text-center">
+    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 text-left">
+      <div className="p-6 text-left">
         <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${danger ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-[#2E86C1]'}`}>
           {icon}
         </div>
-        <h3 className="text-xl font-bold text-slate-900 mb-2">{String(title)}</h3>
+        <h3 className="text-xl font-bold text-slate-900 mb-2 text-center">{String(title)}</h3>
         <div className="text-sm text-slate-500 mb-8 text-left">{children}</div>
         <div className="flex gap-3">
           {onClose && <button onClick={onClose} className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-bold transition-colors">Annuler</button>}
@@ -148,8 +139,8 @@ const CornerTriangle = ({ customLogo }) => (
 const HeaderSmall = ({ isAnonymous, profile, role, logo }) => {
   const nameDisplay = isAnonymous ? `${profile.firstname?.[0] || ''}${profile.lastname?.[0] || ''}` : `${profile.firstname} ${profile.lastname}`;
   return (
-    <div className="flex justify-between items-start border-b-2 border-[#2E86C1] pb-4 pt-10 px-12 mt-8 flex-shrink-0">
-      <div className="w-12 h-12 flex items-center justify-center">
+    <div className="flex justify-between items-start border-b-2 border-[#2E86C1] pb-4 pt-10 px-12 mt-8 flex-shrink-0 text-left">
+      <div className="w-12 h-12 flex items-center justify-center text-left">
          {logo && logo !== "null" && <img src={logo} onError={handleImageError} className="max-w-full max-h-full object-contain brightness-0 invert" alt="Logo" />}
       </div>
       <div className="text-right">
@@ -162,7 +153,7 @@ const HeaderSmall = ({ isAnonymous, profile, role, logo }) => {
 
 const Footer = () => (
   <div className="absolute bottom-8 left-12 right-12 border-t border-slate-100 pt-4 flex justify-between items-center bg-white flex-shrink-0 text-[8px] font-bold">
-    <div className="text-[#999999] uppercase tracking-widest">Smile - IT is Open <span className="text-[#2E86C1] ml-1">CRÉATEUR D'EXPÉRIENCE DIGITALE OUVERTE</span></div>
+    <div className="text-[#999999] uppercase tracking-widest text-left">Smile - IT is Open <span className="text-[#2E86C1] ml-1">CRÉATEUR D'EXPÉRIENCE DIGITALE OUVERTE</span></div>
     <div className="text-[#333333]">#MadeWithSmile</div>
   </div>
 );
@@ -179,7 +170,7 @@ const HexagonRating = ({ score, onChange }) => (
 
 const ExperienceItem = ({ exp }) => (
   <div className="grid grid-cols-12 gap-6 mb-8 break-inside-avoid print:break-inside-avoid text-left">
-    <div className="col-span-2 flex flex-col items-center pt-2">
+    <div className="col-span-2 flex flex-col items-center pt-2 text-left">
       {exp.client_logo && exp.client_logo !== "null" && (
         <div className="w-16 h-16 rounded-lg border border-slate-200 overflow-hidden flex items-center justify-center bg-white mb-2 p-1">
           <img src={exp.client_logo} onError={handleImageError} className="max-w-full max-h-full object-contain" alt="Logo Client" />
@@ -205,7 +196,7 @@ const ExperienceItem = ({ exp }) => (
          </div>
          <div className="text-left">
             <h5 className="text-[10px] font-bold text-[#999999] uppercase mb-1">Environnement</h5>
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-1 text-left">
               {(Array.isArray(exp.tech_stack) ? exp.tech_stack : []).map((t, i) => (
                 <span key={i} className="text-xs font-bold text-[#2E86C1] bg-blue-50 px-2 py-0.5 rounded">{String(t)}</span>
               ))}
@@ -233,7 +224,7 @@ const ButtonUI = ({ children, onClick, variant = "primary", className = "", disa
 
 const InputUI = ({ label, value, onChange, placeholder, maxLength, type = "text" }) => (
   <div className="mb-4 text-left">
-    <div className="flex justify-between items-baseline mb-1">
+    <div className="flex justify-between items-baseline mb-1 text-left">
       <label className="text-xs font-bold text-[#333333] uppercase tracking-wide">{String(label)}</label>
       {maxLength && <span className={`text-[10px] ${String(value || '').length > maxLength ? 'text-red-500 font-bold' : 'text-slate-400'}`}>{String(value || '').length} / {maxLength}</span>}
     </div>
@@ -293,28 +284,43 @@ const RichTextareaUI = ({ label, value, onChange, placeholder, maxLength }) => {
 
   return (
     <div className="mb-6 text-left">
-      <div className="flex justify-between items-end mb-1">
+      <div className="flex justify-between items-end mb-1 text-left">
         <label className="text-xs font-bold text-[#333333] uppercase block">{String(label)}</label>
         <span className={`text-[9px] font-bold ${currentLines >= 30 ? 'text-red-500' : 'text-slate-400'}`}>{currentLines} / 30 lignes</span>
       </div>
       <div className="bg-slate-50 border border-slate-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-[#2E86C1] transition-all shadow-sm">
-        <div className="flex items-center gap-1 bg-white px-2 py-1.5 border-b border-slate-200">
-          <ButtonUI variant="toolbar" onClick={() => insertTag('b')} title="Gras"><Bold size={12}/></ButtonUI>
-          <ButtonUI variant="toolbar" onClick={() => insertTag('list')} title="Puce"><List size={12}/></ButtonUI>
-          <div className="w-px h-3 bg-slate-300 mx-1"></div>
-          <span className="text-[9px] text-slate-400 font-bold mr-1 uppercase tracking-tighter">IA:</span>
-          {[{ name: 'ChatGPT', url: 'https://chat.openai.com/', icon: 'openai' },
-            { name: 'Gemini', url: 'https://gemini.google.com/', icon: 'googlegemini' },
-            { name: 'Claude', url: 'https://claude.ai/', icon: 'anthropic/000000' },
-            { name: 'Mistral', url: 'https://chat.mistral.ai/', icon: 'mistral' }].map((tool) => (
-            <button key={tool.name} onClick={() => copyToClipboard(tool.url)} className="p-1 hover:bg-slate-100 rounded transition-all hover:scale-110 grayscale hover:grayscale-0 opacity-70 hover:opacity-100" title={`Copier & Ouvrir ${tool.name}`}>
-              <img src={getBrandIconUrl(tool.icon)} onError={handleImageError} className="w-4 h-4" alt={tool.name} />
-            </button>
-          ))}
+        <div className="flex flex-col bg-white border-b border-slate-200 text-left">
+          <div className="px-3 py-1 bg-blue-50/50 border-b border-slate-50">
+            <p className="text-[9px] font-bold text-[#2E86C1] flex items-center gap-1 uppercase tracking-tight text-left">
+              <Sparkles size={10}/> Cliquez sur l'IA, puis faites simplement COLLER dans la fenêtre qui s'ouvre.
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-1 px-2 py-1.5 text-left">
+            <ButtonUI variant="toolbar" onClick={() => insertTag('b')} title="Gras"><Bold size={12}/></ButtonUI>
+            <ButtonUI variant="toolbar" onClick={() => insertTag('list')} title="Puce"><List size={12}/></ButtonUI>
+            <div className="w-px h-3 bg-slate-300 mx-1"></div>
+            <span className="text-[9px] text-slate-400 font-bold mr-1 uppercase tracking-tighter">IA:</span>
+            {[
+              { name: 'ChatGPT', url: 'https://chat.openai.com/', domain: 'openai.com' },
+              { name: 'Gemini', url: 'https://gemini.google.com/', icon: 'googlegemini' },
+              { name: 'Claude', url: 'https://claude.ai/', icon: 'anthropic' },
+              { name: 'Mistral', url: 'https://chat.mistral.ai/', domain: 'mistral.ai' }
+            ].map((tool) => (
+              <button key={tool.name} onClick={() => copyToClipboard(tool.url)} className="p-1 hover:bg-slate-100 rounded transition-all hover:scale-110 grayscale hover:grayscale-0 opacity-70 hover:opacity-100 text-left" title={`Copier & Ouvrir ${tool.name}`}>
+                <img 
+                  src={tool.domain ? `https://www.google.com/s2/favicons?domain=${tool.domain}&sz=64` : `https://cdn.simpleicons.org/${tool.icon}`} 
+                  onError={handleImageError} 
+                  className="w-4 h-4 object-contain" 
+                  alt={tool.name} 
+                />
+              </button>
+            ))}
+          </div>
         </div>
         <textarea 
           ref={textareaRef} 
-          className="w-full px-4 py-3 bg-transparent text-sm h-32 resize-none focus:outline-none border-none shadow-inner" 
+          className="w-full px-4 py-3 bg-transparent text-sm h-32 resize-none focus:outline-none border-none shadow-inner text-left" 
           value={value || ''} 
           onChange={handleTextChange} 
           maxLength={maxLength} 
@@ -343,20 +349,18 @@ const DropZoneUI = ({ onFile, label = "Déposez une image", icon = <Upload size=
   );
 };
 
-const LogoSelectorUI = ({ onSelect, label = "Ajouter un logo" }) => {
+// --- MÉTHODE MIXTE HARMONISÉE AVEC SUGGESTIONS ---
+const LogoSelectorUI = ({ onSelect, label, suggestions = [] }) => {
   const [search, setSearch] = useState("");
   
-  const handleSearch = () => {
-    const query = search.trim();
+  const handleSelect = (query, isCustom = false) => {
     if (!query) return;
-    
     let finalSrc = "";
     if (query.includes('.')) {
       finalSrc = getClearbitUrl(query);
     } else {
       finalSrc = getIconUrl(query);
     }
-    
     onSelect({ type: 'url', src: finalSrc, name: query });
     setSearch("");
   };
@@ -370,23 +374,50 @@ const LogoSelectorUI = ({ onSelect, label = "Ajouter un logo" }) => {
   };
 
   return (
-    <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 shadow-inner text-left">
-      {label && <label className="text-[10px] font-bold text-[#333333] uppercase block mb-2">{String(label)}</label>}
-      <div className="flex gap-2 mb-2">
-        <div className="relative flex-1">
+    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-inner text-left mb-4">
+      {label && <label className="text-[10px] font-black text-slate-500 uppercase block mb-3 tracking-widest">{String(label)}</label>}
+      
+      {/* SELECTION RAPIDE (COMME LES OUTILS IA) */}
+      {suggestions.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-4 bg-white p-2 rounded-lg border border-slate-100 shadow-sm">
+          {suggestions.map((slug) => (
+            <button 
+              key={slug} 
+              onClick={() => handleSelect(slug)} 
+              className="p-1.5 hover:bg-blue-50 rounded-md transition-all group relative"
+              title={slug}
+            >
+              <img 
+                src={getIconUrl(slug)} 
+                onError={handleImageError} 
+                className="w-5 h-5 object-contain grayscale group-hover:grayscale-0 transition-all opacity-70 group-hover:opacity-100 group-hover:scale-110" 
+                alt={slug} 
+              />
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="flex gap-2 mb-3 text-left">
+        <div className="relative flex-1 text-left">
           <input 
-            className="w-full pl-7 pr-2 py-1.5 bg-white border border-slate-300 rounded text-xs" 
-            placeholder="Nom (PHP) ou Domaine (google.com)" 
+            className="w-full pl-8 pr-2 py-2 bg-white border border-slate-300 rounded-lg text-xs text-left focus:ring-2 focus:ring-[#2E86C1] outline-none transition-all" 
+            placeholder="Nom (ex: drupal) ou Domaine (ex: google.com)" 
             value={search} 
             onChange={(e) => setSearch(e.target.value)} 
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()} 
+            onKeyDown={(e) => e.key === 'Enter' && handleSelect(search)} 
           />
-          <Search className="absolute left-2 top-2 text-slate-400" size={12} />
+          <Search className="absolute left-2.5 top-2.5 text-slate-400" size={14} />
         </div>
-        <ButtonUI variant="primary" className="px-2 py-1 text-xs h-auto" onClick={handleSearch}><Plus size={12}/></ButtonUI>
+        <ButtonUI variant="primary" className="px-3 h-auto" onClick={() => handleSelect(search)}><Plus size={14}/></ButtonUI>
       </div>
-      <p className="text-[9px] text-slate-400 mb-2 font-medium italic text-left">Logo non trouvé ? Téléchargez-le manuellement ci-dessous.</p>
-      <DropZoneUI onFile={handleFile} label="Glisser image" icon={<Upload size={14}/>} />
+      
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center" aria-hidden="true"><div className="w-full border-t border-slate-200"></div></div>
+        <div className="relative flex justify-center text-[8px] font-bold uppercase tracking-tighter"><span className="bg-slate-50 px-2 text-slate-400">Ou charger un fichier</span></div>
+      </div>
+
+      <DropZoneUI onFile={handleFile} label="Glisser image personnalisée" icon={<Upload size={14}/>} className="mt-3 py-4" />
     </div>
   );
 };
@@ -442,7 +473,6 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [cvData]);
 
-  // ANONYMISATION DU NOM DE FICHIER
   const getFilenameBase = () => {
     const year = new Date().getFullYear();
     if (cvData.isAnonymous) return `CV_Anonyme_${year}`;
@@ -483,10 +513,8 @@ export default function App() {
     setImportError(null);
     try {
       let rawText = await extractTextFromPDF(pendingFile);
-      // OPTIMISATION : Nettoyage du texte source pour éviter les coupures
       rawText = rawText.replace(/\s+/g, ' ').trim();
       
-      // OPTIMISATION : Prompt renforcé pour l'exhaustivité
       const systemPrompt = `Tu es un expert en analyse de CV. Tu reçois du texte extrait d'un PDF. 
       TA MISSION : Transformer ce texte en un JSON valide.
       RÈGLES D'EXTRACTION CRITIQUES :
@@ -572,7 +600,6 @@ export default function App() {
   const removeSecteur = (idx) => setCvData(p => ({ ...p, connaissances_sectorielles: p.connaissances_sectorielles.filter((_, i) => i !== idx) }));
   
   const addCertification = (o) => setCvData(p => ({ ...p, certifications: [...p.certifications, { name: o.name, logo: o.src }] }));
-  const updateCertification = (idx, field, val) => { const certs = [...cvData.certifications]; certs[idx][field] = val; setCvData({ ...cvData, certifications: certs }); };
   const removeCertification = (idx) => setCvData(p => ({ ...p, certifications: p.certifications.filter((_, i) => i !== idx) }));
   
   const updateEducation = (i, f, v) => { const n = [...cvData.education]; n[i][f] = v; setCvData(p => ({ ...p, education: n })); };
@@ -596,7 +623,6 @@ export default function App() {
   const downloadJSON = () => { const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(cvData)); a.download = `${getFilenameBase()}.json`; a.click(); };
   const uploadJSON = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (ev) => { try { setCvData(JSON.parse(String(ev.target.result))); } catch (err) { } }; reader.readAsText(file); };
   
-  // ANONYMISATION DE L'EMAIL
   const handleEmailSend = () => {
     const namePart = cvData.isAnonymous ? "Anonyme" : `${cvData.profile.firstname} ${cvData.profile.lastname}`;
     const subject = encodeURIComponent(`CV Smile : ${namePart}`);
@@ -605,6 +631,8 @@ export default function App() {
   };
 
   const experiencePages = paginateExperiences(cvData.experiences);
+  const totalPages = 2 + experiencePages.length; 
+  const scaledContentHeight = (totalPages * 1122.5 * zoom) + ((totalPages - 1) * 40 * zoom) + (20 * zoom);
 
   const handlePrint = () => {
       const printWindow = window.open('', '_blank');
@@ -645,7 +673,7 @@ export default function App() {
           icon={<Sparkles size={32} />}
           danger={false}
         >
-          <div className="space-y-3 text-left text-left text-left">
+          <div className="space-y-3 text-left">
             <p>Le contenu de votre fichier sera envoyé à l'intelligence artificielle <strong>Google Gemini</strong>.</p>
             <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 text-[11px] text-blue-700">
               Note : Les données sont traitées de manière éphémère. Google ne les utilise pas pour l'entraînement de ses modèles.
@@ -667,10 +695,10 @@ export default function App() {
       )}
 
       {/* FORMULAIRE */}
-      <div className="w-full md:w-[500px] bg-white border-r border-slate-200 flex flex-col h-full z-10 shadow-xl print:hidden">
+      <div className="w-full md:w-[500px] bg-white border-r border-slate-200 flex flex-col h-full z-10 shadow-xl print:hidden text-left">
         
-        <div className="p-4 bg-slate-50/50 border-b border-slate-200 space-y-4">
-          <div className="flex gap-2 text-left text-left text-left">
+        <div className="p-4 bg-slate-50/50 border-b border-slate-200 space-y-4 text-left">
+          <div className="flex gap-2 text-left">
             <button className="flex-1 bg-[#2E86C1] hover:bg-[#2573a7] text-white py-3 rounded-xl font-bold flex items-center justify-center gap-3 shadow-md transition-all uppercase text-sm" onClick={() => pdfInputRef.current.click()} disabled={isImporting}>
               {isImporting ? <Loader2 size={18} className="animate-spin text-white"/> : <FileSearch size={18} className="text-white"/>}
               <span className="drop-shadow-sm">{isImporting ? "Analyse..." : "Import PDF"}</span>
@@ -681,34 +709,37 @@ export default function App() {
             <input type="file" ref={pdfInputRef} className="hidden" accept=".pdf" onChange={handlePDFImport} />
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm flex items-center justify-between px-2 py-4 text-left text-left text-left">
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm flex items-center justify-between px-2 py-4 text-left">
             <button className="flex-1 flex flex-col items-center gap-1.5 group" onClick={() => setShowResetConfirm(true)}>
               <RefreshCw size={22} className="text-slate-400 group-hover:text-[#2E86C1] transition-colors"/>
-              <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">Refresh</span>
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter text-left">Refresh</span>
             </button>
             <div className="w-px h-10 bg-slate-100"></div>
             <button className="flex-1 flex flex-col items-center gap-1.5 group" onClick={downloadJSON}>
               <Save size={22} className="text-slate-400 group-hover:text-[#2E86C1] transition-colors"/>
-              <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">Save</span>
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter text-left">Save</span>
             </button>
             <div className="w-px h-10 bg-slate-100"></div>
             <button className="flex-1 flex flex-col items-center gap-1.5 group" onClick={() => jsonInputRef.current.click()}>
               <FolderOpen size={22} className="text-slate-400 group-hover:text-[#2E86C1] transition-colors"/>
-              <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">Upload</span>
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter text-left">Upload</span>
               <input type="file" ref={jsonInputRef} className="hidden" accept=".json" onChange={uploadJSON} />
             </button>
             <div className="w-px h-10 bg-slate-100"></div>
             <button className="flex-1 flex flex-col items-center gap-1.5 group" onClick={handleEmailSend}>
               <Mail size={22} className="text-slate-400 group-hover:text-[#2E86C1] transition-colors"/>
-              <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter text-left text-left">Send</span>
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter text-left">Send</span>
             </button>
           </div>
         </div>
 
-        <div className="p-6 border-b border-slate-100 bg-white sticky top-0 z-20">
-          <div className="flex justify-between items-center mb-6 text-left"><h1 className="font-bold text-xl text-[#2E86C1]">Smile Editor</h1><span className="text-xs font-bold text-slate-400">Étape {step} / 4</span></div>
-          <div className="flex gap-2 text-left text-left text-left">
-            <button className="flex-1 bg-slate-100 text-slate-600 hover:bg-slate-200 px-4 py-2 rounded-lg font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed" onClick={() => setStep(s => Math.max(1, s - 1))} disabled={step === 1}><ArrowLeft size={16} /></button>
+        <div className="p-6 border-b border-slate-100 bg-white sticky top-0 z-20 text-left">
+          <div className="flex justify-between items-center mb-6 text-left">
+            <h1 className="font-bold text-xl text-[#2E86C1] text-left">Smile Editor</h1>
+            <span className="text-xs font-bold text-slate-400 text-left">Étape {step} / 4</span>
+          </div>
+          <div className="flex gap-2 text-left">
+            <button className="flex-1 bg-slate-100 text-slate-600 hover:bg-slate-200 px-4 py-2 rounded-lg font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed text-left" onClick={() => setStep(s => Math.max(1, s - 1))} disabled={step === 1}><ArrowLeft size={16} /></button>
             {step < 4 ? (
               <button className="flex-[2] bg-[#2E86C1] text-white hover:bg-[#2573a7] px-4 py-2 rounded-lg font-bold text-sm shadow-md transition-all flex items-center gap-2 justify-center" onClick={() => setStep(s => Math.min(4, s + 1))}>Suivant <ArrowRight size={16} /></button>
             ) : (
@@ -717,191 +748,216 @@ export default function App() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-8 custom-scrollbar text-left text-left text-left">
-           {step === 1 && (
-            <div className="space-y-6 animate-in slide-in-from-right transition-all">
-              <div className="flex items-center gap-3 mb-4 text-[#2E86C1] text-left text-left text-left"><User size={24} /><h2 className="text-lg font-bold uppercase text-left text-left text-left">Profil</h2></div>
-              <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="flex-1 overflow-y-auto px-6 py-8 custom-scrollbar text-left">
+            {step === 1 && (
+            <div className="space-y-6 animate-in slide-in-from-right transition-all text-left">
+              <div className="flex items-center gap-3 mb-4 text-[#2E86C1] text-left"><User size={24} /><h2 className="text-lg font-bold uppercase text-left">Profil</h2></div>
+              <div className="grid grid-cols-2 gap-4 mb-6 text-left">
                 <div className="p-3 border border-blue-100 bg-blue-50/50 rounded-lg flex flex-col gap-2 text-left">
-                  <span className="text-[10px] font-bold text-[#2E86C1] uppercase">Logo Entreprise (Réservé Smile Group)</span>
-                  <DropZoneUI onFile={handleSmileLogo} label={cvData.smileLogo ? "Changer Logo" : "Charger Logo"} className="h-24 bg-white" />
+                  {/* AJOUT ICI DU TEXTE (interne smile) */}
+                  <span className="text-[10px] font-bold text-[#2E86C1] uppercase text-left">Logo Entreprise (interne smile)</span>
+                  <DropZoneUI onFile={handleSmileLogo} label={cvData.smileLogo ? "Changer Logo" : "Charger Logo"} className="h-24 bg-white text-left" />
                 </div>
                 <div className="p-3 border border-slate-200 bg-slate-50 rounded-lg flex flex-col gap-2 text-left">
-                  <span className="text-[10px] font-bold text-slate-600 uppercase flex items-center justify-between text-left text-left text-left">Photo Profil</span>
-                  <DropZoneUI onFile={handlePhotoUpload} label={cvData.profile.photo ? "Changer" : "Glisser-déposer ou charger votre photo"} icon={<User size={16}/>} className="h-24 bg-white text-left text-left text-left" />
+                  <span className="text-[10px] font-bold text-slate-600 uppercase flex items-center justify-between text-left">Photo Profil</span>
+                  <DropZoneUI onFile={handlePhotoUpload} label={cvData.profile.photo ? "Changer" : "Glisser-déposer photo"} icon={<User size={16}/>} className="h-24 bg-white text-left" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4"><InputUI label="Prénom" value={cvData.profile.firstname} onChange={(v) => handleProfileChange('firstname', v)} /><InputUI label="NOM" value={cvData.profile.lastname} onChange={(v) => handleProfileChange('lastname', v)} /></div>
+              <div className="grid grid-cols-2 gap-4 text-left">
+                <InputUI label="Prénom" value={cvData.profile.firstname} onChange={(v) => handleProfileChange('firstname', v)} />
+                <InputUI label="NOM" value={cvData.profile.lastname} onChange={(v) => handleProfileChange('lastname', v)} />
+              </div>
               <InputUI label="Poste Actuel" value={cvData.profile.current_role} onChange={(v) => handleProfileChange('current_role', v)} />
-              <div className="grid grid-cols-2 gap-4"><InputUI label="Années XP" value={cvData.profile.years_experience} onChange={(v) => handleProfileChange('years_experience', v)} /><InputUI label="Techno Principale" value={cvData.profile.main_tech} onChange={(v) => handleProfileChange('main_tech', v)} /></div>
+              <div className="grid grid-cols-2 gap-4 text-left">
+                <InputUI label="Années XP" value={cvData.profile.years_experience} onChange={(v) => handleProfileChange('years_experience', v)} />
+                <InputUI label="Techno Principale" value={cvData.profile.main_tech} onChange={(v) => handleProfileChange('main_tech', v)} />
+              </div>
               <RichTextareaUI label="Bio / Résumé" value={cvData.profile.summary} onChange={(val) => handleProfileChange('summary', val)} maxLength={400} />
               
               <div className="bg-white p-4 rounded-xl border border-slate-200 text-left">
-                <label className="text-xs font-bold text-[#333333] uppercase block mb-3 text-left">Bandeau Technos (Sera en blanc)</label>
-                <LogoSelectorUI onSelect={addTechLogo} label="Ajouter" />
-                <div className="flex flex-wrap gap-2 mt-4 p-4 bg-slate-900 rounded-lg border border-slate-800 shadow-inner">
+                {/* MÉTHODE MIXTE : Technologies avec suggestions rapides */}
+                <LogoSelectorUI 
+                  onSelect={addTechLogo} 
+                  label="Technologies (Suggestions Smile)" 
+                  suggestions={['drupal', 'symfony', 'php', 'react', 'tailwindcss', 'docker', 'amazonwebservices', 'javascript', 'git', 'mysql']}
+                />
+                
+                <div className="flex flex-wrap gap-2 mt-4 p-4 bg-slate-900 rounded-lg border border-slate-800 shadow-inner text-left">
                   {cvData.profile.tech_logos.map((logo, i) => (
-                    <div key={i} className="relative group bg-white/10 p-2 rounded-md border border-white/5 transition-colors hover:bg-white/20 text-left text-left text-left text-left">
-                      <img src={logo.src} onError={handleImageError} className="w-6 h-6 object-contain brightness-0 invert" alt={logo.name} />
-                      <button onClick={() => removeTechLogo(i)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 shadow-sm"><X size={10} /></button>
+                    <div key={i} className="relative group bg-white/10 p-2 rounded-md border border-white/5 transition-colors hover:bg-white/20 text-left">
+                      <img src={logo.src} onError={handleImageError} className="w-6 h-6 object-contain brightness-0 invert text-left" alt={logo.name} />
+                      <button onClick={() => removeTechLogo(i)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 shadow-sm text-left"><X size={10} /></button>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* LIENS RGPD */}
-              <div className="flex flex-wrap gap-4 pt-4 border-t border-slate-100">
-                <button onClick={() => setShowPrivacyNotice(true)} className="text-[10px] text-slate-400 hover:text-[#2E86C1] flex items-center gap-1 uppercase font-bold transition-colors">
+              <div className="flex flex-wrap gap-4 pt-4 border-t border-slate-100 text-left">
+                <button onClick={() => setShowPrivacyNotice(true)} className="text-[10px] text-slate-400 hover:text-[#2E86C1] flex items-center gap-1 uppercase font-bold transition-colors text-left">
                   <Shield size={12}/> Notice de confidentialité
                 </button>
-                <button onClick={() => setShowPurgeConfirm(true)} className="text-[10px] text-slate-400 hover:text-red-500 flex items-center gap-1 uppercase font-bold transition-colors">
+                <button onClick={() => setShowPurgeConfirm(true)} className="text-[10px] text-slate-400 hover:text-red-500 flex items-center gap-1 uppercase font-bold transition-colors text-left">
                   <Trash2 size={12}/> Supprimer mes données
                 </button>
               </div>
             </div>
-           )}
+            )}
 
-           {step === 2 && (
+            {step === 2 && (
             <div className="space-y-6 animate-in slide-in-from-right transition-all text-left">
                 <div className="flex items-center gap-3 mb-4 text-[#2E86C1] text-left"><Hexagon size={24} /><h2 className="text-lg font-bold uppercase text-left">Soft Skills</h2></div>
                 {[0, 1, 2].map(i => (<InputUI key={i} label={`Hexagone #${i+1}`} value={cvData.soft_skills[i]} onChange={(v) => {const s = [...cvData.soft_skills]; s[i] = v; setCvData(p => ({...p, soft_skills: s}));}} />))}
             </div>
-           )}
+            )}
 
-           {step === 3 && (
-             <div className="space-y-8 animate-in slide-in-from-right transition-all text-left text-left text-left text-left">
-               <div className="flex items-center gap-3 mb-4 text-[#2E86C1] text-left"><GraduationCap size={24} /><h2 className="text-lg font-bold uppercase text-left text-left text-left text-left">Formation & Compétences</h2></div>
+            {step === 3 && (
+             <div className="space-y-8 animate-in slide-in-from-right transition-all text-left">
+               <div className="flex items-center gap-3 mb-4 text-[#2E86C1] text-left"><GraduationCap size={24} /><h2 className="text-lg font-bold uppercase text-left">Formation & Compétences</h2></div>
                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm text-left">
-                 <h3 className="text-[10px] font-black uppercase text-slate-400 mb-4 text-left">Secteur & Certifs (En couleur)</h3>
-                 <div className="flex gap-2 mb-4 text-left text-left text-left text-left">
-                   <input className="flex-1 px-3 py-1.5 border rounded text-xs text-left text-left text-left text-left" placeholder="Secteur..." value={newSecteur} onChange={e=>setNewSecteur(e.target.value)} onKeyDown={e=>e.key==='Enter' && addSecteur()} />
+                 <h3 className="text-[10px] font-black uppercase text-slate-400 mb-4 text-left">Secteur & Certifs</h3>
+                 <div className="flex gap-2 mb-4 text-left">
+                   <input className="flex-1 px-3 py-1.5 border rounded text-xs text-left" placeholder="Secteur..." value={newSecteur} onChange={e=>setNewSecteur(e.target.value)} onKeyDown={e=>e.key==='Enter' && addSecteur()} />
                    <ButtonUI variant="primary" className="p-1 h-auto text-left" onClick={addSecteur}><Plus size={10}/></ButtonUI>
                  </div>
-                 <div className="flex flex-wrap gap-1 mb-4 text-left">{(cvData.connaissances_sectorielles || []).map((s, i) => (<span key={i} className="bg-white text-[9px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 uppercase text-left text-left text-left">{s} <X size={10} className="cursor-pointer text-left text-left text-left" onClick={() => removeSecteur(i)}/></span>))}</div>
-                 <LogoSelectorUI onSelect={addCertification} label="Certifications" />
-                 <div className="mt-2 space-y-1 text-left text-left text-left text-left">
+                 <div className="flex flex-wrap gap-1 mb-4 text-left">{(cvData.connaissances_sectorielles || []).map((s, i) => (<span key={i} className="bg-white text-[9px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 uppercase text-left">{s} <X size={10} className="cursor-pointer text-left" onClick={() => removeSecteur(i)}/></span>))}</div>
+                 
+                 {/* MÉTHODE MIXTE : Certifications avec suggestions rapides */}
+                 <LogoSelectorUI 
+                   onSelect={addCertification} 
+                   label="Certifications (Suggestions Smile)" 
+                   suggestions={['drupal', 'scrumalliance', 'amazonwebservices', 'googlecloud', 'microsoftazure', 'symfony']}
+                 />
+                 
+                 <div className="mt-2 space-y-1 text-left">
                     {(cvData.certifications || []).map((c, i) => (
-                      <div key={i} className="flex items-center justify-between text-[10px] bg-white p-1.5 rounded border uppercase font-bold text-left gap-2 text-left text-left text-left text-left">
-                        {c.logo && <img src={c.logo} onError={handleImageError} className="w-5 h-5 object-contain text-left" alt="" />}
-                        <span className="flex-1 text-left text-left text-left text-left">{c.name}</span>
-                        <button onClick={()=>removeCertification(i)}><X size={10}/></button>
+                      <div key={i} className="flex items-center justify-between text-[10px] bg-white p-1.5 rounded border uppercase font-bold text-left gap-2">
+                        {c.logo && <img src={c.logo} onError={handleImageError} className="w-5 h-5 object-contain" alt="" />}
+                        <span className="flex-1 text-left">{c.name}</span>
+                        <button onClick={()=>removeCertification(i)} className="text-left"><X size={10}/></button>
                       </div>
                     ))}
                  </div>
                </div>
-               <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 shadow-sm text-left text-left text-left text-left text-left">
+               <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 shadow-sm text-left">
                  <h3 className="text-[10px] font-black uppercase text-slate-400 mb-4 text-left">Parcours Académique</h3>
                  {(cvData.education || []).map((edu, i) => (
                     <div key={i} className="bg-white p-3 rounded-lg border mb-3 relative group shadow-sm text-left">
-                      <div className="absolute top-2 right-2 flex gap-1 text-left text-left text-left">
-                        <button onClick={() => moveItem('education', i, 'up')} disabled={i === 0} className="text-slate-300 hover:text-blue-500 disabled:opacity-20 transition-colors text-left text-left text-left"><ChevronUp size={16}/></button>
-                        <button onClick={() => moveItem('education', i, 'down')} disabled={i === cvData.education.length - 1} className="text-slate-300 hover:text-blue-500 disabled:opacity-20 transition-colors text-left text-left text-left"><ChevronDown size={16}/></button>
-                        <button onClick={() => removeEducation(i)} className="text-slate-300 hover:text-red-500 ml-1 text-left text-left text-left"><Trash2 size={14}/></button>
+                      <div className="absolute top-2 right-2 flex gap-1 text-left">
+                        <button onClick={() => moveItem('education', i, 'up')} disabled={i === 0} className="text-slate-300 hover:text-blue-500 disabled:opacity-20 transition-colors text-left"><ChevronUp size={16}/></button>
+                        <button onClick={() => moveItem('education', i, 'down')} disabled={i === cvData.education.length - 1} className="text-slate-300 hover:text-blue-500 disabled:opacity-20 transition-colors text-left"><ChevronDown size={16}/></button>
+                        <button onClick={() => removeEducation(i)} className="text-slate-300 hover:text-red-500 ml-1 text-left"><Trash2 size={14}/></button>
                       </div>
                       <InputUI label="Diplôme" value={edu.degree} onChange={v => updateEducation(i, 'degree', v)} />
-                      <div className="grid grid-cols-2 gap-2 text-left text-left text-left text-left">
+                      <div className="grid grid-cols-2 gap-2 text-left">
                         <InputUI label="Année" value={edu.year} onChange={v => updateEducation(i, 'year', v)} />
                         <InputUI label="Lieu" value={edu.location} onChange={v => updateEducation(i, 'location', v)} />
                       </div>
                     </div>
                  ))}
-                 <ButtonUI onClick={addEducation} variant="secondary" className="w-full text-xs py-2 mt-2 shadow-sm text-left text-left text-left text-left">Ajouter Formation</ButtonUI>
+                 <ButtonUI onClick={addEducation} variant="secondary" className="w-full text-xs py-2 mt-2 shadow-sm text-left">Ajouter Formation</ButtonUI>
                </div>
                <div className="bg-white p-4 rounded-xl border border-slate-200 text-left">
                   <h3 className="text-[10px] font-black uppercase text-slate-400 mb-4 text-left">Niveau Compétences</h3>
-                  <div className="flex gap-2 mb-4 text-left text-left text-left text-left text-left"><input className="flex-1 px-3 py-2 border rounded text-xs text-left text-left text-left text-left text-left" placeholder="Catégorie (Outils...)" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addSkillCategory()} /><ButtonUI variant="outline" className="px-3 text-left text-left text-left text-left text-left" onClick={addSkillCategory}><Plus size={14}/></ButtonUI></div>
+                  <div className="flex gap-2 mb-4 text-left"><input className="flex-1 px-3 py-2 border rounded text-xs text-left" placeholder="Catégorie (Outils...)" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addSkillCategory()} /><ButtonUI variant="outline" className="px-3 text-left" onClick={addSkillCategory}><Plus size={14}/></ButtonUI></div>
                   {Object.entries(cvData.skills_categories).map(([cat, skills]) => (
-                    <div key={cat} className="mb-4 p-3 bg-slate-50 rounded-lg text-left text-left text-left text-left">
-                      <div className="flex justify-between items-center mb-2 text-left text-left text-left text-left text-left text-left text-left"><h4 className="text-xs font-bold uppercase text-left text-left text-left text-left text-left">{cat}</h4><button onClick={() => deleteCategory(cat)} className="text-red-300 text-left text-left text-left text-left"><Trash2 size={12}/></button></div>
-                      <div className="space-y-1 mb-3 text-left text-left text-left text-left">{(skills || []).map((skill, idx) => (<div key={idx} className="flex items-center justify-between text-xs bg-white p-1.5 rounded shadow-sm text-left text-left text-left text-left text-left text-left text-left"><input className="bg-transparent outline-none w-1/2 font-medium text-left" value={skill.name} onChange={(e) => updateSkillInCategory(cat, idx, 'name', e.target.value)} /><HexagonRating score={skill.rating} onChange={(r) => updateSkillInCategory(cat, idx, 'rating', r)} /></div>))}</div>
-                      <div className="flex gap-1 text-left text-left text-left text-left text-left"><input className="flex-1 px-2 py-1 text-[10px] border rounded text-left text-left text-left text-left text-left" placeholder="Ajouter..." value={newSkillsInput[cat]?.name || ''} onChange={(e) => updateNewSkillInput(cat, 'name', e.target.value)} /><ButtonUI variant="primary" className="p-1 h-auto text-left text-left text-left text-left" onClick={() => addSkillToCategory(cat)}><Plus size={10}/></ButtonUI></div>
+                    <div key={cat} className="mb-4 p-3 bg-slate-50 rounded-lg text-left">
+                      <div className="flex justify-between items-center mb-2 text-left"><h4 className="text-xs font-bold uppercase text-left">{cat}</h4><button onClick={() => deleteCategory(cat)} className="text-red-300 text-left"><Trash2 size={12}/></button></div>
+                      <div className="space-y-1 mb-3 text-left">{(skills || []).map((skill, idx) => (<div key={idx} className="flex items-center justify-between text-xs bg-white p-1.5 rounded shadow-sm text-left"><input className="bg-transparent outline-none w-1/2 font-medium text-left" value={skill.name} onChange={(e) => updateSkillInCategory(cat, idx, 'name', e.target.value)} /><HexagonRating score={skill.rating} onChange={(r) => updateSkillInCategory(cat, idx, 'rating', r)} /></div>))}</div>
+                      <div className="flex gap-1 text-left"><input className="flex-1 px-2 py-1 text-[10px] border rounded text-left" placeholder="Ajouter..." value={newSkillsInput[cat]?.name || ''} onChange={(e) => updateNewSkillInput(cat, 'name', e.target.value)} /><ButtonUI variant="primary" className="p-1 h-auto text-left" onClick={() => addSkillToCategory(cat)}><Plus size={10}/></ButtonUI></div>
                     </div>
                   ))}
                </div>
              </div>
-           )}
+            )}
 
-           {step === 4 && (
-            <div className="space-y-8 animate-in slide-in-from-right duration-300 text-left text-left text-left text-left">
-              <div className="flex justify-between items-center mb-4 text-[#2E86C1] text-left text-left text-left text-left text-left"><div className="flex items-center gap-3 text-left text-left text-left text-left text-left text-left"><Briefcase size={24} /><h2 className="text-lg font-bold uppercase text-left text-left text-left text-left text-left text-left">Expériences</h2></div><ButtonUI onClick={addExperience} variant="outline" className="px-3 py-1 text-xs text-left text-left text-left text-left"><Plus size={14} /> Ajouter</ButtonUI></div>
-              {(cvData.experiences || []).map((exp, index) => (
-                <div key={exp.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm relative group mb-4 text-left text-left text-left text-left text-left">
-                  <div className="absolute top-4 right-4 flex gap-1 text-left text-left text-left text-left">
-                    <button onClick={() => moveItem('experiences', index, 'up')} disabled={index === 0} className="text-slate-300 hover:text-blue-500 disabled:opacity-20 transition-colors text-left text-left text-left text-left"><ChevronUp size={18}/></button>
-                    <button onClick={() => moveItem('experiences', index, 'down')} disabled={index === cvData.experiences.length - 1} className="text-slate-300 hover:text-blue-500 disabled:opacity-20 transition-colors text-left text-left text-left text-left"><ChevronDown size={18}/></button>
-                    <button onClick={() => removeExperience(exp.id)} className="text-red-300 hover:text-red-500 ml-1 text-left text-left text-left text-left"><Trash2 size={16}/></button>
-                  </div>
-                  <div className="mb-4 text-left text-left text-left">
-                    <span className="text-xs font-bold text-[#333333] uppercase block mb-2 text-left text-left text-left text-left text-left">Logo Client (En couleur)</span>
-                    <div className="flex items-center gap-4 text-left text-left text-left text-left">
-                      <DropZoneUI 
-                        onFile={(file) => {
-                          const reader = new FileReader();
-                          reader.onload = (ev) => updateExperience(exp.id, 'client_logo', ev.target.result);
-                          reader.readAsDataURL(file);
-                        }} 
-                        label="Glisser ou charger logo client" 
-                        className="flex-1 text-left text-left text-left text-left" 
-                      />
-                      {exp.client_logo && <img src={exp.client_logo} onError={handleImageError} className="w-12 h-12 object-contain text-left text-left text-left text-left text-left" alt="" />}
-                    </div>
-                  </div>
-                  <div className="mb-4 flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-100 text-left text-left text-left text-left text-left"><div className="flex items-center gap-2 text-left text-left text-left text-left text-left"><FilePlus size={16} className="text-[#2E86C1] text-left text-left text-left text-left"/><span className="text-xs font-bold text-slate-600 text-left text-left text-left text-left">Saut de page manuel</span></div><button onClick={() => updateExperience(exp.id, 'forceNewPage', !exp.forceNewPage)} className="text-left text-left text-left text-left">{exp.forceNewPage ? <ToggleRight className="text-green-500 text-left text-left text-left"/> : <ToggleLeft className="text-slate-300 text-left text-left"/>}</button></div>
-                  <InputUI label="Client" value={exp.client_name} onChange={(v) => updateExperience(exp.id, 'client_name', v)} />
-                  <InputUI label="Rôle" value={exp.role} onChange={(v) => updateExperience(exp.id, 'role', v)} />
-                  <div className="grid grid-cols-2 gap-4 text-left text-left text-left text-left">
-                    <InputUI label="Période" value={exp.period} onChange={(v) => updateExperience(exp.id, 'period', v)} />
-                    <InputUI label="Environnement Tech" value={Array.isArray(exp.tech_stack) ? exp.tech_stack.join(', ') : exp.tech_stack} onChange={(v) => updateExperience(exp.id, 'tech_stack', String(v).split(',').map(s=>s.trim()))} />
-                  </div>
-                  <RichTextareaUI label="Objectif" value={exp.objective} onChange={(v) => updateExperience(exp.id, 'objective', v)} />
-                  <RichTextareaUI label="Réalisation" value={exp.phases} onChange={(v) => updateExperience(exp.id, 'phases', v)} />
-                </div>
-              ))}
-            </div>
-          )}
+            {step === 4 && (
+             <div className="space-y-8 animate-in slide-in-from-right duration-300 text-left">
+               <div className="flex justify-between items-center mb-4 text-[#2E86C1] text-left"><div className="flex items-center gap-3 text-left"><Briefcase size={24} /><h2 className="text-lg font-bold uppercase text-left">Expériences</h2></div><ButtonUI onClick={addExperience} variant="outline" className="px-3 py-1 text-xs text-left"><Plus size={14} /> Ajouter</ButtonUI></div>
+               {(cvData.experiences || []).map((exp, index) => (
+                 <div key={exp.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm relative group mb-4 text-left">
+                   <div className="absolute top-4 right-4 flex gap-1 text-left">
+                     <button onClick={() => moveItem('experiences', index, 'up')} disabled={index === 0} className="text-slate-300 hover:text-blue-500 disabled:opacity-20 transition-colors text-left"><ChevronUp size={18}/></button>
+                     <button onClick={() => moveItem('experiences', index, 'down')} disabled={index === cvData.experiences.length - 1} className="text-slate-300 hover:text-blue-500 disabled:opacity-20 transition-colors text-left"><ChevronDown size={18}/></button>
+                     <button onClick={() => removeExperience(exp.id)} className="text-red-300 hover:text-red-500 ml-1 text-left"><Trash2 size={16}/></button>
+                   </div>
+                   <div className="mb-4 text-left">
+                     <span className="text-xs font-bold text-[#333333] uppercase block mb-2 text-left">Logo Client</span>
+                     <div className="flex items-center gap-4 text-left">
+                       <DropZoneUI 
+                         onFile={(file) => {
+                           const reader = new FileReader();
+                           reader.onload = (ev) => updateExperience(exp.id, 'client_logo', ev.target.result);
+                           reader.readAsDataURL(file);
+                         }} 
+                         label="Charger logo client" 
+                         className="flex-1 text-left" 
+                       />
+                       {exp.client_logo && <img src={exp.client_logo} onError={handleImageError} className="w-12 h-12 object-contain" alt="" />}
+                     </div>
+                   </div>
+                   <div className="mb-4 flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-100 text-left"><div className="flex items-center gap-2 text-left"><FilePlus size={16} className="text-[#2E86C1]"/><span className="text-xs font-bold text-slate-600 text-left">Saut de page manuel</span></div><button onClick={() => updateExperience(exp.id, 'forceNewPage', !exp.forceNewPage)} className="text-left">{exp.forceNewPage ? <ToggleRight className="text-green-500"/> : <ToggleLeft className="text-slate-300"/>}</button></div>
+                   <InputUI label="Client" value={exp.client_name} onChange={(v) => updateExperience(exp.id, 'client_name', v)} />
+                   <InputUI label="Rôle" value={exp.role} onChange={(v) => updateExperience(exp.id, 'role', v)} />
+                   <div className="grid grid-cols-2 gap-4 text-left">
+                     <InputUI label="Période" value={exp.period} onChange={(v) => updateExperience(exp.id, 'period', v)} />
+                     <InputUI label="Environnement Tech" value={Array.isArray(exp.tech_stack) ? exp.tech_stack.join(', ') : exp.tech_stack} onChange={(v) => updateExperience(exp.id, 'tech_stack', String(v).split(',').map(s=>s.trim()))} />
+                   </div>
+                   <RichTextareaUI label="Objectif" value={exp.objective} onChange={(v) => updateExperience(exp.id, 'objective', v)} />
+                   <RichTextareaUI label="Réalisation" value={exp.phases} onChange={(v) => updateExperience(exp.id, 'phases', v)} />
+                 </div>
+               ))}
+             </div>
+            )}
         </div>
       </div>
 
       {/* --- PREVIEW AREA --- */}
-      <div className="flex-1 bg-slate-800 overflow-hidden relative flex flex-col items-center text-left text-left text-left text-left">
-        <div className="absolute bottom-6 z-50 flex items-center gap-4 bg-white/90 backdrop-blur px-6 py-2 rounded-full shadow-2xl print:hidden transition-all hover:scale-105 text-left text-left">
-           <button onClick={() => setZoom(Math.max(0.2, zoom - 0.1))} className="p-2 hover:bg-slate-100 rounded-full"><ZoomOut size={18} /></button>
-           <span className="text-xs font-bold text-slate-600 min-w-[3rem] text-center">{Math.round(zoom * 100)}%</span>
-           <button onClick={() => setZoom(Math.min(1.5, zoom + 0.1))} className="p-2 hover:bg-slate-100 rounded-full"><ZoomIn size={18} /></button>
+      <div className="flex-1 bg-slate-800 overflow-hidden relative flex flex-col items-center text-left">
+        <div className="absolute bottom-6 z-50 flex items-center gap-4 bg-white/90 backdrop-blur px-6 py-2 rounded-full shadow-2xl print:hidden transition-all hover:scale-105 text-left">
+            <button onClick={() => setZoom(Math.max(0.2, zoom - 0.1))} className="p-2 hover:bg-slate-100 rounded-full"><ZoomOut size={18} /></button>
+            <span className="text-xs font-bold text-slate-600 min-w-[3rem] text-center">{Math.round(zoom * 100)}%</span>
+            <button onClick={() => setZoom(Math.min(1.5, zoom + 0.1))} className="p-2 hover:bg-slate-100 rounded-full"><ZoomIn size={18} /></button>
         </div>
 
-        <div className="flex-1 overflow-auto w-full p-8 flex justify-center custom-scrollbar border-l border-slate-700 text-left text-left text-left text-left">
-          <div className="print-container block origin-top transition-transform duration-300 text-left text-left text-left text-left" style={{ transform: `scale(${zoom})`, marginBottom: `${zoom * 100}px`, minHeight: 'max-content' }}>
+        <div className="flex-1 overflow-auto w-full p-8 flex justify-center custom-scrollbar border-l border-slate-700 text-left">
+          <div 
+            className="print-container block origin-top transition-transform duration-300 text-left" 
+            style={{ 
+              transform: `scale(${zoom})`, 
+              height: `${scaledContentHeight}px`, 
+              width: `${210 * zoom}mm`, 
+              minHeight: 'max-content' 
+            }}
+          >
             <A4Page>
               <CornerTriangle customLogo={cvData.smileLogo} />
-              {/* SÉCURITÉ : Ne pas rendre la photo si anonyme */}
               {!cvData.isAnonymous && cvData.profile.photo && cvData.profile.photo !== "null" && (
-                <div className="absolute top-12 right-12 w-44 h-44 rounded-full overflow-hidden border-4 border-white shadow-xl z-20 bg-white flex items-center justify-center text-left text-left">
-                  <img src={cvData.profile.photo} onError={handleImageError} className="max-w-full max-h-full object-contain text-left text-left" alt="Portrait" />
+                <div className="absolute top-12 right-12 w-44 h-44 rounded-full overflow-hidden border-4 border-white shadow-xl z-20 bg-white flex items-center justify-center text-left">
+                  <img src={cvData.profile.photo} onError={handleImageError} className="max-w-full max-h-full object-contain" alt="Portrait" />
                 </div>
               )}
-              <div className="pt-36 px-16 pb-0 flex-shrink-0 text-left text-left text-left text-left text-left">
-                 <h1 className="uppercase leading-[0.85] mb-8 font-montserrat text-[#333333] text-left text-left text-left text-left">
-                   {cvData.isAnonymous ? `${String(cvData.profile.firstname?.[0] || '')}${String(cvData.profile.lastname?.[0] || '')}` : <><span className="text-4xl block font-semibold opacity-90 text-left text-left text-left">{String(cvData.profile.firstname)}</span><span className="text-6xl font-black text-left text-left text-left">{String(cvData.profile.lastname)}</span></>}
+              <div className="pt-36 px-16 pb-0 flex-shrink-0 text-left">
+                 <h1 className="uppercase leading-[0.85] mb-8 font-montserrat text-[#333333] text-left">
+                   {cvData.isAnonymous ? `${String(cvData.profile.firstname?.[0] || '')}${String(cvData.profile.lastname?.[0] || '')}` : <><span className="text-4xl block font-semibold opacity-90 text-left">{String(cvData.profile.firstname)}</span><span className="text-6xl font-black text-left">{String(cvData.profile.lastname)}</span></>}
                  </h1>
-                 <div className="inline-block bg-[#2E86C1] text-white font-bold text-xl px-4 py-1 rounded-sm uppercase mb-6 tracking-wider shadow-sm text-left text-left text-left text-left">{String(cvData.profile.years_experience)} ans d'expérience</div>
-                 <h2 className="text-3xl font-black text-[#333333] uppercase mb-1 tracking-wide font-montserrat opacity-90 text-left text-left text-left">{String(cvData.profile.current_role)}</h2>
-                 <div className="text-lg text-[#666666] font-medium uppercase tracking-widest mb-10 border-l-4 border-[#2E86C1] pl-4 text-left text-left text-left">{String(cvData.profile.main_tech)}</div>
+                 <div className="inline-block bg-[#2E86C1] text-white font-bold text-xl px-4 py-1 rounded-sm uppercase mb-6 tracking-wider shadow-sm text-left">{String(cvData.profile.years_experience)} ans d'expérience</div>
+                 <h2 className="text-3xl font-black text-[#333333] uppercase mb-1 tracking-wide font-montserrat opacity-90 text-left">{String(cvData.profile.current_role)}</h2>
+                 <div className="text-lg text-[#666666] font-medium uppercase tracking-widest mb-10 border-l-4 border-[#2E86C1] pl-4 text-left">{String(cvData.profile.main_tech)}</div>
               </div>
-              <div className="flex-1 flex flex-col justify-start pt-0 pb-12 overflow-hidden text-center text-left text-left text-left text-left">
-                  <div className="px-24 mb-10 relative z-10 flex flex-col items-center text-center">
-                     <p className="text-lg text-[#333333] leading-relaxed italic border-t border-slate-100 pt-8 text-center break-words w-full max-w-[160mm] text-left text-left text-left" dangerouslySetInnerHTML={{__html: formatTextForPreview(`"${cvData.profile.summary}"`)}}></p>
+              <div className="flex-1 flex flex-col justify-start pt-0 pb-12 overflow-hidden text-center text-left">
+                  <div className="px-24 mb-10 relative z-10 flex flex-col items-center text-center text-left">
+                     <p className="text-lg text-[#333333] leading-relaxed italic border-t border-slate-100 pt-8 text-center break-words w-full max-w-[160mm] text-left" dangerouslySetInnerHTML={{__html: formatTextForPreview(`"${cvData.profile.summary}"`)}}></p>
                   </div>
                   <div className="w-full bg-[#2E86C1] py-6 px-16 mb-10 flex items-center justify-center gap-10 shadow-inner relative z-10 flex-shrink-0 text-left tech-banner">
                     {(cvData.profile.tech_logos || []).map((logo, i) => (
-                      logo.src && logo.src !== "null" ? <img key={i} src={logo.src} onError={handleImageError} className="h-14 w-auto object-contain brightness-0 invert opacity-95 transition-transform text-left text-left text-left" alt={String(logo.name)} /> : null
+                      logo.src && logo.src !== "null" ? <img key={i} src={logo.src} onError={handleImageError} className="h-14 w-auto object-contain brightness-0 invert opacity-95 transition-transform" alt={String(logo.name)} /> : null
                     ))}
                   </div>
-                  <div className="flex justify-center gap-12 relative z-10 px-10 flex-shrink-0 mt-8 text-left text-left text-left text-left">
+                  <div className="flex justify-center gap-12 relative z-10 px-10 flex-shrink-0 mt-8 text-left">
                     {(cvData.soft_skills || []).map((skill, i) => (
-                      <div key={i} className="relative w-40 h-44 flex items-center justify-center text-left text-left text-left text-left">
+                      <div key={i} className="relative w-40 h-44 flex items-center justify-center text-left">
                         <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full text-[#2E86C1] fill-current drop-shadow-xl text-left hexagon-shape"><polygon points="50 0, 100 25, 100 75, 50 100, 0 75, 0 25" /></svg>
-                        <span className="relative z-10 text-white font-bold text-sm uppercase text-center px-4 leading-tight font-montserrat text-left text-left text-left text-left">{String(skill || "Skill")}</span>
+                        <span className="relative z-10 text-white font-bold text-sm uppercase text-center px-4 leading-tight font-montserrat text-left">{String(skill || "Skill")}</span>
                       </div>
                     ))}
                   </div>
@@ -912,27 +968,27 @@ export default function App() {
             <A4Page>
               <CornerTriangle customLogo={cvData.smileLogo} />
               <HeaderSmall isAnonymous={cvData.isAnonymous} profile={cvData.profile} role={cvData.profile.current_role} logo={cvData.smileLogo} />
-              <div className="grid grid-cols-12 gap-10 mt-20 h-full px-12 flex-1 pb-32 overflow-hidden print:overflow-visible text-left text-left text-left text-left text-left text-left">
-                  <div className="col-span-5 border-r border-slate-100 pr-8 text-left text-left text-left text-left">
-                    <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-8 flex items-center gap-2 text-left text-left text-left"><Cpu size={20}/> Mes Compétences</h3>
-                    <div className="space-y-8 text-left text-left text-left text-left text-left">{Object.entries(cvData.skills_categories || {}).map(([cat, skills]) => (<div key={cat}><h4 className="text-[10px] font-bold text-[#999999] uppercase tracking-widest border-b border-slate-100 pb-2 mb-3 text-left text-left text-left text-left text-left">{String(cat)}</h4><div className="space-y-3 text-left text-left text-left">{(skills || []).map((skill, i) => (<div key={i} className="flex items-center justify-between text-left text-left text-left text-left"><span className="text-xs font-bold text-[#333333] uppercase text-left text-left text-left">{String(skill.name)}</span><HexagonRating score={skill.rating} /></div>))}</div></div>))}</div>
+              <div className="grid grid-cols-12 gap-10 mt-20 h-full px-12 flex-1 pb-32 overflow-hidden print:overflow-visible text-left">
+                  <div className="col-span-5 border-r border-slate-100 pr-8 text-left">
+                    <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-8 flex items-center gap-2 text-left"><Cpu size={20}/> Mes Compétences</h3>
+                    <div className="space-y-8 text-left">{Object.entries(cvData.skills_categories || {}).map(([cat, skills]) => (<div key={cat}><h4 className="text-[10px] font-bold text-[#999999] uppercase tracking-widest border-b border-slate-100 pb-2 mb-3 text-left">{String(cat)}</h4><div className="space-y-3 text-left">{(skills || []).map((skill, i) => (<div key={i} className="flex items-center justify-between text-left"><span className="text-xs font-bold text-[#333333] uppercase text-left">{String(skill.name)}</span><HexagonRating score={skill.rating} /></div>))}</div></div>))}</div>
                   </div>
-                  <div className="col-span-7 flex flex-col gap-10 text-left text-left text-left text-left text-left">
-                    {cvData.showSecteur && (cvData.connaissances_sectorielles || []).length > 0 && (<section className="text-left text-left text-left text-left text-left text-left"><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2 text-left text-left text-left text-left"><Factory size={20}/> Connaissances Sectorielles</h3><div className="flex flex-wrap gap-2 text-left text-left text-left text-left text-left text-left">{(cvData.connaissances_sectorielles || []).map((s, i) => (<span key={i} className="border-2 border-[#2E86C1] text-[#2E86C1] text-[10px] font-black px-3 py-1 rounded uppercase tracking-wider text-left text-left text-left text-left">{String(s)}</span>))}</div></section>)}
+                  <div className="col-span-7 flex flex-col gap-10 text-left">
+                    {cvData.showSecteur && (cvData.connaissances_sectorielles || []).length > 0 && (<section className="text-left"><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2 text-left"><Factory size={20}/> Connaissances Sectorielles</h3><div className="flex flex-wrap gap-2 text-left">{(cvData.connaissances_sectorielles || []).map((s, i) => (<span key={i} className="border-2 border-[#2E86C1] text-[#2E86C1] text-[10px] font-black px-3 py-1 rounded uppercase tracking-wider text-left">{String(s)}</span>))}</div></section>)}
                     {cvData.showCertif && (cvData.certifications || []).length > 0 && (
-                      <section className="text-left text-left text-left text-left text-left text-left text-left">
-                        <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2 text-left text-left text-left text-left text-left"><Award size={20}/> Certifications</h3>
-                        <div className="grid grid-cols-2 gap-4 text-left text-left text-left text-left text-left">
+                      <section className="text-left">
+                        <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2 text-left"><Award size={20}/> Certifications</h3>
+                        <div className="grid grid-cols-2 gap-4 text-left">
                           {cvData.certifications.map((c, i) => (
-                            <div key={i} className="flex items-center gap-3 bg-slate-50 p-2 rounded text-left text-left text-left text-left text-left">
-                              {c.logo && c.logo !== "null" && <img src={c.logo} onError={handleImageError} className="w-8 h-8 object-contain text-left text-left text-left text-left" alt={String(c.name)} />}
-                              <span className="text-[10px] font-bold text-slate-700 uppercase leading-tight text-left text-left text-left text-left text-left text-left">{String(c.name)}</span>
+                            <div key={i} className="flex items-center gap-3 bg-slate-50 p-2 rounded text-left">
+                              {c.logo && c.logo !== "null" && <img src={c.logo} onError={handleImageError} className="w-8 h-8 object-contain" alt={String(c.name)} />}
+                              <span className="text-[10px] font-bold text-slate-700 uppercase leading-tight text-left">{String(c.name)}</span>
                             </div>
                           ))}
                         </div>
                       </section>
                     )}
-                    <section className="text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left"><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-6 flex items-center gap-2 text-left text-left text-left text-left text-left text-left text-left"><GraduationCap size={20}/> Ma Formation</h3><div className="space-y-4 text-left text-left text-left text-left text-left">{(cvData.education || []).map((edu, i) => (<div key={i} className="border-l-2 border-slate-100 pl-4 text-left text-left text-left text-left text-left text-left text-left"><span className="text-[10px] font-bold text-[#999999] block mb-1 text-left text-left text-left text-left text-left text-left">{String(edu.year)}</span><h4 className="text-xs font-bold text-[#333333] uppercase leading-tight text-left text-left text-left text-left text-left text-left">{String(edu.degree)}</h4><span className="text-[9px] text-[#2E86C1] font-medium uppercase text-left text-left text-left text-left text-left text-left">{String(edu.location)}</span></div>))}</div></section>
+                    <section className="text-left"><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-6 flex items-center gap-2 text-left"><GraduationCap size={20}/> Ma Formation</h3><div className="space-y-4 text-left">{(cvData.education || []).map((edu, i) => (<div key={i} className="border-l-2 border-slate-100 pl-4 text-left"><span className="text-[10px] font-bold text-[#999999] block mb-1 text-left">{String(edu.year)}</span><h4 className="text-xs font-bold text-[#333333] uppercase leading-tight text-left">{String(edu.degree)}</h4><span className="text-[9px] text-[#2E86C1] font-medium uppercase text-left">{String(edu.location)}</span></div>))}</div></section>
                   </div>
               </div>
               <Footer />
@@ -942,8 +998,8 @@ export default function App() {
               <A4Page key={pageIndex}>
                 <CornerTriangle customLogo={cvData.smileLogo} />
                 <HeaderSmall isAnonymous={cvData.isAnonymous} profile={cvData.profile} role={cvData.profile.current_role} logo={cvData.smileLogo} />
-                <div className="flex justify-between items-end border-b border-slate-200 pb-2 mb-8 mt-16 px-12 flex-shrink-0 text-left text-left text-left text-left text-left text-left text-left text-left"><h3 className="text-xl font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat">{pageIndex === 0 ? "Mes dernières expériences" : "Expériences (Suite)"}</h3><span className="text-[10px] font-bold text-[#666666] uppercase text-left text-left">Références</span></div>
-                <div className="flex-1 px-12 pb-32 overflow-hidden print:overflow-visible text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left">{chunk.map((exp) => (<ExperienceItem key={exp.id} exp={exp} />))}</div>
+                <div className="flex justify-between items-end border-b border-slate-200 pb-2 mb-8 mt-16 px-12 flex-shrink-0 text-left"><h3 className="text-xl font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat">{pageIndex === 0 ? "Mes dernières expériences" : "Expériences (Suite)"}</h3><span className="text-[10px] font-bold text-[#666666] uppercase text-left">Références</span></div>
+                <div className="flex-1 px-12 pb-32 overflow-hidden print:overflow-visible text-left">{chunk.map((exp) => (<ExperienceItem key={exp.id} exp={exp} />))}</div>
                 <Footer />
               </A4Page>
             ))}
