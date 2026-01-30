@@ -18,8 +18,26 @@ const THEME = {
   bg: "#FFFFFF"
 };
 
-// Environnement Gemini API
-const apiKey = ""; 
+/**
+ * Récupération de la clé API.
+ * Priorité aux variables d'environnement (Vercel/Vite/Next), 
+ * sinon chaîne vide pour l'injection automatique de l'environnement de prévisualisation.
+ */
+const getApiKey = () => {
+  try {
+    // @ts-ignore - Support Vite/Vercel
+    if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GOOGLE_API_KEY) {
+      return import.meta.env.VITE_GOOGLE_API_KEY;
+    }
+    // @ts-ignore - Support Next.js/CRA
+    if (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_GOOGLE_API_KEY) {
+      return process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
+    }
+  } catch (e) {}
+  return ""; 
+};
+
+const apiKey = getApiKey();
 
 const getIconUrl = (slug) => `https://cdn.simpleicons.org/${String(slug || '').toLowerCase().replace(/\s+/g, '')}`;
 const getClearbitUrl = (domain) => `https://logo.clearbit.com/${String(domain || '').trim()}`;
@@ -377,7 +395,6 @@ const LogoSelectorUI = ({ onSelect, label, suggestions = [] }) => {
     <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-inner text-left mb-4">
       {label && <label className="text-[10px] font-black text-slate-500 uppercase block mb-3 tracking-widest">{String(label)}</label>}
       
-      {/* SELECTION RAPIDE (COMME LES OUTILS IA) */}
       {suggestions.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-4 bg-white p-2 rounded-lg border border-slate-100 shadow-sm">
           {suggestions.map((slug) => (
@@ -484,10 +501,10 @@ export default function App() {
 
   const extractTextFromPDF = async (file) => {
     if (!window.pdfjsLib) {
-      throw new Error("La bibliothèque d'analyse PDF est en cours de chargement.");
+      throw new Error("La bibliothèque PDF n'est pas encore prête. Réessayez dans un instant.");
     }
     const arrayBuffer = await file.arrayBuffer();
-    const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
     let fullText = "";
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
@@ -506,31 +523,55 @@ export default function App() {
     e.target.value = null; 
   };
 
+  /**
+   * Helper pour appeler l'API avec mécanisme de réessai (backoff exponentiel)
+   */
+  const fetchWithRetry = async (url, options, retries = 5, backoff = 1000) => {
+    try {
+      const response = await fetch(url, options);
+      if (!response.ok) {
+        if (retries > 0 && (response.status === 429 || response.status >= 500)) {
+          await new Promise(resolve => setTimeout(resolve, backoff));
+          return fetchWithRetry(url, options, retries - 1, backoff * 2);
+        }
+        throw new Error(`API Error: ${response.status}`);
+      }
+      return response;
+    } catch (error) {
+      if (retries > 0) {
+        await new Promise(resolve => setTimeout(resolve, backoff));
+        return fetchWithRetry(url, options, retries - 1, backoff * 2);
+      }
+      throw error;
+    }
+  };
+
   const confirmAIAnalysis = async () => {
     if (!pendingFile) return;
     setShowAIConsent(false);
     setIsImporting(true);
     setImportError(null);
     try {
+      if (!apiKey) throw new Error("Clé API manquante dans l'environnement.");
+
       let rawText = await extractTextFromPDF(pendingFile);
       rawText = rawText.replace(/\s+/g, ' ').trim();
       
       const systemPrompt = `Tu es un expert en analyse de CV. Tu reçois du texte extrait d'un PDF. 
       TA MISSION : Transformer ce texte en un JSON valide.
       RÈGLES D'EXTRACTION CRITIQUES :
-      1. EXHAUSTIVITÉ ABSOLUE : Tu dois extraire TOUTES les expériences professionnelles mentionnées dans le texte, sans exception, de la plus récente à la plus ancienne.
-      2. PAS DE RÉSUMÉ : Ne fusionne pas les expériences. Ne résume pas les descriptions. Conserve le maximum de détails.
+      1. EXHAUSTIVITÉ ABSOLUE : Tu dois extraire TOUTES les expériences professionnelles mentionnées dans le texte, sans exception.
+      2. PAS DE RÉSUMÉ : Ne fusionne pas les expériences. Conserve le maximum de détails.
       3. STRUCTURE DU JSON : Respecte strictement ce schéma :
       {
         "profile": { "firstname": "", "lastname": "", "years_experience": "", "current_role": "", "main_tech": "", "summary": "" },
-        "soft_skills": ["3 maximum"],
-        "connaissances_sectorielles": ["toutes celles trouvées"],
+        "soft_skills": ["3 max"],
+        "connaissances_sectorielles": [],
         "education": [{ "year": "", "degree": "", "location": "" }],
         "experiences": [{ "client_name": "", "period": "", "role": "", "objective": "", "phases": "", "tech_stack": [] }]
-      }
-      4. QUALITÉ : Si une donnée est absente, laisse une chaîne vide "". Pour "years_experience", n'extrais que le nombre entier.`;
+      }`;
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+      const response = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -544,18 +585,16 @@ export default function App() {
         })
       });
 
-      if (!response.ok) throw new Error("Le service d'analyse IA est indisponible.");
-
       const data = await response.json();
       const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!content) throw new Error("L'IA n'a pas pu extraire de données.");
+      if (!content) throw new Error("L'IA n'a pas renvoyé de données exploitables.");
 
       const result = JSON.parse(content);
       setCvData(prev => ({
         ...prev,
         ...result,
         profile: { ...prev.profile, ...result.profile },
-        experiences: result.experiences.map((exp, idx) => ({ 
+        experiences: (result.experiences || []).map((exp, idx) => ({ 
           ...exp, 
           id: Date.now() + idx, 
           client_logo: null,
@@ -563,7 +602,8 @@ export default function App() {
         }))
       }));
     } catch (err) {
-      setImportError(err.message || "Une erreur est survenue lors de l'analyse IA.");
+      console.error(err);
+      setImportError(err.message || "Erreur lors de l'analyse IA.");
     } finally {
       setIsImporting(false);
       setPendingFile(null);
@@ -698,15 +738,23 @@ export default function App() {
       <div className="w-full md:w-[500px] bg-white border-r border-slate-200 flex flex-col h-full z-10 shadow-xl print:hidden text-left">
         
         <div className="p-4 bg-slate-50/50 border-b border-slate-200 space-y-4 text-left">
-          <div className="flex gap-2 text-left">
-            <button className="flex-1 bg-[#2E86C1] hover:bg-[#2573a7] text-white py-3 rounded-xl font-bold flex items-center justify-center gap-3 shadow-md transition-all uppercase text-sm" onClick={() => pdfInputRef.current.click()} disabled={isImporting}>
-              {isImporting ? <Loader2 size={18} className="animate-spin text-white"/> : <FileSearch size={18} className="text-white"/>}
-              <span className="drop-shadow-sm">{isImporting ? "Analyse..." : "Import PDF"}</span>
-            </button>
-            <button className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 border transition-all text-sm uppercase ${cvData.isAnonymous ? 'bg-red-50 text-red-600 border-red-200 shadow-sm' : 'bg-white text-slate-600 border-slate-200 shadow-sm hover:bg-slate-50'}`} onClick={() => setCvData(p => ({...p, isAnonymous: !p.isAnonymous}))}>
-              <Lock size={16}/> {cvData.isAnonymous ? "Anonyme" : "Anonymiser"}
-            </button>
-            <input type="file" ref={pdfInputRef} className="hidden" accept=".pdf" onChange={handlePDFImport} />
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-2 text-left">
+              <button className="flex-1 bg-[#2E86C1] hover:bg-[#2573a7] text-white py-3 rounded-xl font-bold flex items-center justify-center gap-3 shadow-md transition-all uppercase text-sm" onClick={() => pdfInputRef.current.click()} disabled={isImporting}>
+                {isImporting ? <Loader2 size={18} className="animate-spin text-white"/> : <FileSearch size={18} className="text-white"/>}
+                <span className="drop-shadow-sm">{isImporting ? "Analyse..." : "Import PDF"}</span>
+              </button>
+              <button className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 border transition-all text-sm uppercase ${cvData.isAnonymous ? 'bg-red-50 text-red-600 border-red-200 shadow-sm' : 'bg-white text-slate-600 border-slate-200 shadow-sm hover:bg-slate-50'}`} onClick={() => setCvData(p => ({...p, isAnonymous: !p.isAnonymous}))}>
+                <Lock size={16}/> {cvData.isAnonymous ? "Anonyme" : "Anonymiser"}
+              </button>
+              <input type="file" ref={pdfInputRef} className="hidden" accept=".pdf" onChange={handlePDFImport} />
+            </div>
+            {importError && (
+              <div className="px-3 py-2 bg-red-50 border border-red-100 rounded-lg flex items-center gap-2 text-red-600 text-[10px] font-bold">
+                <AlertCircle size={14} /> {importError}
+                <button onClick={() => setImportError(null)} className="ml-auto hover:text-red-800"><X size={12}/></button>
+              </div>
+            )}
           </div>
 
           <div className="bg-white border border-slate-200 rounded-2xl shadow-sm flex items-center justify-between px-2 py-4 text-left">
@@ -754,7 +802,6 @@ export default function App() {
               <div className="flex items-center gap-3 mb-4 text-[#2E86C1] text-left"><User size={24} /><h2 className="text-lg font-bold uppercase text-left">Profil</h2></div>
               <div className="grid grid-cols-2 gap-4 mb-6 text-left">
                 <div className="p-3 border border-blue-100 bg-blue-50/50 rounded-lg flex flex-col gap-2 text-left">
-                  {/* AJOUT ICI DU TEXTE (interne smile) */}
                   <span className="text-[10px] font-bold text-[#2E86C1] uppercase text-left">Logo Entreprise (interne smile)</span>
                   <DropZoneUI onFile={handleSmileLogo} label={cvData.smileLogo ? "Changer Logo" : "Charger Logo"} className="h-24 bg-white text-left" />
                 </div>
@@ -775,7 +822,6 @@ export default function App() {
               <RichTextareaUI label="Bio / Résumé" value={cvData.profile.summary} onChange={(val) => handleProfileChange('summary', val)} maxLength={400} />
               
               <div className="bg-white p-4 rounded-xl border border-slate-200 text-left">
-                {/* MÉTHODE MIXTE : Technologies avec suggestions rapides */}
                 <LogoSelectorUI 
                   onSelect={addTechLogo} 
                   label="Technologies (Suggestions Smile)" 
@@ -821,7 +867,6 @@ export default function App() {
                  </div>
                  <div className="flex flex-wrap gap-1 mb-4 text-left">{(cvData.connaissances_sectorielles || []).map((s, i) => (<span key={i} className="bg-white text-[9px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 uppercase text-left">{s} <X size={10} className="cursor-pointer text-left" onClick={() => removeSecteur(i)}/></span>))}</div>
                  
-                 {/* MÉTHODE MIXTE : Certifications avec suggestions rapides */}
                  <LogoSelectorUI 
                    onSelect={addCertification} 
                    label="Certifications (Suggestions Smile)" 
