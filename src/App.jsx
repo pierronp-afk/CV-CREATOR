@@ -982,12 +982,14 @@ export default function App() {
                   <div className="px-24 mb-10 relative z-10 flex flex-col items-center text-center text-left">
                      <p className="text-lg text-[#333333] leading-relaxed italic border-t border-slate-100 pt-8 text-center break-words w-full max-w-[160mm] text-left" dangerouslySetInnerHTML={{__html: formatTextForPreview(`"${cvData.profile.summary}"`)}}></p>
                   </div>
-                  <div className="w-full bg-[#2E86C1] py-6 px-16 mb-10 flex items-center justify-center gap-10 shadow-inner relative z-10 flex-shrink-0 text-left tech-banner">
+                  {/* Réduction de la marge mb-10 -> mb-4 */}
+                  <div className="w-full bg-[#2E86C1] py-6 px-16 mb-4 flex items-center justify-center gap-10 shadow-inner relative z-10 flex-shrink-0 text-left tech-banner">
                     {(cvData.profile.tech_logos || []).map((logo, i) => (
                       logo.src && logo.src !== "null" ? <img key={i} src={logo.src} onError={handleImageError} className="h-14 w-auto object-contain brightness-0 invert opacity-95 transition-transform" alt={String(logo.name)} /> : null
                     ))}
                   </div>
-                  <div className="flex justify-center gap-12 relative z-10 px-10 flex-shrink-0 mt-8 text-left">
+                  {/* Réduction de la marge mt-2 -> mt-0 pour coller davantage */}
+                  <div className="flex justify-center gap-12 relative z-10 px-10 flex-shrink-0 mt-0 text-left">
                     {(cvData.soft_skills || []).map((skill, i) => (
                       <div key={i} className="relative w-40 h-44 flex items-center justify-center text-left">
                         <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full text-[#2E86C1] fill-current drop-shadow-xl text-left hexagon-shape"><polygon points="50 0, 100 25, 100 75, 50 100, 0 75, 0 25" /></svg>
