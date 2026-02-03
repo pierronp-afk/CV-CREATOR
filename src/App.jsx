@@ -20,8 +20,7 @@ const THEME = {
 
 /**
  * Récupération de la clé API.
- * Priorité aux variables d'environnement (Vercel/Vite/Next), 
- * sinon chaîne vide pour l'injection automatique de l'environnement de prévisualisation.
+ * Priorité aux variables d'environnement (Vercel/Vite/Next).
  */
 const getApiKey = () => {
   try {
@@ -250,14 +249,11 @@ const InputUI = ({ label, value, onChange, placeholder, maxLength, type = "text"
   </div>
 );
 
-const RichTextareaUI = ({ label, value, onChange, placeholder, maxLength }) => {
+const RichTextareaUI = ({ label, value, onChange, placeholder }) => {
   const textareaRef = useRef(null);
 
   const handleTextChange = (e) => {
-    const val = e.target.value;
-    const lines = val.split('\n');
-    if (lines.length > 50) return; 
-    onChange(val);
+    onChange(e.target.value);
   };
 
   const insertTag = (tag) => {
@@ -298,13 +294,10 @@ const RichTextareaUI = ({ label, value, onChange, placeholder, maxLength }) => {
     window.open(url, '_blank');
   };
 
-  const currentLines = String(value || '').split('\n').length;
-
   return (
     <div className="mb-6 text-left">
       <div className="flex justify-between items-end mb-1 text-left">
         <label className="text-xs font-bold text-[#333333] uppercase block">{String(label)}</label>
-        <span className={`text-[9px] font-bold ${currentLines >= 30 ? 'text-red-500' : 'text-slate-400'}`}>{currentLines} / 30 lignes</span>
       </div>
       <div className="bg-slate-50 border border-slate-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-[#2E86C1] transition-all shadow-sm">
         <div className="flex flex-col bg-white border-b border-slate-200 text-left">
@@ -341,7 +334,6 @@ const RichTextareaUI = ({ label, value, onChange, placeholder, maxLength }) => {
           className="w-full px-4 py-3 bg-transparent text-sm h-32 resize-none focus:outline-none border-none shadow-inner text-left" 
           value={value || ''} 
           onChange={handleTextChange} 
-          maxLength={maxLength} 
           placeholder={placeholder} 
         />
       </div>
@@ -371,7 +363,7 @@ const DropZoneUI = ({ onFile, label = "Déposez une image", icon = <Upload size=
 const LogoSelectorUI = ({ onSelect, label, suggestions = [] }) => {
   const [search, setSearch] = useState("");
   
-  const handleSelect = (query, isCustom = false) => {
+  const handleSelect = (query) => {
     if (!query) return;
     let finalSrc = "";
     if (query.includes('.')) {
@@ -523,9 +515,6 @@ export default function App() {
     e.target.value = null; 
   };
 
-  /**
-   * Helper pour appeler l'API avec mécanisme de réessai (backoff exponentiel)
-   */
   const fetchWithRetry = async (url, options, retries = 5, backoff = 1000) => {
     try {
       const response = await fetch(url, options);
@@ -561,7 +550,7 @@ export default function App() {
       TA MISSION : Transformer ce texte en un JSON valide.
       RÈGLES D'EXTRACTION CRITIQUES :
       1. EXHAUSTIVITÉ ABSOLUE : Tu dois extraire TOUTES les expériences professionnelles mentionnées dans le texte, sans exception.
-      2. PAS DE RÉSUMÉ : Ne fusionne pas les expériences. Conserve le maximum de détails.
+      2. PAS DE RÉSUMÉ : Ne fusionne pas les expériences. Ne résume pas les descriptions. Conserve le maximum de détails.
       3. STRUCTURE DU JSON : Respecte strictement ce schéma :
       {
         "profile": { "firstname": "", "lastname": "", "years_experience": "", "current_role": "", "main_tech": "", "summary": "" },
@@ -819,7 +808,7 @@ export default function App() {
                 <InputUI label="Années XP" value={cvData.profile.years_experience} onChange={(v) => handleProfileChange('years_experience', v)} />
                 <InputUI label="Techno Principale" value={cvData.profile.main_tech} onChange={(v) => handleProfileChange('main_tech', v)} />
               </div>
-              <RichTextareaUI label="Bio / Résumé" value={cvData.profile.summary} onChange={(val) => handleProfileChange('summary', val)} maxLength={1000} />
+              <RichTextareaUI label="Bio / Résumé" value={cvData.profile.summary} onChange={(val) => handleProfileChange('summary', val)} />
               
               <div className="bg-white p-4 rounded-xl border border-slate-200 text-left">
                 <LogoSelectorUI 
