@@ -256,7 +256,7 @@ const RichTextareaUI = ({ label, value, onChange, placeholder, maxLength }) => {
   const handleTextChange = (e) => {
     const val = e.target.value;
     const lines = val.split('\n');
-    if (lines.length > 30) return; 
+    if (lines.length > 50) return; 
     onChange(val);
   };
 
@@ -819,7 +819,7 @@ export default function App() {
                 <InputUI label="Années XP" value={cvData.profile.years_experience} onChange={(v) => handleProfileChange('years_experience', v)} />
                 <InputUI label="Techno Principale" value={cvData.profile.main_tech} onChange={(v) => handleProfileChange('main_tech', v)} />
               </div>
-              <RichTextareaUI label="Bio / Résumé" value={cvData.profile.summary} onChange={(val) => handleProfileChange('summary', val)} maxLength={400} />
+              <RichTextareaUI label="Bio / Résumé" value={cvData.profile.summary} onChange={(val) => handleProfileChange('summary', val)} maxLength={1000} />
               
               <div className="bg-white p-4 rounded-xl border border-slate-200 text-left">
                 <LogoSelectorUI 
