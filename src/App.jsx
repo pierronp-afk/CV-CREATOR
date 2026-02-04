@@ -650,7 +650,46 @@ export default function App() {
 
   const resetCV = () => { setCvData(DEFAULT_CV_DATA); setShowResetConfirm(false); };
   const downloadJSON = () => { const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(cvData)); a.download = `${getFilenameBase()}.json`; a.click(); };
-  const uploadJSON = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (ev) => { try { setCvData(JSON.parse(String(ev.target.result))); } catch (err) { } }; reader.readAsText(file); };
+  
+  /**
+   * Correction de l'importation JSON
+   */
+  const uploadJSON = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    setImportError(null);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const importedData = JSON.parse(String(ev.target.result));
+        // Fusion sécurisée avec les données par défaut
+        setCvData(prev => ({
+          ...DEFAULT_CV_DATA,
+          ...importedData,
+          profile: { ...DEFAULT_CV_DATA.profile, ...(importedData.profile || {}) },
+          // On s'assure que les listes sont bien des tableaux
+          experiences: Array.isArray(importedData.experiences) ? importedData.experiences : prev.experiences,
+          education: Array.isArray(importedData.education) ? importedData.education : prev.education,
+          connaissances_sectorielles: Array.isArray(importedData.connaissances_sectorielles) ? importedData.connaissances_sectorielles : prev.connaissances_sectorielles,
+          certifications: Array.isArray(importedData.certifications) ? importedData.certifications : prev.certifications,
+          soft_skills: Array.isArray(importedData.soft_skills) ? importedData.soft_skills : prev.soft_skills,
+          skills_categories: importedData.skills_categories || prev.skills_categories
+        }));
+      } catch (err) {
+        console.error("Erreur lecture JSON:", err);
+        setImportError("Le fichier JSON est corrompu ou invalide.");
+      } finally {
+        // RESET indispensable pour pouvoir recharger le même fichier plus tard
+        e.target.value = "";
+      }
+    };
+    reader.onerror = () => {
+      setImportError("Impossible de lire le fichier.");
+      e.target.value = "";
+    };
+    reader.readAsText(file);
+  };
   
   const handleEmailSend = () => {
     const namePart = cvData.isAnonymous ? "Anonyme" : `${cvData.profile.firstname} ${cvData.profile.lastname}`;
@@ -982,13 +1021,11 @@ export default function App() {
                   <div className="px-24 mb-10 relative z-10 flex flex-col items-center text-center text-left">
                      <p className="text-lg text-[#333333] leading-relaxed italic border-t border-slate-100 pt-8 text-center break-words w-full max-w-[160mm] text-left" dangerouslySetInnerHTML={{__html: formatTextForPreview(`"${cvData.profile.summary}"`)}}></p>
                   </div>
-                  {/* RÉDUCTION DRASTIQUE DU PY (rembourrage interne) ET DU MB (marge externe) */}
                   <div className="w-full bg-[#2E86C1] py-3 px-16 mb-1 flex items-center justify-center gap-10 shadow-inner relative z-10 flex-shrink-0 text-left tech-banner">
                     {(cvData.profile.tech_logos || []).map((logo, i) => (
                       logo.src && logo.src !== "null" ? <img key={i} src={logo.src} onError={handleImageError} className="h-14 w-auto object-contain brightness-0 invert opacity-95 transition-transform" alt={String(logo.name)} /> : null
                     ))}
                   </div>
-                  {/* RÉDUCTION DE LA MARGE MT-0 POUR COLLER DAVANTAGE */}
                   <div className="flex justify-center gap-12 relative z-10 px-10 flex-shrink-0 mt-2 text-left">
                     {(cvData.soft_skills || []).map((skill, i) => (
                       <div key={i} className="relative w-40 h-44 flex items-center justify-center text-left">
