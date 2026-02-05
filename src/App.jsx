@@ -616,7 +616,7 @@ export default function App() {
 
   const updateExperience = (id, f, v) => setCvData(p => ({ ...p, experiences: p.experiences.map(e => e.id === id ? { ...e, [f]: v } : e) }));
   const addExperience = () => setCvData(p => ({ ...p, experiences: [{ id: Date.now(), client_name: "", client_logo: null, period: "", role: "", objective: "", achievements: [], tech_stack: [], phases: "", forceNewPage: false }, ...p.experiences] }));
-  const removeExperience = (id) => setCvData(p => { const newE = p.experiences.filter(e => e.id !== id); return { ...p, experiences: newE }; });
+  const removeExperience = (id) => setCvData(p => ({ ...p, experiences: p.experiences.filter(e => e.id !== id) }));
   
   const addSkillCategory = () => { if (newCategoryName) { setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [newCategoryName]: [] } })); setNewCategoryName(""); } };
   const deleteCategory = (n) => setCvData(p => { const newC = { ...p.skills_categories }; delete newC[n]; return { ...p, skills_categories: newC }; });
@@ -633,7 +633,12 @@ export default function App() {
   
   const updateEducation = (i, f, v) => { const n = [...cvData.education]; n[i][f] = v; setCvData(p => ({ ...p, education: n })); };
   const addEducation = () => setCvData(p => ({ ...p, education: [...p.education, { year: "", degree: "", location: "" }] }));
-  const removeEducation = (i) => setCvData(p => { const n = p.education.filter((_, idx) => idx !== i); setCvData(p => ({ ...p, education: n })); });
+  
+  // CORRECTION : Simplification de removeEducation pour éviter le crash (plus de setCvData imbriqué)
+  const removeEducation = (i) => setCvData(prev => ({
+    ...prev,
+    education: prev.education.filter((_, idx) => idx !== i)
+  }));
   
   const acceptPrivacy = () => {
     localStorage.setItem('smile_cv_privacy_accepted', 'true');
@@ -668,7 +673,6 @@ export default function App() {
           ...DEFAULT_CV_DATA,
           ...importedData,
           profile: { ...DEFAULT_CV_DATA.profile, ...(importedData.profile || {}) },
-          // On s'assure que les listes sont bien des tableaux
           experiences: Array.isArray(importedData.experiences) ? importedData.experiences : prev.experiences,
           education: Array.isArray(importedData.education) ? importedData.education : prev.education,
           connaissances_sectorielles: Array.isArray(importedData.connaissances_sectorielles) ? importedData.connaissances_sectorielles : prev.connaissances_sectorielles,
@@ -680,7 +684,6 @@ export default function App() {
         console.error("Erreur lecture JSON:", err);
         setImportError("Le fichier JSON est corrompu ou invalide.");
       } finally {
-        // RESET indispensable pour pouvoir recharger le même fichier plus tard
         e.target.value = "";
       }
     };
