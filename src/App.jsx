@@ -18,17 +18,13 @@ const THEME = {
   bg: "#FFFFFF"
 };
 
-/**
- * Récupération de la clé API.
- * Priorité aux variables d'environnement (Vercel/Vite/Next).
- */
 const getApiKey = () => {
   try {
-    // @ts-ignore - Support Vite/Vercel
+    // @ts-ignore
     if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GOOGLE_API_KEY) {
       return import.meta.env.VITE_GOOGLE_API_KEY;
     }
-    // @ts-ignore - Support Next.js/CRA
+    // @ts-ignore
     if (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_GOOGLE_API_KEY) {
       return process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
     }
@@ -359,7 +355,6 @@ const DropZoneUI = ({ onFile, label = "Déposez une image", icon = <Upload size=
   );
 };
 
-// --- MÉTHODE MIXTE HARMONISÉE AVEC SUGGESTIONS ---
 const LogoSelectorUI = ({ onSelect, label, suggestions = [] }) => {
   const [search, setSearch] = useState("");
   
@@ -614,6 +609,20 @@ export default function App() {
     }
   };
 
+  // Nouvelle fonction pour déplacer les catégories (Object keys)
+  const moveCategory = (catName, direction) => {
+    const keys = Object.keys(cvData.skills_categories);
+    const index = keys.indexOf(catName);
+    const target = direction === 'up' ? index - 1 : index + 1;
+    if (target >= 0 && target < keys.length) {
+      const newKeys = [...keys];
+      [newKeys[index], newKeys[target]] = [newKeys[target], newKeys[index]];
+      const newCategories = {};
+      newKeys.forEach(k => { newCategories[k] = cvData.skills_categories[k]; });
+      setCvData(p => ({ ...p, skills_categories: newCategories }));
+    }
+  };
+
   const updateExperience = (id, f, v) => setCvData(p => ({ ...p, experiences: p.experiences.map(e => e.id === id ? { ...e, [f]: v } : e) }));
   const addExperience = () => setCvData(p => ({ ...p, experiences: [{ id: Date.now(), client_name: "", client_logo: null, period: "", role: "", objective: "", achievements: [], tech_stack: [], phases: "", forceNewPage: false }, ...p.experiences] }));
   const removeExperience = (id) => setCvData(p => ({ ...p, experiences: p.experiences.filter(e => e.id !== id) }));
@@ -633,8 +642,6 @@ export default function App() {
   
   const updateEducation = (i, f, v) => { const n = [...cvData.education]; n[i][f] = v; setCvData(p => ({ ...p, education: n })); };
   const addEducation = () => setCvData(p => ({ ...p, education: [...p.education, { year: "", degree: "", location: "" }] }));
-  
-  // CORRECTION : Simplification de removeEducation pour éviter le crash (plus de setCvData imbriqué)
   const removeEducation = (i) => setCvData(prev => ({
     ...prev,
     education: prev.education.filter((_, idx) => idx !== i)
@@ -656,9 +663,6 @@ export default function App() {
   const resetCV = () => { setCvData(DEFAULT_CV_DATA); setShowResetConfirm(false); };
   const downloadJSON = () => { const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(cvData)); a.download = `${getFilenameBase()}.json`; a.click(); };
   
-  /**
-   * Correction de l'importation JSON
-   */
   const uploadJSON = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -668,7 +672,6 @@ export default function App() {
     reader.onload = (ev) => {
       try {
         const importedData = JSON.parse(String(ev.target.result));
-        // Fusion sécurisée avec les données par défaut
         setCvData(prev => ({
           ...DEFAULT_CV_DATA,
           ...importedData,
@@ -684,7 +687,7 @@ export default function App() {
         console.error("Erreur lecture JSON:", err);
         setImportError("Le fichier JSON est corrompu ou invalide.");
       } finally {
-        e.target.value = "";
+        e.target.value = ""; 
       }
     };
     reader.onerror = () => {
@@ -932,14 +935,85 @@ export default function App() {
                  ))}
                  <ButtonUI onClick={addEducation} variant="secondary" className="w-full text-xs py-2 mt-2 shadow-sm text-left">Ajouter Formation</ButtonUI>
                </div>
+               
+               {/* SECTION COMPÉTENCES : Ajout réorganisation et suppression items */}
                <div className="bg-white p-4 rounded-xl border border-slate-200 text-left">
                   <h3 className="text-[10px] font-black uppercase text-slate-400 mb-4 text-left">Niveau Compétences</h3>
-                  <div className="flex gap-2 mb-4 text-left"><input className="flex-1 px-3 py-2 border rounded text-xs text-left" placeholder="Catégorie (Outils...)" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addSkillCategory()} /><ButtonUI variant="outline" className="px-3 text-left" onClick={addSkillCategory}><Plus size={14}/></ButtonUI></div>
-                  {Object.entries(cvData.skills_categories).map(([cat, skills]) => (
-                    <div key={cat} className="mb-4 p-3 bg-slate-50 rounded-lg text-left">
-                      <div className="flex justify-between items-center mb-2 text-left"><h4 className="text-xs font-bold uppercase text-left">{cat}</h4><button onClick={() => deleteCategory(cat)} className="text-red-300 text-left"><Trash2 size={12}/></button></div>
-                      <div className="space-y-1 mb-3 text-left">{(skills || []).map((skill, idx) => (<div key={idx} className="flex items-center justify-between text-xs bg-white p-1.5 rounded shadow-sm text-left"><input className="bg-transparent outline-none w-1/2 font-medium text-left" value={skill.name} onChange={(e) => updateSkillInCategory(cat, idx, 'name', e.target.value)} /><HexagonRating score={skill.rating} onChange={(r) => updateSkillInCategory(cat, idx, 'rating', r)} /></div>))}</div>
-                      <div className="flex gap-1 text-left"><input className="flex-1 px-2 py-1 text-[10px] border rounded text-left" placeholder="Ajouter..." value={newSkillsInput[cat]?.name || ''} onChange={(e) => updateNewSkillInput(cat, 'name', e.target.value)} /><ButtonUI variant="primary" className="p-1 h-auto text-left" onClick={() => addSkillToCategory(cat)}><Plus size={10}/></ButtonUI></div>
+                  <div className="flex gap-2 mb-4 text-left">
+                    <input 
+                      className="flex-1 px-3 py-2 border rounded text-xs text-left" 
+                      placeholder="Nouvelle catégorie (ex: Outils...)" 
+                      value={newCategoryName} 
+                      onChange={(e) => setNewCategoryName(e.target.value)} 
+                      onKeyDown={(e) => e.key === 'Enter' && addSkillCategory()} 
+                    />
+                    <ButtonUI variant="outline" className="px-3 text-left" onClick={addSkillCategory}><Plus size={14}/></ButtonUI>
+                  </div>
+
+                  {Object.entries(cvData.skills_categories).map(([cat, skills], catIdx, allEntries) => (
+                    <div key={cat} className="mb-4 p-3 bg-slate-50 rounded-lg text-left relative group">
+                      <div className="flex justify-between items-center mb-2 text-left">
+                        <h4 className="text-xs font-bold uppercase text-left flex-1">{cat}</h4>
+                        <div className="flex items-center gap-1">
+                          {/* Boutons de déplacement de catégorie */}
+                          <button 
+                            onClick={() => moveCategory(cat, 'up')} 
+                            disabled={catIdx === 0} 
+                            className="text-slate-300 hover:text-[#2E86C1] disabled:opacity-20 transition-colors"
+                            title="Remonter la catégorie"
+                          >
+                            <ChevronUp size={14}/>
+                          </button>
+                          <button 
+                            onClick={() => moveCategory(cat, 'down')} 
+                            disabled={catIdx === allEntries.length - 1} 
+                            className="text-slate-300 hover:text-[#2E86C1] disabled:opacity-20 transition-colors"
+                            title="Descendre la catégorie"
+                          >
+                            <ChevronDown size={14}/>
+                          </button>
+                          <div className="w-px h-3 bg-slate-200 mx-1"></div>
+                          <button onClick={() => deleteCategory(cat)} className="text-red-300 hover:text-red-500 transition-colors">
+                            <Trash2 size={12}/>
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-1 mb-3 text-left">
+                        {(skills || []).map((skill, idx) => (
+                          <div key={idx} className="flex items-center justify-between text-xs bg-white p-1.5 rounded shadow-sm text-left gap-2 group/item">
+                            <input 
+                              className="bg-transparent outline-none flex-1 font-medium text-left" 
+                              value={skill.name} 
+                              onChange={(e) => updateSkillInCategory(cat, idx, 'name', e.target.value)} 
+                            />
+                            <div className="flex items-center gap-2">
+                              <HexagonRating score={skill.rating} onChange={(r) => updateSkillInCategory(cat, idx, 'rating', r)} />
+                              {/* Bouton de suppression de compétence individuelle */}
+                              <button 
+                                onClick={() => removeSkillFromCategory(cat, idx)} 
+                                className="text-slate-300 hover:text-red-500 transition-colors p-0.5"
+                                title="Supprimer cet item"
+                              >
+                                <X size={12}/>
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="flex gap-1 text-left">
+                        <input 
+                          className="flex-1 px-2 py-1 text-[10px] border rounded text-left" 
+                          placeholder="Ajouter un item..." 
+                          value={newSkillsInput[cat]?.name || ''} 
+                          onChange={(e) => updateNewSkillInput(cat, 'name', e.target.value)} 
+                          onKeyDown={(e) => e.key === 'Enter' && addSkillToCategory(cat)}
+                        />
+                        <ButtonUI variant="primary" className="p-1 h-auto text-left" onClick={() => addSkillToCategory(cat)}>
+                          <Plus size={10}/>
+                        </ButtonUI>
+                      </div>
                     </div>
                   ))}
                </div>
