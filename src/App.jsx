@@ -71,7 +71,6 @@ const DEFAULT_CV_DATA = {
       period: "Jan 2023 - Présent",
       role: "Développeur Frontend",
       context: "Projet de refonte globale du site consommateur.",
-      objective: "Développer la partie frontend de l'outil Castresa...",
       phases: "Conception, Développement",
       tech_stack: ["Drupal", "Twig"],
       forceNewPage: false
@@ -205,12 +204,6 @@ const ExperienceItem = ({ exp }) => (
         <div className="mb-4 text-left">
            <h5 className="text-[10px] font-bold text-[#2E86C1] uppercase mb-1">Contexte</h5>
            <p className="text-sm text-[#333333] leading-relaxed break-words" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.context)}}></p>
-        </div>
-      )}
-      {exp.objective && (
-        <div className="mb-4 text-left">
-           <h5 className="text-[10px] font-bold text-[#2E86C1] uppercase mb-1">Objectif</h5>
-           <p className="text-sm text-[#333333] leading-relaxed break-words" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.objective)}}></p>
         </div>
       )}
       <div className="mt-4 pt-4 border-t border-slate-50 space-y-4 text-left">
@@ -641,7 +634,7 @@ export default function App() {
   };
 
   const updateExperience = (id, f, v) => setCvData(p => ({ ...p, experiences: p.experiences.map(e => e.id === id ? { ...e, [f]: v } : e) }));
-  const addExperience = () => setCvData(p => ({ ...p, experiences: [{ id: Date.now(), client_name: "", client_logo: null, period: "", role: "", context: "", objective: "", achievements: [], tech_stack: [], phases: "", forceNewPage: false }, ...p.experiences] }));
+  const addExperience = () => setCvData(p => ({ ...p, experiences: [{ id: Date.now(), client_name: "", client_logo: null, period: "", role: "", context: "", phases: "", achievements: [], tech_stack: [], forceNewPage: false }, ...p.experiences] }));
   const removeExperience = (id) => setCvData(p => ({ ...p, experiences: p.experiences.filter(e => e.id !== id) }));
   
   const addSkillCategory = () => { if (newCategoryName) { setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [newCategoryName]: [] } })); setNewCategoryName(""); } };
@@ -1032,7 +1025,6 @@ export default function App() {
                    </div>
                    {/* AJOUT DU CHAMP CONTEXTE */}
                    <RichTextareaUI label="Contexte" value={exp.context} onChange={(v) => updateExperience(exp.id, 'context', v)} />
-                   <RichTextareaUI label="Objectif" value={exp.objective} onChange={(v) => updateExperience(exp.id, 'objective', v)} />
                    <RichTextareaUI label="Réalisation" value={exp.phases} onChange={(v) => updateExperience(exp.id, 'phases', v)} />
                  </div>
                ))}
