@@ -871,7 +871,12 @@ export default function App() {
                 <LogoSelectorUI 
                   onSelect={addTechLogo} 
                   label="Technologies (Suggestions Smile)" 
-                  suggestions={['drupal', 'symfony', 'php', 'react', 'tailwindcss', 'docker', 'amazonwebservices', 'javascript', 'git', 'mysql']}
+                  suggestions={[
+                    'drupal', 'symfony', 'php', 'react', 'python', 
+                    'powerbi', 'snowflake', 'databricks', 'apachenifi', 'apachehadoop', 
+                    'amazonwebservices', 'googlecloud', 'microsoftazure', 
+                    'mysql', 'postgresql', 'docker', 'git', 'javascript', 'tailwindcss'
+                  ]}
                 />
                 
                 <div className="flex flex-wrap gap-2 mt-4 p-4 bg-slate-900 rounded-lg border border-slate-800 shadow-inner text-left">
@@ -1065,11 +1070,13 @@ export default function App() {
                   <div className="px-24 mb-10 relative z-10 flex flex-col items-center text-center text-left">
                      <p className="text-lg text-[#333333] leading-relaxed italic border-t border-slate-100 pt-8 text-center break-words w-full max-w-[160mm] text-left" dangerouslySetInnerHTML={{__html: formatTextForPreview(`"${cvData.profile.summary}"`)}}></p>
                   </div>
+                  {/* ESPACE RÉDUIT : py-3 et mb-1 */}
                   <div className="w-full bg-[#2E86C1] py-3 px-16 mb-1 flex items-center justify-center gap-10 shadow-inner relative z-10 flex-shrink-0 text-left tech-banner">
                     {(cvData.profile.tech_logos || []).map((logo, i) => (
                       logo.src && logo.src !== "null" ? <img key={i} src={logo.src} onError={handleImageError} className="h-14 w-auto object-contain brightness-0 invert opacity-95 transition-transform" alt={String(logo.name)} /> : null
                     ))}
                   </div>
+                  {/* HEXAGONES REMONTÉS : mt-2 */}
                   <div className="flex justify-center gap-12 relative z-10 px-10 flex-shrink-0 mt-2 text-left">
                     {(cvData.soft_skills || []).map((skill, i) => (
                       <div key={i} className="relative w-40 h-44 flex items-center justify-center text-left">
