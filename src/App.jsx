@@ -18,25 +18,6 @@ const THEME = {
   bg: "#FFFFFF"
 };
 
-/**
- * Récupération de la clé API pour la production (Vercel/Vite/Next)
- */
-const getApiKey = () => {
-  try {
-    // @ts-ignore
-    if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GOOGLE_API_KEY) {
-      return import.meta.env.VITE_GOOGLE_API_KEY;
-    }
-    // @ts-ignore
-    if (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_GOOGLE_API_KEY) {
-      return process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
-    }
-  } catch (e) {}
-  return ""; 
-};
-
-const apiKey = getApiKey();
-
 const getIconUrl = (slug) => `https://cdn.simpleicons.org/${String(slug || '').toLowerCase().replace(/\s+/g, '')}`;
 const getClearbitUrl = (domain) => `https://logo.clearbit.com/${String(domain || '').trim()}`;
 
@@ -71,6 +52,7 @@ const DEFAULT_CV_DATA = {
       period: "Jan 2023 - Présent",
       role: "Développeur Frontend",
       context: "Projet de refonte globale du site consommateur.",
+      objective: "Développer la partie frontend de l'outil Castresa...",
       phases: "Conception, Développement",
       tech_stack: ["Drupal", "Twig"],
       forceNewPage: false
@@ -204,6 +186,12 @@ const ExperienceItem = ({ exp }) => (
         <div className="mb-4 text-left">
            <h5 className="text-[10px] font-bold text-[#2E86C1] uppercase mb-1">Contexte</h5>
            <p className="text-sm text-[#333333] leading-relaxed break-words" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.context)}}></p>
+        </div>
+      )}
+      {exp.objective && (
+        <div className="mb-4 text-left">
+           <h5 className="text-[10px] font-bold text-[#2E86C1] uppercase mb-1">Objectif</h5>
+           <p className="text-sm text-[#333333] leading-relaxed break-words" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.objective)}}></p>
         </div>
       )}
       <div className="mt-4 pt-4 border-t border-slate-50 space-y-4 text-left">
@@ -541,40 +529,13 @@ export default function App() {
     setIsImporting(true);
     setImportError(null);
     try {
-      if (!apiKey) throw new Error("Clé API manquante dans l'environnement.");
-
       let rawText = await extractTextFromPDF(pendingFile);
       rawText = rawText.replace(/\s+/g, ' ').trim();
       
-      const systemPrompt = `Tu es un expert en analyse de CV. Tu reçois du texte extrait d'un PDF. 
-      TA MISSION : Transformer ce texte en un JSON valide.
-      RÈGLES D'EXTRACTION CRITIQUES :
-      1. EXHAUSTIVITÉ ABSOLUE : Tu dois extraire TOUTES les expériences professionnelles mentionnées dans le texte, sans exception.
-      2. PAS DE RÉSUMÉ : Ne fusionne pas les expériences. Ne résume pas les descriptions. Conserve le maximum de détails.
-      3. STRUCTURE DU JSON : Respecte strictement ce schéma :
-      {
-        "profile": { "firstname": "", "lastname": "", "years_experience": "", "current_role": "", "main_tech": "", "summary": "" },
-        "soft_skills": ["3 max"],
-        "connaissances_sectorielles": [],
-        "education": [{ "year": "", "degree": "", "location": "" }],
-        "certifications": [{ "name": "Nom Certification", "logo": "" }],
-        "skills_categories": { "Langages": [{ "name": "Java", "rating": 3 }], "Frameworks": [{ "name": "Spring", "rating": 3 }] },
-        "experiences": [{ "client_name": "", "period": "", "role": "", "context": "Contexte du projet (équipe, enjeux...)", "objective": "Objectif de la mission", "phases": "Réalisations et tâches", "tech_stack": [] }]
-      }
-      4. QUALITÉ : Si une donnée est absente, laisse une chaîne vide "". Pour "years_experience", n'extrais que le nombre entier.`;
-
-      const response = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+      const response = await fetchWithRetry('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: `Texte intégral du CV à traiter : ${rawText}` }] }],
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          generationConfig: { 
-            responseMimeType: "application/json",
-            maxOutputTokens: 8192,
-            temperature: 0.1
-          }
-        })
+        body: JSON.stringify({ text: rawText })
       });
 
       const data = await response.json();
@@ -586,7 +547,6 @@ export default function App() {
         ...prev,
         ...result,
         profile: { ...prev.profile, ...result.profile },
-        // Fusion intelligente des listes pour éviter les écrasements par vide
         certifications: result.certifications?.length ? result.certifications : prev.certifications,
         skills_categories: result.skills_categories && Object.keys(result.skills_categories).length ? result.skills_categories : prev.skills_categories,
         experiences: (result.experiences || []).map((exp, idx) => ({ 
@@ -598,7 +558,7 @@ export default function App() {
       }));
     } catch (err) {
       console.error(err);
-      setImportError(err.message || "Erreur lors de l'analyse IA.");
+      setImportError(err.message || "Erreur lors de l'analyse IA. Vérifiez que la route /api/analyze est déployée.");
     } finally {
       setIsImporting(false);
       setPendingFile(null);
@@ -653,7 +613,6 @@ export default function App() {
   const updateEducation = (i, f, v) => { const n = [...cvData.education]; n[i][f] = v; setCvData(p => ({ ...p, education: n })); };
   const addEducation = () => setCvData(p => ({ ...p, education: [...p.education, { year: "", degree: "", location: "" }] }));
   
-  // CORRECTION : Pas de setCvData imbriqué pour éviter la page blanche
   const removeEducation = (i) => setCvData(prev => ({
     ...prev,
     education: prev.education.filter((_, idx) => idx !== i)
@@ -1030,6 +989,7 @@ export default function App() {
                    </div>
                    {/* AJOUT DU CHAMP CONTEXTE */}
                    <RichTextareaUI label="Contexte" value={exp.context} onChange={(v) => updateExperience(exp.id, 'context', v)} />
+                   <RichTextareaUI label="Objectif" value={exp.objective} onChange={(v) => updateExperience(exp.id, 'objective', v)} />
                    <RichTextareaUI label="Réalisation" value={exp.phases} onChange={(v) => updateExperience(exp.id, 'phases', v)} />
                  </div>
                ))}
