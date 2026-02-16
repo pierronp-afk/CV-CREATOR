@@ -10,19 +10,16 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Clé API non configurée sur le serveur Vercel." });
   }
 
-  // --- STRATÉGIE DE CONTOURNEMENT DES ERREURS 403/429 ---
-  // Nous définissons une liste de priorité.
-  // 1. On tente le modèle demandé (2.5 Flash).
-  // 2. S'il échoue (Quota, Droits, Introuvable), on bascule automatiquement sur le 1.5 Flash qui est plus permissif.
+  // --- STRATÉGIE MISE À JOUR : PRIORITÉ 1.5 LATEST ---
   const modelsToTry = [
-    // PRIORITÉ 1 : Le modèle que vous voulez utiliser (Attention: Quota très faible ~3 RPM)
-    { id: "gemini-2.5-flash-preview-09-2025", version: "v1beta" },
-    
-    // PRIORITÉ 2 : La version expérimentale 2.0 (Souvent disponible quand la 2.5 bloque)
-    { id: "gemini-2.0-flash-exp", version: "v1beta" },
+    // PRIORITÉ 1 : La version 1.5 la plus stable (Canal v1)
+    { id: "gemini-1.5-flash-latest", version: "v1" }, 
 
-    // PRIORITÉ 3 : Le "Sauveur" (Stable, 15 RPM, fonctionne toujours en secours)
-    { id: "gemini-1.5-flash", version: "v1beta" }
+    // PRIORITÉ 2 : Secours sur le 1.5 Pro (Plus intelligent pour les CV complexes)
+    { id: "gemini-1.5-pro-latest", version: "v1" },
+
+    // PRIORITÉ 3 : Repli sur la branche 2.x si le 1.5 est indisponible
+    { id: "gemini-2.5-flash-preview-09-2025", version: "v1beta" }
   ];
 
   const prompt = `Tu es un expert en recrutement. Analyse ce CV et extrais les données en JSON strict.
@@ -45,7 +42,7 @@ Structure JSON attendue :
       "period": "Dates", 
       "role": "Rôle", 
       "context": "Contexte du projet", 
-      "phases": "• Action 1\n• Action 2 (Liste à puces avec verbes d'action)", 
+      "phases": "• Action 1\n• Action 2", 
       "tech_stack": ["Tech1", "Tech2"] 
     }
   ],
@@ -58,7 +55,6 @@ Texte du CV : ${text}`;
 
   let lastError = null;
 
-  // Boucle de tentative sur les différents modèles
   for (const config of modelsToTry) {
     try {
       console.log(`Tentative avec le modèle : ${config.id} (${config.version})...`);
@@ -71,49 +67,44 @@ Texte du CV : ${text}`;
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: { 
-            // On force le JSON car on est sur v1beta pour tous les modèles listés ici
             responseMimeType: "application/json",
             temperature: 0.1
           }
         })
       });
 
-      // Si erreur 429 (Too Many Requests) ou 403 (Forbidden), on passe au modèle suivant
+      // Gestion des erreurs de quota ou de modèle introuvable
       if (response.status === 429 || response.status === 403 || response.status === 404) {
         const msg = await response.text();
-        console.warn(`Échec ${config.id} (Erreur ${response.status}): ${msg}. Bascule sur le modèle suivant...`);
-        lastError = `Le modèle ${config.id} a bloqué (${response.status})`;
-        continue; // On force la boucle à essayer le suivant
+        console.warn(`Échec ${config.id} (Erreur ${response.status}). Bascule...`);
+        lastError = `Erreur ${response.status} sur ${config.id}`;
+        continue; 
       }
 
       if (!response.ok) {
-        throw new Error(`Erreur API ${response.status}: ${await response.text()}`);
+        throw new Error(`Erreur API ${response.status}`);
       }
 
-      // Si ça passe, on traite
       const data = await response.json();
       const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-      if (!content) throw new Error("Réponse vide de l'IA");
+      if (!content) throw new Error("Réponse vide");
 
-      // Nettoyage
+      // Nettoyage et parsing
       const cleanedContent = content.replace(/```json|```/g, '').trim();
       const jsonResult = JSON.parse(cleanedContent);
 
-      console.log(`Succès avec ${config.id}`);
+      console.log(`Succès confirmé avec ${config.id}`);
       return res.status(200).json(jsonResult);
 
     } catch (error) {
-      console.warn(`Exception avec ${config.id}:`, error.message);
+      console.warn(`Exception sur ${config.id}:`, error.message);
       lastError = error.message;
-      // On continue vers le prochain modèle
     }
   }
 
-  // Si on arrive ici, c'est que TOUS les modèles (2.5, 2.0 et 1.5) ont échoué
-  console.error("Tous les modèles ont échoué.");
   return res.status(500).json({ 
-    error: "Service surchargé. Veuillez réessayer dans une minute.",
+    error: "Tous les modèles ont échoué.",
     details: lastError 
   });
 }
