@@ -568,25 +568,12 @@ export default function App() {
     }
   };
 
-  const moveCategory = (catName, direction) => {
-    const keys = Object.keys(cvData.skills_categories);
-    const index = keys.indexOf(catName);
-    const target = direction === 'up' ? index - 1 : index + 1;
-    if (target >= 0 && target < keys.length) {
-      const newKeys = [...keys];
-      [newKeys[index], newKeys[target]] = [newKeys[target], newKeys[index]];
-      const newCategories = {};
-      newKeys.forEach(k => { newCategories[k] = cvData.skills_categories[k]; });
-      setCvData(p => ({ ...p, skills_categories: newCategories }));
-    }
-  };
-
   const updateExperience = (id, f, v) => setCvData(p => ({ ...p, experiences: p.experiences.map(e => e.id === id ? { ...e, [f]: v } : e) }));
   const addExperience = () => setCvData(p => ({ ...p, experiences: [{ id: Date.now(), client_name: "", client_logo: null, period: "", role: "", context: "", phases: "", achievements: [], tech_stack: [], forceNewPage: false }, ...p.experiences] }));
   const removeExperience = (id) => setCvData(p => ({ ...p, experiences: p.experiences.filter(e => e.id !== id) }));
   
   const addSkillCategory = () => { if (newCategoryName) { setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [newCategoryName]: [] } })); setNewCategoryName(""); } };
-  const deleteCategory = (n) => setCvData(p => { const newC = { ...p.skills_categories }; delete newC[n]; return { ...p, skills_categories: n }; });
+  const deleteCategory = (n) => setCvData(p => { const newC = { ...p.skills_categories }; delete newC[n]; return { ...p, skills_categories: newC }; });
   const updateSkillInCategory = (cat, idx, f, v) => setCvData(p => { const s = [...p.skills_categories[cat]]; s[idx] = { ...s[idx], [f]: v }; return { ...p, skills_categories: { ...p.skills_categories, [cat]: s } }; });
   const addSkillToCategory = (cat) => { const i = newSkillsInput[cat] || { name: '', rating: 3 }; if (i.name) { setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [cat]: [...p.skills_categories[cat], { name: i.name, rating: i.rating }] } })); setNewSkillsInput(p => ({ ...p, [cat]: { name: '', rating: 3 } })); } };
   const updateNewSkillInput = (cat, field, val) => { setNewSkillsInput(p => ({ ...p, [cat]: { ...(p[cat] || { name: '', rating: 3 }), [field]: val } })); };
@@ -1084,13 +1071,28 @@ export default function App() {
                    </div>
 
                    <div className="absolute top-4 right-4 flex gap-1 text-left">
-                     <button onClick={() => moveItem('experiences', index, 'up')} disabled={index === 0} className="text-slate-300 hover:text-blue-500 disabled:opacity-20 text-left"><ChevronUp size={18}/></button>
-                     <button onClick={() => moveItem('experiences', index, 'down')} disabled={index === cvData.experiences.length - 1} className="text-slate-300 hover:text-blue-500 disabled:opacity-20 text-left"><ChevronDown size={18}/></button>
+                     <button onClick={() => moveItem('experiences', index, 'up')} disabled={index === 0} className="text-slate-300 hover:text-blue-500 disabled:opacity-20 transition-colors text-left"><ChevronUp size={18}/></button>
+                     <button onClick={() => moveItem('experiences', index, 'down')} disabled={index === cvData.experiences.length - 1} className="text-slate-300 hover:text-blue-500 disabled:opacity-20 transition-colors text-left"><ChevronDown size={18}/></button>
                      <button onClick={() => removeExperience(exp.id)} className="text-red-300 hover:text-red-500 ml-1 text-left"><Trash2 size={16}/></button>
                    </div>
 
                    <div className="pl-8">
-                     <InputUI label="Client" value={exp.client_name} onChange={(v) => updateExperience(exp.id, 'client_name', v)} />
+                     {/* RÉINTÉGRATION DE LA FONCTION LOGO CLIENT */}
+                     <div className="mb-6">
+                        <LogoSelectorUI 
+                          label={`Logo ${exp.client_name || 'du Client'}`}
+                          onSelect={(logoObj) => updateExperience(exp.id, 'client_logo', logoObj.src)}
+                        />
+                        {exp.client_logo && (
+                          <div className="mt-2 flex items-center gap-3 p-2 bg-slate-50 rounded border border-dashed border-slate-200">
+                             <img src={exp.client_logo} onError={handleImageError} className="w-12 h-12 object-contain bg-white rounded border" alt="" />
+                             <span className="text-[10px] font-bold text-slate-400 uppercase">Logo chargé</span>
+                             <button onClick={() => updateExperience(exp.id, 'client_logo', null)} className="ml-auto p-1 text-red-400 hover:bg-red-50 rounded transition-colors"><X size={14}/></button>
+                          </div>
+                        )}
+                     </div>
+
+                     <InputUI label="Nom du Client" value={exp.client_name} onChange={(v) => updateExperience(exp.id, 'client_name', v)} />
                      <InputUI label="Rôle" value={exp.role} onChange={(v) => updateExperience(exp.id, 'role', v)} />
                      <div className="grid grid-cols-2 gap-4 text-left">
                        <InputUI label="Période" value={exp.period} onChange={(v) => updateExperience(exp.id, 'period', v)} />
