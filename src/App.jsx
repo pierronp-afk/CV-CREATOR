@@ -7,7 +7,7 @@ import {
   Bold, List, Copy, HelpCircle, RefreshCw, Cloud, Mail, Printer,
   ChevronUp, ChevronDown, Award, Factory, ToggleLeft, ToggleRight, FilePlus,
   FileSearch, Loader2, Lock, Sparkles, AlertCircle, LifeBuoy, GripVertical,
-  Undo2, Columns2, Rows2
+  Undo2
 } from 'lucide-react';
 
 // --- CONFIGURATION & THÈME ---
@@ -961,7 +961,7 @@ Texte : ${rawText}`;
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
-                      {cvData.swapPages ? <List size={20}/> : <Columns2 size={20}/>}
+                      {cvData.swapPages ? <List size={20}/> : <LayoutTemplate size={20}/>}
                     </div>
                     <div className="text-left">
                       <p className="text-xs font-bold text-slate-700">Ordre des pages</p>
