@@ -10,13 +10,16 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Clé API non configurée sur le serveur Vercel." });
   }
 
-  // --- STRATÉGIE MISE À JOUR : PRIORITÉ 1.5 LATEST ---
+  // --- STRATÉGIE MISE À JOUR : PRIORITÉ 1.5 ---
   const modelsToTry = [
-    // On retire "-latest" qui cause parfois des soucis d'ID en v1beta
-    // On utilise les noms de base qui sont universels
-    { id: "gemini-1.5-flash", version: "v1beta" }, 
-    { id: "gemini-1.5-pro", version: "v1beta" },
-    { id: "gemini-2.0-flash-exp", version: "v1beta" }
+    // 1. On utilise le nom technique complet (le plus robuste)
+    { id: "gemini-1.5-flash-001", version: "v1beta" }, 
+    
+    // 2. Secours sur le Pro avec son nom technique
+    { id: "gemini-1.5-pro-001", version: "v1beta" },
+
+    // 3. Le modèle 2.0 que vous aviez déjà (qui semble reconnu mais en 404 ici)
+    { id: "gemini-2.0-flash", version: "v1beta" }
   ];
 
   const prompt = `Tu es un expert en recrutement. Analyse ce CV et extrais les données en JSON strict.
