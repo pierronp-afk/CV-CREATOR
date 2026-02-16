@@ -553,43 +553,44 @@ export default function App() {
     setImportError(null);
     try {
       let rawText = await extractTextFromPDF(pendingFile);
-      // Nettoyage agressif pour limiter les tokens et éviter le timeout
-      rawText = rawText.replace(/\s+/g, ' ').trim().substring(0, 10000); 
+      // Nettoyage agressif pour limiter la taille du payload et éviter le 504
+      rawText = rawText.replace(/\s+/g, ' ').trim().substring(0, 15000);
       
       const prompt = `Agis comme un expert Smile. Analyse ce texte de CV et retourne un objet JSON structuré. 
 Règles de formatage impératives :
-- profile.summary : doit être un paragraphe unique (pas de puces), maximum 7 lignes.
+- profile.summary : doit être un paragraphe unique (PAS DE PUCES), maximum 7 lignes.
 - experiences[].phases : doit être une liste à puces (•) avec les actions réalisées.
 - profile (firstname, lastname, current_role, years_experience, main_tech)
 - education (year, degree, location)
 - skills_categories (Langages, Outils, etc.)
+- certifications (name)
 Texte : ${rawText}`;
 
       const response = await fetchWithRetry('/api/analyze', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          // L'API utilise la clé configurée côté serveur (process.env.GOOGLE_API_KEY)
+          // Note: La clé GOOGLE_API_KEY est utilisée côté serveur par l'endpoint /api/analyze
         },
         body: JSON.stringify({ text: prompt })
       });
 
-      // Gestion de la réponse Gateway Timeout (HTML renvoyé au lieu de JSON)
+      // Gestion de la réponse si elle n'est pas du JSON (ex: erreur 504 renvoyant du HTML)
       const contentType = response.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
-        if (response.status === 504) throw new Error("Le serveur Gemini a mis trop de temps à répondre (Timeout). Réessayez avec un CV moins long.");
-        throw new Error("Erreur serveur inattendue.");
+        throw new Error("Le serveur a mis trop de temps à répondre (Timeout Vercel). Essayez avec un CV moins long.");
       }
 
       const data = await response.json();
       
-      // Extraction du texte JSON selon le retour de Gemini
-      const rawContent = data.candidates?.[0]?.content?.parts?.[0]?.text || data.text || data.content || "";
-      if (!rawContent) throw new Error("L'IA n'a pas renvoyé de contenu exploitable.");
+      // Extraction robuste du contenu texte du JSON
+      let content = data.candidates?.[0]?.content?.parts?.[0]?.text || data.text || data.content || "";
+      
+      if (!content) throw new Error("L'IA n'a pas renvoyé de contenu exploitable.");
 
-      // Nettoyage des balises markdown éventuelles
-      const cleanJson = rawContent.replace(/```json|```/g, "").trim();
-      const result = JSON.parse(cleanJson);
+      // Nettoyage des balises Markdown JSON si présentes
+      const cleanJsonStr = content.replace(/```json|```/g, '').trim();
+      const result = JSON.parse(cleanJsonStr);
       
       setCvData(prev => ({
         ...prev,
@@ -603,8 +604,8 @@ Texte : ${rawText}`;
         }))
       }));
     } catch (err) {
-      console.error(err);
-      setImportError(err.message || "Erreur lors de l'analyse IA. Le service est peut-être saturé.");
+      console.error("Détails de l'erreur d'import:", err);
+      setImportError(err.message || "Erreur lors de l'analyse IA. Vérifiez que la route /api/analyze est correctement déployée sur Vercel.");
     } finally {
       setIsImporting(false);
       setPendingFile(null);
