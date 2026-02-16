@@ -187,12 +187,16 @@ const HexagonRating = ({ score, onChange }) => (
 const ExperienceItem = ({ exp }) => (
   <div className="grid grid-cols-12 gap-6 mb-8 break-inside-avoid print:break-inside-avoid text-left">
     <div className="col-span-2 flex flex-col items-center pt-2 text-left">
-      {exp.client_logo && exp.client_logo !== "null" && (
-        <div className="w-16 h-16 rounded-lg border border-slate-200 overflow-hidden flex items-center justify-center bg-white mb-2 p-1">
+      <div className="w-16 h-16 rounded-lg border border-slate-200 overflow-hidden flex items-center justify-center bg-white mb-2 p-1 text-center">
+        {exp.client_logo && exp.client_logo !== "null" ? (
           <img src={exp.client_logo} onError={handleImageError} className="max-w-full max-h-full object-contain" alt="Logo Client" />
-        </div>
-      )}
-      <span className="text-[10px] font-bold text-[#333333] uppercase text-center leading-tight">{String(exp.client_name || '')}</span>
+        ) : (
+          <span className="text-[8px] font-black text-[#2E86C1] uppercase leading-tight px-1 break-words">
+            {String(exp.client_name || '')}
+          </span>
+        )}
+      </div>
+      {/* Le nom sous le logo ne s'affiche plus car il est soit dans le carré, soit remplacé par le logo */}
     </div>
     <div className="col-span-10 border-l border-slate-100 pl-6 pb-4 text-left">
       <div className="flex justify-between items-baseline mb-3">
@@ -354,7 +358,7 @@ const DropZoneUI = ({ onFile, label = "Déposez une image", icon = <Upload size=
     >
       <input type="file" style={{display: 'none'}} ref={inputRef} accept="image/*" onChange={(e) => { if(e.target.files[0]) onFile(e.target.files[0]); }} />
       <div className={`transition-colors ${isDragging ? 'text-[#2E86C1]' : 'text-slate-400'}`}>{icon}</div>
-      <span className={`text-[10px] font-bold uppercase transition-colors ${isDragging ? 'text-[#2E86C1]' : 'text-slate-500'}`}>{isDragging ? "Lâchez l'image !" : label}</span>
+      <span className={`text-[10px] font-bold uppercase transition-colors px-2 leading-tight ${isDragging ? 'text-[#2E86C1]' : 'text-slate-500'}`}>{isDragging ? "Lâchez l'image !" : label}</span>
     </div>
   );
 };
@@ -1161,10 +1165,20 @@ export default function App() {
                              reader.onload = (ev) => updateExperience(exp.id, 'client_logo', ev.target.result);
                              reader.readAsDataURL(file);
                            }} 
-                           label="Charger logo client" 
-                           className="flex-1 text-left" 
+                           label={exp.client_logo ? "Changer logo" : (exp.client_name || "Charger logo client")} 
+                           className="flex-1 text-left h-20" 
                          />
-                         {exp.client_logo && <img src={exp.client_logo} onError={handleImageError} className="w-12 h-12 object-contain" alt="" />}
+                         {exp.client_logo && (
+                            <div className="relative group">
+                              <img src={exp.client_logo} onError={handleImageError} className="w-20 h-20 object-contain rounded border p-1 bg-white" alt="" />
+                              <button 
+                                onClick={() => updateExperience(exp.id, 'client_logo', null)}
+                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                              >
+                                <X size={10}/>
+                              </button>
+                            </div>
+                         )}
                        </div>
                      </div>
                      <div className="mb-4 flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-100 text-left">
