@@ -7,7 +7,7 @@ import {
   Bold, List, Copy, HelpCircle, RefreshCw, Cloud, Mail, Printer,
   ChevronUp, ChevronDown, Award, Factory, ToggleLeft, ToggleRight, FilePlus,
   FileSearch, Loader2, Lock, Sparkles, AlertCircle, LifeBuoy, GripVertical,
-  Undo2
+  Undo2, Columns2, Rows2
 } from 'lucide-react';
 
 // --- CONFIGURATION & THÈME ---
@@ -829,14 +829,62 @@ Texte : ${rawText}`;
     <div className="min-h-screen bg-slate-100 flex flex-col md:flex-row h-screen overflow-hidden font-sans text-left">
       {/* ... Modales existantes ... */}
       {showPrivacyNotice && (
-        <ModalUI title="Confidentialité" confirmText="J'ai compris" onConfirm={acceptPrivacy} icon={<Shield size={32} />} danger={false}>
-          <p className="text-sm">Vos données sont stockées localement. L'importation utilise Gemini via un proxy sécurisé.</p>
+        <ModalUI 
+          title="Notice de Confidentialité & RGPD" 
+          confirmText="J'ai compris et j'accepte"
+          onConfirm={acceptPrivacy}
+          icon={<Shield size={32} />}
+          danger={false}
+        >
+          <div className="space-y-3">
+            <p>Pour garantir la protection de vos données personnelles conformément au RGPD :</p>
+            <ul className="list-disc pl-4 space-y-1 text-xs text-left">
+              <li><strong>Stockage Local :</strong> Vos données sont enregistrées exclusivement dans votre navigateur (localStorage). Elles ne sont jamais stockées sur nos serveurs.</li>
+              <li><strong>Intelligence Artificielle :</strong> L'importation PDF utilise l'API Google Gemini via un proxy sécurisé.</li>
+              <li><strong>Services Tiers :</strong> L'affichage des logos s'appuie sur SimpleIcons et Clearbit.</li>
+            </ul>
+          </div>
+        </ModalUI>
+      )}
+
+      {showGuide && (
+        <ModalUI 
+          title="Guide de Rédaction Smile" 
+          confirmText="C'est noté !"
+          onConfirm={() => setShowGuide(false)}
+          icon={<LifeBuoy size={32} />}
+          danger={false}
+        >
+          <div className="space-y-4 text-left text-sm text-slate-600">
+            <p>Quelques conseils pour un CV parfait :</p>
+            <ul className="list-disc pl-4 space-y-2">
+              <li><strong>Photo :</strong> Privilégiez un fond neutre et une tenue professionnelle.</li>
+              <li><strong>Résumé :</strong> Soyez concis (3-4 lignes max) et mettez en avant votre valeur ajoutée.</li>
+              <li><strong>Expériences :</strong> Distinguez bien le <em>Contexte</em> (équipe, méthode, enjeux) de la <em>Réalisation</em> (vos actions concrètes).</li>
+            </ul>
+            <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 text-blue-800 mt-4 flex items-start gap-2">
+              <LifeBuoy size={16} className="mt-0.5 flex-shrink-0"/>
+              <span>Vous pourrez consulter cette notice à tout moment en cliquant sur l'icône <strong>bouée</strong> en haut de l'écran.</span>
+            </div>
+          </div>
         </ModalUI>
       )}
 
       {showAIConsent && (
         <ModalUI title="Autoriser l'IA ?" confirmText="Analyser" onClose={() => { setShowAIConsent(false); setPendingFile(null); }} onConfirm={confirmAIAnalysis} icon={<Sparkles size={32} />} danger={false}>
           <p>Le fichier sera analysé par l'IA pour extraction automatique.</p>
+        </ModalUI>
+      )}
+
+      {showResetConfirm && (
+        <ModalUI title="Réinitialiser le formulaire ?" onClose={() => setShowResetConfirm(false)} onConfirm={resetCV}>
+          <p>Toutes les modifications non sauvegardées seront perdues.</p>
+        </ModalUI>
+      )}
+
+      {showPurgeConfirm && (
+        <ModalUI title="Supprimer définitivement ?" onClose={() => setShowPurgeConfirm(false)} onConfirm={handlePurgeData} confirmText="Oui, purger tout">
+          <p>Toutes vos données seront supprimées de votre navigateur. Cette action est irréversible.</p>
         </ModalUI>
       )}
 
@@ -882,6 +930,9 @@ Texte : ${rawText}`;
           <div className="flex justify-between items-center mb-6 text-left">
             <div className="flex items-center gap-2">
               <h1 className="font-bold text-xl text-[#2E86C1]">Smile Editor</h1>
+              <button onClick={() => setShowGuide(true)} className="text-slate-400 hover:text-[#2E86C1] transition-colors p-1 rounded-full hover:bg-slate-50" title="Guide de rédaction">
+                <LifeBuoy size={20} />
+              </button>
             </div>
             <span className="text-xs font-bold text-slate-400 text-left">Étape {step} / 4</span>
           </div>
@@ -910,7 +961,7 @@ Texte : ${rawText}`;
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
-                      {cvData.swapPages ? <List size={20}/> : <LayoutTemplate size={20}/>}
+                      {cvData.swapPages ? <List size={20}/> : <Columns2 size={20}/>}
                     </div>
                     <div className="text-left">
                       <p className="text-xs font-bold text-slate-700">Ordre des pages</p>
@@ -975,7 +1026,8 @@ Texte : ${rawText}`;
               </div>
             </div>
             )}
-
+            
+            {/* ... Rest of the steps (2, 3, 4) remain unchanged ... */}
             {step === 2 && (
             <div className="space-y-6 animate-in slide-in-from-right transition-all text-left">
                 <div className="flex items-center gap-3 mb-4 text-[#2E86C1] text-left"><Hexagon size={24} /><h2 className="text-lg font-bold uppercase text-left">Soft Skills</h2></div>
