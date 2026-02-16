@@ -10,12 +10,13 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Clé API non configurée sur le serveur Vercel." });
   }
 
-  // CORRECTION : Utilisation du modèle 1.5 Flash (Stable & Quotas élevés)
-  // Le modèle 2.5 a un quota de 3 RPM qui cause les erreurs 429
+  // CORRECTION APPLIQUÉE : 
+  // 1. Modèle : gemini-1.5-flash (Stable, rapide, 15 RPM gratuit)
+  // 2. Endpoint : v1 (Stable) au lieu de v1beta pour éviter les erreurs 404 "Model not found"
   const modelId = "gemini-1.5-flash"; 
-  const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
+  const apiUrl = `https://generativelanguage.googleapis.com/v1/models/${modelId}:generateContent?key=${apiKey}`;
 
-  // Prompt optimisé pour le formatage demandé
+  // Prompt optimisé pour le formatage JSON strict
   const prompt = `Tu es un expert en recrutement. Analyse ce CV et extrais les données en JSON strict.
   
 Règles de formatage IMPORTANTES :
@@ -67,11 +68,15 @@ Texte du CV : ${text}`;
       const errorText = await response.text();
       console.error("Google API Response Error:", errorText);
       
-      // Gestion spécifique de l'erreur 429 (Trop de requêtes)
       if (response.status === 429) {
-        return res.status(429).json({ error: "Trop de requêtes à l'IA (Quota dépassé). Attendez 1 minute et réessayez." });
+        return res.status(429).json({ error: "Trop de requêtes à l'IA (Quota dépassé). Attendez 1 minute." });
       }
       
+      // Si le modèle n'est pas trouvé (404), on renvoie une erreur explicite
+      if (response.status === 404) {
+         return res.status(404).json({ error: "Modèle IA introuvable sur l'API v1. Vérifiez que Gemini 1.5 Flash est actif." });
+      }
+
       return res.status(response.status).json({ error: `Erreur Google API (${response.status})`, details: errorText });
     }
 
@@ -82,7 +87,6 @@ Texte du CV : ${text}`;
       throw new Error("L'IA n'a renvoyé aucun contenu.");
     }
 
-    // Nettoyage au cas où l'IA renverrait des balises markdown
     const cleanedContent = content.replace(/```json|```/g, '').trim();
     
     return res.status(200).json(JSON.parse(cleanedContent));
