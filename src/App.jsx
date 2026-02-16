@@ -150,7 +150,11 @@ const CornerTriangle = ({ customLogo }) => (
 );
 
 const HeaderSmall = ({ isAnonymous, profile, role, logo }) => {
-  const nameDisplay = isAnonymous ? `${profile.firstname?.[0] || ''}${profile.lastname?.[0] || ''}` : `${profile.firstname} ${profile.lastname}`;
+  // Modification de la logique d'affichage anonyme : 1ère lettre prénom + 2 premières lettres nom
+  const nameDisplay = isAnonymous 
+    ? `${profile.firstname?.[0] || ''}${profile.lastname?.substring(0, 2) || ''}` 
+    : `${profile.firstname} ${profile.lastname}`;
+    
   return (
     <div className="flex justify-between items-start border-b-2 border-[#2E86C1] pb-4 pt-10 px-12 mt-8 flex-shrink-0 text-left">
       <div className="w-12 h-12 flex items-center justify-center text-left">
@@ -1060,7 +1064,9 @@ export default function App() {
               )}
               <div className="pt-36 px-16 pb-0 flex-shrink-0 text-left">
                  <h1 className="uppercase leading-[0.85] mb-8 font-montserrat text-[#333333] text-left">
-                   {cvData.isAnonymous ? `${String(cvData.profile.firstname?.[0] || '')}${String(cvData.profile.lastname?.[0] || '')}` : <><span className="text-4xl block font-semibold opacity-90 text-left">{String(cvData.profile.firstname)}</span><span className="text-6xl font-black text-left">{String(cvData.profile.lastname)}</span></>}
+                   {cvData.isAnonymous 
+                    ? `${String(cvData.profile.firstname?.[0] || '')}${String(cvData.profile.lastname?.substring(0, 2) || '')}` 
+                    : <><span className="text-4xl block font-semibold opacity-90 text-left">{String(cvData.profile.firstname)}</span><span className="text-6xl font-black text-left">{String(cvData.profile.lastname)}</span></>}
                  </h1>
                  <div className="inline-block bg-[#2E86C1] text-white font-bold text-xl px-4 py-1 rounded-sm uppercase mb-6 tracking-wider shadow-sm text-left">{String(cvData.profile.years_experience)} ans d'expérience</div>
                  <h2 className="text-3xl font-black text-[#333333] uppercase mb-1 tracking-wide font-montserrat opacity-90 text-left">{String(cvData.profile.current_role)}</h2>
