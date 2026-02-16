@@ -18,22 +18,6 @@ const THEME = {
   bg: "#FFFFFF"
 };
 
-const getApiKey = () => {
-  try {
-    // @ts-ignore
-    if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GOOGLE_API_KEY) {
-      return import.meta.env.VITE_GOOGLE_API_KEY;
-    }
-    // @ts-ignore
-    if (typeof process !== 'undefined' && process.env?.GOOGLE_API_KEY) {
-      return process.env.GOOGLE_API_KEY;
-    }
-  } catch (e) {}
-  return ""; 
-};
-
-const apiKey = getApiKey();
-
 const getIconUrl = (slug) => `https://cdn.simpleicons.org/${String(slug || '').toLowerCase().replace(/\s+/g, '')}`;
 const getClearbitUrl = (domain) => `https://logo.clearbit.com/${String(domain || '').trim()}`;
 
@@ -157,7 +141,7 @@ const HeaderSmall = ({ isAnonymous, profile, role, logo }) => {
   return (
     <div className="flex justify-between items-start border-b-2 border-[#2E86C1] pb-4 pt-6 px-12 flex-shrink-0 text-left">
       <div className="w-12 h-12 flex items-center justify-center text-left">
-         {logo && logo !== "null" && <img src={logo} onError={handleImageError} className="max-w-full max-h-full object-contain brightness-0 invert" alt="Logo" />}
+          {logo && logo !== "null" && <img src={logo} onError={handleImageError} className="max-w-full max-h-full object-contain brightness-0 invert" alt="Logo" />}
       </div>
       <div className="text-right">
         <h3 className="text-sm font-bold text-[#333333] uppercase">{String(nameDisplay)}</h3>
@@ -202,7 +186,6 @@ const ExperienceItem = ({ exp }) => (
          <h4 className="text-lg font-bold text-[#333333] uppercase">{String(exp.client_name || '')} <span className="font-normal text-[#666666]">| {String(exp.role || '')}</span></h4>
          <span className="text-xs font-bold text-[#2E86C1] uppercase">{String(exp.period || '')}</span>
       </div>
-      {/* BLOC CONTEXTE */}
       {exp.context && (
         <div className="mb-4 text-left">
            <h5 className="text-[10px] font-bold text-[#2E86C1] uppercase mb-1">Contexte</h5>
@@ -526,26 +509,6 @@ export default function App() {
     e.target.value = null; 
   };
 
-  const fetchWithRetry = async (url, options, retries = 5, backoff = 1000) => {
-    try {
-      const response = await fetch(url, options);
-      if (!response.ok) {
-        if (retries > 0 && (response.status === 429 || response.status >= 500)) {
-          await new Promise(resolve => setTimeout(resolve, backoff));
-          return fetchWithRetry(url, options, retries - 1, backoff * 2);
-        }
-        throw new Error(`API Error: ${response.status}`);
-      }
-      return response;
-    } catch (error) {
-      if (retries > 0) {
-        await new Promise(resolve => setTimeout(resolve, backoff));
-        return fetchWithRetry(url, options, retries - 1, backoff * 2);
-      }
-      throw error;
-    }
-  };
-
   const confirmAIAnalysis = async () => {
     if (!pendingFile) return;
     setShowAIConsent(false);
@@ -553,44 +516,22 @@ export default function App() {
     setImportError(null);
     try {
       let rawText = await extractTextFromPDF(pendingFile);
-      // Nettoyage agressif pour limiter la taille du payload et éviter le 504
+      // Nettoyage agressif pour limiter la taille du payload
       rawText = rawText.replace(/\s+/g, ' ').trim().substring(0, 15000);
       
-      const prompt = `Agis comme un expert Smile. Analyse ce texte de CV et retourne un objet JSON structuré. 
-Règles de formatage impératives :
-- profile.summary : doit être un paragraphe unique (PAS DE PUCES), maximum 7 lignes.
-- experiences[].phases : doit être une liste à puces (•) avec les actions réalisées.
-- profile (firstname, lastname, current_role, years_experience, main_tech)
-- education (year, degree, location)
-- skills_categories (Langages, Outils, etc.)
-- certifications (name)
-Texte : ${rawText}`;
-
-      const response = await fetchWithRetry('/api/analyze', {
+      // Appel vers le backend (Proxy Vercel)
+      const response = await fetch('/api/analyze', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          // Note: La clé GOOGLE_API_KEY est utilisée côté serveur par l'endpoint /api/analyze
-        },
-        body: JSON.stringify({ text: prompt })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: rawText })
       });
 
-      // Gestion de la réponse si elle n'est pas du JSON (ex: erreur 504 renvoyant du HTML)
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error("Le serveur a mis trop de temps à répondre (Timeout Vercel). Essayez avec un CV moins long.");
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || "Erreur lors de l'analyse");
       }
 
-      const data = await response.json();
-      
-      // Extraction robuste du contenu texte du JSON
-      let content = data.candidates?.[0]?.content?.parts?.[0]?.text || data.text || data.content || "";
-      
-      if (!content) throw new Error("L'IA n'a pas renvoyé de contenu exploitable.");
-
-      // Nettoyage des balises Markdown JSON si présentes
-      const cleanJsonStr = content.replace(/```json|```/g, '').trim();
-      const result = JSON.parse(cleanJsonStr);
+      const result = await response.json();
       
       setCvData(prev => ({
         ...prev,
@@ -605,7 +546,7 @@ Texte : ${rawText}`;
       }));
     } catch (err) {
       console.error("Détails de l'erreur d'import:", err);
-      setImportError(err.message || "Erreur lors de l'analyse IA. Vérifiez que la route /api/analyze est correctement déployée sur Vercel.");
+      setImportError(err.message || "Erreur lors de l'analyse IA.");
     } finally {
       setIsImporting(false);
       setPendingFile(null);
@@ -814,7 +755,7 @@ Texte : ${rawText}`;
             <p>Pour garantir la protection de vos données personnelles conformément au RGPD :</p>
             <ul className="list-disc pl-4 space-y-1 text-xs text-left">
               <li><strong>Stockage Local :</strong> Vos données sont enregistrées exclusivement dans votre navigateur (localStorage). Elles ne sont jamais stockées sur nos serveurs.</li>
-              <li><strong>Intelligence Artificielle :</strong> L'importation PDF utilise l'API Google Gemini. Le texte est transmis pour analyse mais n'est pas utilisé pour entraîner leurs modèles.</li>
+              <li><strong>Intelligence Artificielle :</strong> L'importation PDF utilise l'API Google Gemini via un proxy sécurisé.</li>
               <li><strong>Services Tiers :</strong> L'affichage des logos s'appuie sur SimpleIcons et Clearbit.</li>
             </ul>
           </div>
@@ -834,13 +775,8 @@ Texte : ${rawText}`;
             <ul className="list-disc pl-4 space-y-2">
               <li><strong>Photo :</strong> Privilégiez un fond neutre et une tenue professionnelle.</li>
               <li><strong>Résumé :</strong> Soyez concis (3-4 lignes max) et mettez en avant votre valeur ajoutée.</li>
-              <li><strong>Expériences :</strong> Distinguez bien le <em>Contexte</em> (équipe, méthode, enjeux) de la <em>Réalisation</em> (vos actions concrètes, verbes d'action).</li>
-              <li><strong>Compétences :</strong> Soyez honnête sur l'auto-évaluation, nos experts valideront vos acquis.</li>
+              <li><strong>Expériences :</strong> Distinguez bien le <em>Contexte</em> (équipe, méthode, enjeux) de la <em>Réalisation</em> (vos actions concrètes).</li>
             </ul>
-            <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 text-blue-800 mt-4 flex items-start gap-2">
-               <LifeBuoy size={16} className="mt-0.5 flex-shrink-0"/>
-               <span>Vous pourrez consulter cette notice à tout moment en cliquant sur l'icône <strong>bouée</strong> en haut de l'écran.</span>
-            </div>
           </div>
         </ModalUI>
       )}
@@ -855,9 +791,9 @@ Texte : ${rawText}`;
           danger={false}
         >
           <div className="space-y-3 text-left">
-            <p>Le contenu de votre fichier sera envoyé à l'intelligence artificielle <strong>Google Gemini</strong>.</p>
+            <p>Le contenu de votre fichier sera envoyé à l'intelligence artificielle pour extraction des données.</p>
             <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 text-[11px] text-blue-700">
-              Note : Les données sont traitées de manière éphémère. Google ne les utilise pas pour l'entraînement de ses modèles.
+              Note : Les données sont traitées de manière éphémère.
             </div>
           </div>
         </ModalUI>
@@ -865,13 +801,13 @@ Texte : ${rawText}`;
 
       {showResetConfirm && (
         <ModalUI title="Réinitialiser le formulaire ?" onClose={() => setShowResetConfirm(false)} onConfirm={resetCV}>
-          <p>Toutes les modifications non sauvegardées seront perdues. Le cache de votre navigateur ne sera pas vidé.</p>
+          <p>Toutes les modifications non sauvegardées seront perdues.</p>
         </ModalUI>
       )}
 
       {showPurgeConfirm && (
         <ModalUI title="Supprimer définitivement ?" onClose={() => setShowPurgeConfirm(false)} onConfirm={handlePurgeData} confirmText="Oui, purger tout">
-          <p>Toutes vos données (CV, photos, logos) seront supprimées de votre navigateur. Cette action est irréversible.</p>
+          <p>Toutes vos données seront supprimées de votre navigateur. Cette action est irréversible.</p>
         </ModalUI>
       )}
 
@@ -948,7 +884,7 @@ Texte : ${rawText}`;
               <div className="flex items-center gap-3 mb-4 text-[#2E86C1] text-left"><User size={24} /><h2 className="text-lg font-bold uppercase text-left">Profil</h2></div>
               <div className="grid grid-cols-2 gap-4 mb-6 text-left">
                 <div className="p-3 border border-blue-100 bg-blue-50/50 rounded-lg flex flex-col gap-2 text-left">
-                  <span className="text-[10px] font-bold text-[#2E86C1] uppercase text-left">Logo Entreprise (interne smile)</span>
+                  <span className="text-[10px] font-bold text-[#2E86C1] uppercase text-left">Logo Entreprise</span>
                   <DropZoneUI onFile={handleSmileLogo} label={cvData.smileLogo ? "Changer Logo" : "Charger Logo"} className="h-24 bg-white text-left" />
                 </div>
                 <div className="p-3 border border-slate-200 bg-slate-50 rounded-lg flex flex-col gap-2 text-left">
@@ -973,8 +909,7 @@ Texte : ${rawText}`;
                   label="Technologies (Suggestions Smile)" 
                   suggestions={[
                     'drupal', 'symfony', 'php', 'react', 'python', 
-                    'powerbi', 'snowflake', 'databricks', 'apachenifi', 'apachehadoop', 
-                    'amazonaws', 'googlecloud', 'azure', 
+                    'powerbi', 'snowflake', 'databricks', 'apachenifi', 'amazonaws', 'googlecloud', 'azure', 
                     'mysql', 'postgresql', 'docker', 'git', 'javascript', 'tailwindcss'
                   ]}
                 />
@@ -1077,23 +1012,13 @@ Texte : ${rawText}`;
                  <ButtonUI onClick={addEducation} variant="secondary" className="w-full text-xs py-2 mt-2 shadow-sm text-left">Ajouter Formation</ButtonUI>
                </div>
 
-               {/* SECTION COMPÉTENCES AVEC DRAG & DROP DES CATÉGORIES ET DES ITEMS */}
+               {/* SECTION COMPÉTENCES */}
                <div className="bg-white p-4 rounded-xl border border-slate-200 text-left">
                   <h3 className="text-[10px] font-black uppercase text-slate-400 mb-4 text-left">Niveau Compétences</h3>
-                  <div className="flex gap-2 mb-4 text-left">
-                    <input 
-                      className="flex-1 px-3 py-2 border rounded text-xs text-left" 
-                      placeholder="Nouvelle catégorie (ex: Outils...)" 
-                      value={newCategoryName} 
-                      onChange={(e) => setNewCategoryName(e.target.value)} 
-                      onKeyDown={(e) => e.key === 'Enter' && addSkillCategory()} 
-                    />
-                    <ButtonUI variant="outline" className="px-3 text-left" onClick={addSkillCategory}><Plus size={14}/></ButtonUI>
-                  </div>
-                  {Object.entries(cvData.skills_categories).map(([cat, skills], catIdx, allEntries) => (
+                  {Object.entries(cvData.skills_categories).map(([cat, skills], catIdx) => (
                     <div 
                       key={cat} 
-                      className={`mb-4 p-3 bg-slate-50 rounded-lg text-left relative group transition-all ${draggedCategory === cat ? 'opacity-30 border-dashed border-2 border-blue-400' : ''}`}
+                      className={`mb-4 p-3 bg-slate-50 rounded-lg text-left relative transition-all ${draggedCategory === cat ? 'opacity-30 border-dashed border-2 border-blue-400' : ''}`}
                       draggable
                       onDragStart={() => handleCategoryDragStart(cat)}
                       onDragOver={handleDragOver}
@@ -1104,43 +1029,30 @@ Texte : ${rawText}`;
                           <GripVertical size={16} className="text-slate-300 cursor-grab active:cursor-grabbing flex-shrink-0" />
                           <h4 className="text-xs font-bold uppercase text-left">{cat}</h4>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <button onClick={() => moveCategory(cat, 'up')} disabled={catIdx === 0} className="text-slate-300 hover:text-[#2E86C1] disabled:opacity-20 transition-colors"><ChevronUp size={14}/></button>
-                          <button onClick={() => moveCategory(cat, 'down')} disabled={catIdx === allEntries.length - 1} className="text-slate-300 hover:text-[#2E86C1] disabled:opacity-20 transition-colors"><ChevronDown size={14}/></button>
-                          <div className="w-px h-3 bg-slate-200 mx-1"></div>
-                          <button onClick={() => deleteCategory(cat)} className="text-red-300 hover:text-red-500 transition-colors"><Trash2 size={12}/></button>
-                        </div>
+                        <button onClick={() => deleteCategory(cat)} className="text-red-300 hover:text-red-500 transition-colors"><Trash2 size={12}/></button>
                       </div>
                       
                       <div className="space-y-1 mb-3 text-left">
                         {(skills || []).map((skill, idx) => (
                           <div 
                             key={`${cat}-${idx}`} 
-                            className={`flex items-center justify-between text-xs bg-white p-1.5 rounded shadow-sm text-left gap-2 group/item transition-all ${draggedSkill?.cat === cat && draggedSkill?.index === idx ? 'opacity-30 scale-95 border-dashed border-2 border-blue-200' : 'hover:shadow-md'}`}
+                            className="flex items-center justify-between text-xs bg-white p-1.5 rounded shadow-sm text-left gap-2 group/item"
                             draggable
                             onDragStart={() => handleSkillDragStart(cat, idx)}
                             onDragOver={handleDragOver}
                             onDrop={() => handleSkillDrop(cat, idx)}
                           >
                             <div className="flex items-center gap-2 flex-1 min-w-0">
-                               <GripVertical size={14} className="text-slate-300 cursor-grab active:cursor-grabbing flex-shrink-0" />
+                               <GripVertical size={14} className="text-slate-300 cursor-grab flex-shrink-0" />
                                <input 
                                  className="bg-transparent outline-none flex-1 font-medium text-left truncate" 
                                  value={skill.name} 
                                  onChange={(e) => updateSkillInCategory(cat, idx, 'name', e.target.value)} 
                                />
                             </div>
-                            <div className="flex items-center gap-2">
-                              <HexagonRating score={skill.rating} onChange={(r) => updateSkillInCategory(cat, idx, 'rating', r)} />
-                              <button onClick={() => removeSkillFromCategory(cat, idx)} className="text-slate-300 hover:text-red-500 transition-colors p-0.5 flex-shrink-0"><X size={12}/></button>
-                            </div>
+                            <HexagonRating score={skill.rating} onChange={(r) => updateSkillInCategory(cat, idx, 'rating', r)} />
                           </div>
                         ))}
-                      </div>
-
-                      <div className="flex gap-1 text-left pl-6">
-                        <input className="flex-1 px-2 py-1 text-[10px] border rounded text-left" placeholder="Ajouter un item..." value={newSkillsInput[cat]?.name || ''} onChange={(e) => updateNewSkillInput(cat, 'name', e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addSkillToCategory(cat)} />
-                        <ButtonUI variant="primary" className="p-1 h-auto text-left" onClick={() => addSkillToCategory(cat)}><Plus size={10}/></ButtonUI>
                       </div>
                     </div>
                   ))}
@@ -1167,52 +1079,17 @@ Texte : ${rawText}`;
                    onDragOver={handleDragOver}
                    onDrop={() => handleExpDrop(index)}
                  >
-                   {/* POIGNÉE DRAG & DROP EXPÉRIENCES */}
-                   <div className="absolute top-4 left-4 text-slate-200 group-hover:text-slate-400 transition-colors cursor-grab active:cursor-grabbing">
+                   <div className="absolute top-4 left-4 text-slate-200 group-hover:text-slate-400 cursor-grab">
                       <GripVertical size={20}/>
                    </div>
 
                    <div className="absolute top-4 right-4 flex gap-1 text-left">
-                     <button onClick={() => moveItem('experiences', index, 'up')} disabled={index === 0} className="text-slate-300 hover:text-blue-500 disabled:opacity-20 transition-colors text-left"><ChevronUp size={18}/></button>
-                     <button onClick={() => moveItem('experiences', index, 'down')} disabled={index === cvData.experiences.length - 1} className="text-slate-300 hover:text-blue-500 disabled:opacity-20 transition-colors text-left"><ChevronDown size={18}/></button>
+                     <button onClick={() => moveItem('experiences', index, 'up')} disabled={index === 0} className="text-slate-300 hover:text-blue-500 disabled:opacity-20 text-left"><ChevronUp size={18}/></button>
+                     <button onClick={() => moveItem('experiences', index, 'down')} disabled={index === cvData.experiences.length - 1} className="text-slate-300 hover:text-blue-500 disabled:opacity-20 text-left"><ChevronDown size={18}/></button>
                      <button onClick={() => removeExperience(exp.id)} className="text-red-300 hover:text-red-500 ml-1 text-left"><Trash2 size={16}/></button>
                    </div>
 
                    <div className="pl-8">
-                     <div className="mb-4 text-left">
-                       <span className="text-xs font-bold text-[#333333] uppercase block mb-2 text-left">Logo Client</span>
-                       <div className="flex items-center gap-4 text-left">
-                         <DropZoneUI 
-                           onFile={(file) => {
-                             const reader = new FileReader();
-                             reader.onload = (ev) => updateExperience(exp.id, 'client_logo', ev.target.result);
-                             reader.readAsDataURL(file);
-                           }} 
-                           label={exp.client_logo ? "Changer logo" : (exp.client_name || "Charger logo client")} 
-                           className="flex-1 text-left h-20" 
-                         />
-                         {exp.client_logo && (
-                            <div className="relative group">
-                              <img src={exp.client_logo} onError={handleImageError} className="w-20 h-20 object-contain rounded border p-1 bg-white" alt="" />
-                              <button 
-                                onClick={() => updateExperience(exp.id, 'client_logo', null)}
-                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
-                              >
-                                <X size={10}/>
-                              </button>
-                            </div>
-                         )}
-                       </div>
-                     </div>
-                     <div className="mb-4 flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-100 text-left">
-                        <div className="flex items-center gap-2 text-left">
-                          <FilePlus size={16} className="text-[#2E86C1]"/>
-                          <span className="text-xs font-bold text-slate-600 text-left">Saut de page manuel</span>
-                        </div>
-                        <button onClick={() => updateExperience(exp.id, 'forceNewPage', !exp.forceNewPage)} className="text-left">
-                          {exp.forceNewPage ? <ToggleRight className="text-green-500"/> : <ToggleLeft className="text-slate-300"/>}
-                        </button>
-                     </div>
                      <InputUI label="Client" value={exp.client_name} onChange={(v) => updateExperience(exp.id, 'client_name', v)} />
                      <InputUI label="Rôle" value={exp.role} onChange={(v) => updateExperience(exp.id, 'role', v)} />
                      <div className="grid grid-cols-2 gap-4 text-left">
