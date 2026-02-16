@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   ArrowRight, ArrowLeft, Download, Plus, Trash2, MoveUp, MoveDown, 
   Upload, X, Briefcase, GraduationCap, User, Hexagon, Cpu, 
@@ -6,8 +6,7 @@ import {
   Save, FolderOpen, Eye, Shield, Check, Edit2,
   Bold, List, Copy, HelpCircle, RefreshCw, Cloud, Mail, Printer,
   ChevronUp, ChevronDown, Award, Factory, ToggleLeft, ToggleRight, FilePlus,
-  FileSearch, Loader2, Lock, Sparkles, AlertCircle, LifeBuoy, GripVertical,
-  Undo2, columns2, Rows3
+  FileSearch, Loader2, Lock, Sparkles, AlertCircle, LifeBuoy, GripVertical
 } from 'lucide-react';
 
 // --- CONFIGURATION & THÈME ---
@@ -27,7 +26,6 @@ const DEFAULT_CV_DATA = {
   isAnonymous: false,
   showSecteur: true,
   showCertif: true,
-  swapPages: false, // false: Compétences en p2 | true: Expériences en p2
   smileLogo: null, 
   profile: {
     firstname: "Prénom",
@@ -445,9 +443,6 @@ export default function App() {
   const [draggedExpIndex, setDraggedExpIndex] = useState(null);
   const [draggedCertIndex, setDraggedCertIndex] = useState(null);
 
-  // --- GESTION DE L'HISTORIQUE (CTRL+Z) ---
-  const [history, setHistory] = useState([]);
-
   const [cvData, setCvData] = useState(() => {
     try {
       const saved = localStorage.getItem('smile_cv_data_final_v30_stable');
@@ -455,38 +450,6 @@ export default function App() {
     } catch(e) { console.error(e); }
     return DEFAULT_CV_DATA;
   });
-
-  // Fonction pour mettre à jour les données avec sauvegarde dans l'historique
-  const updateCvData = useCallback((updater) => {
-    setCvData(prev => {
-      const next = typeof updater === 'function' ? updater(prev) : updater;
-      // On n'ajoute à l'historique que si les données ont réellement changé
-      if (JSON.stringify(prev) !== JSON.stringify(next)) {
-        setHistory(h => [prev, ...h].slice(0, 20)); // Limite à 20 étapes
-      }
-      return next;
-    });
-  }, []);
-
-  const undo = useCallback(() => {
-    if (history.length > 0) {
-      const [lastState, ...remainingHistory] = history;
-      setCvData(lastState);
-      setHistory(remainingHistory);
-    }
-  }, [history]);
-
-  // Écouteur Ctrl+Z
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
-        e.preventDefault();
-        undo();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [undo]);
 
   useEffect(() => {
     const accepted = localStorage.getItem('smile_cv_privacy_accepted');
@@ -580,7 +543,7 @@ Texte : ${rawText}`;
 
       const result = await response.json();
       
-      updateCvData(prev => ({
+      setCvData(prev => ({
         ...prev,
         ...result,
         profile: { ...prev.profile, ...result.profile },
@@ -600,31 +563,31 @@ Texte : ${rawText}`;
     }
   };
 
-  const handleProfileChange = (f, v) => updateCvData(p => ({ ...p, profile: { ...p.profile, [f]: v } }));
-  const handlePhotoUpload = (file) => { if(file) { const reader = new FileReader(); reader.onload = (ev) => updateCvData(prev => ({...prev, profile: { ...prev.profile, photo: ev.target.result }})); reader.readAsDataURL(file); } };
-  const addTechLogo = (o) => updateCvData(p => ({ ...p, profile: { ...p.profile, tech_logos: [...p.profile.tech_logos, o] } }));
-  const removeTechLogo = (i) => updateCvData(p => ({ ...p, profile: { ...p.profile, tech_logos: p.profile.tech_logos.filter((_, idx) => idx !== i) } }));
-  const handleSmileLogo = (file) => { if(file) { const reader = new FileReader(); reader.onload = (ev) => updateCvData(prev => ({...prev, smileLogo: ev.target.result})); reader.readAsDataURL(file); } };
+  const handleProfileChange = (f, v) => setCvData(p => ({ ...p, profile: { ...p.profile, [f]: v } }));
+  const handlePhotoUpload = (file) => { if(file) { const reader = new FileReader(); reader.onload = (ev) => setCvData(prev => ({...prev, profile: { ...prev.profile, photo: ev.target.result }})); reader.readAsDataURL(file); } };
+  const addTechLogo = (o) => setCvData(p => ({ ...p, profile: { ...p.profile, tech_logos: [...p.profile.tech_logos, o] } }));
+  const removeTechLogo = (i) => setCvData(p => ({ ...p, profile: { ...p.profile, tech_logos: p.profile.tech_logos.filter((_, idx) => idx !== i) } }));
+  const handleSmileLogo = (file) => { if(file) { const reader = new FileReader(); reader.onload = (ev) => setCvData(prev => ({...prev, smileLogo: ev.target.result})); reader.readAsDataURL(file); } };
   
   const moveItem = (listName, index, direction) => {
     const list = [...cvData[listName]];
     const target = direction === 'up' ? index - 1 : index + 1;
     if (target >= 0 && target < list.length) {
       [list[index], list[target]] = [list[target], list[index]];
-      updateCvData(p => ({ ...p, [listName]: list }));
+      setCvData(p => ({ ...p, [listName]: list }));
     }
   };
 
-  const updateExperience = (id, f, v) => updateCvData(p => ({ ...p, experiences: p.experiences.map(e => e.id === id ? { ...e, [f]: v } : e) }));
-  const addExperience = () => updateCvData(p => ({ ...p, experiences: [{ id: Date.now(), client_name: "", client_logo: null, period: "", role: "", context: "", phases: "", achievements: [], tech_stack: [], forceNewPage: false }, ...p.experiences] }));
-  const removeExperience = (id) => updateCvData(p => ({ ...p, experiences: p.experiences.filter(e => e.id !== id) }));
+  const updateExperience = (id, f, v) => setCvData(p => ({ ...p, experiences: p.experiences.map(e => e.id === id ? { ...e, [f]: v } : e) }));
+  const addExperience = () => setCvData(p => ({ ...p, experiences: [{ id: Date.now(), client_name: "", client_logo: null, period: "", role: "", context: "", phases: "", achievements: [], tech_stack: [], forceNewPage: false }, ...p.experiences] }));
+  const removeExperience = (id) => setCvData(p => ({ ...p, experiences: p.experiences.filter(e => e.id !== id) }));
   
-  const addSkillCategory = () => { if (newCategoryName) { updateCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [newCategoryName]: [] } })); setNewCategoryName(""); } };
-  const deleteCategory = (n) => updateCvData(p => { const newC = { ...p.skills_categories }; delete newC[n]; return { ...p, skills_categories: newC }; });
-  const updateSkillInCategory = (cat, idx, f, v) => updateCvData(p => { const s = [...p.skills_categories[cat]]; s[idx] = { ...s[idx], [f]: v }; return { ...p, skills_categories: { ...p.skills_categories, [cat]: s } }; });
-  const addSkillToCategory = (cat) => { const i = newSkillsInput[cat] || { name: '', rating: 3 }; if (i.name) { updateCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [cat]: [...p.skills_categories[cat], { name: i.name, rating: i.rating }] } })); setNewSkillsInput(p => ({ ...p, [cat]: { name: '', rating: 3 } })); } };
+  const addSkillCategory = () => { if (newCategoryName) { setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [newCategoryName]: [] } })); setNewCategoryName(""); } };
+  const deleteCategory = (n) => setCvData(p => { const newC = { ...p.skills_categories }; delete newC[n]; return { ...p, skills_categories: newC }; });
+  const updateSkillInCategory = (cat, idx, f, v) => setCvData(p => { const s = [...p.skills_categories[cat]]; s[idx] = { ...s[idx], [f]: v }; return { ...p, skills_categories: { ...p.skills_categories, [cat]: s } }; });
+  const addSkillToCategory = (cat) => { const i = newSkillsInput[cat] || { name: '', rating: 3 }; if (i.name) { setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [cat]: [...p.skills_categories[cat], { name: i.name, rating: i.rating }] } })); setNewSkillsInput(p => ({ ...p, [cat]: { name: '', rating: 3 } })); } };
   const updateNewSkillInput = (cat, field, val) => { setNewSkillsInput(p => ({ ...p, [cat]: { ...(p[cat] || { name: '', rating: 3 }), [field]: val } })); };
-  const removeSkillFromCategory = (cat, idx) => updateCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [cat]: p.skills_categories[cat].filter((_, i) => i !== idx) } }));
+  const removeSkillFromCategory = (cat, idx) => setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [cat]: p.skills_categories[cat].filter((_, i) => i !== idx) } }));
   
   const handleDragOver = (e) => e.preventDefault();
 
@@ -634,7 +597,7 @@ Texte : ${rawText}`;
     const skills = [...cvData.skills_categories[targetCat]];
     const [moved] = skills.splice(draggedSkill.index, 1);
     skills.splice(targetIndex, 0, moved);
-    updateCvData(prev => ({ ...prev, skills_categories: { ...prev.skills_categories, [targetCat]: skills } }));
+    setCvData(prev => ({ ...prev, skills_categories: { ...prev.skills_categories, [targetCat]: skills } }));
     setDraggedSkill(null);
   };
 
@@ -649,7 +612,7 @@ Texte : ${rawText}`;
     newKeys.splice(toIdx, 0, moved);
     const newCategories = {};
     newKeys.forEach(k => { newCategories[k] = cvData.skills_categories[k]; });
-    updateCvData(prev => ({ ...prev, skills_categories: newCategories }));
+    setCvData(prev => ({ ...prev, skills_categories: newCategories }));
     setDraggedCategory(null);
   };
 
@@ -659,7 +622,7 @@ Texte : ${rawText}`;
     const list = [...cvData.education];
     const [moved] = list.splice(draggedEduIndex, 1);
     list.splice(targetIndex, 0, moved);
-    updateCvData(prev => ({ ...prev, education: list }));
+    setCvData(prev => ({ ...prev, education: list }));
     setDraggedEduIndex(null);
   };
 
@@ -669,7 +632,7 @@ Texte : ${rawText}`;
     const list = [...cvData.experiences];
     const [moved] = list.splice(draggedExpIndex, 1);
     list.splice(targetIndex, 0, moved);
-    updateCvData(prev => ({ ...prev, experiences: list }));
+    setCvData(prev => ({ ...prev, experiences: list }));
     setDraggedExpIndex(null);
   };
 
@@ -679,20 +642,20 @@ Texte : ${rawText}`;
     const list = [...cvData.certifications];
     const [moved] = list.splice(draggedCertIndex, 1);
     list.splice(targetIndex, 0, moved);
-    updateCvData(prev => ({ ...prev, certifications: list }));
+    setCvData(prev => ({ ...prev, certifications: list }));
     setDraggedCertIndex(null);
   };
 
-  const addSecteur = () => { if (newSecteur) { updateCvData(p => ({ ...p, connaissances_sectorielles: [...p.connaissances_sectorielles, newSecteur] })); setNewSecteur(""); }};
-  const removeSecteur = (idx) => updateCvData(p => ({ ...p, connaissances_sectorielles: p.connaissances_sectorielles.filter((_, i) => i !== idx) }));
+  const addSecteur = () => { if (newSecteur) { setCvData(p => ({ ...p, connaissances_sectorielles: [...p.connaissances_sectorielles, newSecteur] })); setNewSecteur(""); }};
+  const removeSecteur = (idx) => setCvData(p => ({ ...p, connaissances_sectorielles: p.connaissances_sectorielles.filter((_, i) => i !== idx) }));
   
-  const addCertification = (o) => updateCvData(p => ({ ...p, certifications: [...p.certifications, { name: o.name, logo: o.src }] }));
-  const removeCertification = (idx) => updateCvData(p => ({ ...p, certifications: p.certifications.filter((_, i) => i !== idx) }));
+  const addCertification = (o) => setCvData(p => ({ ...p, certifications: [...p.certifications, { name: o.name, logo: o.src }] }));
+  const removeCertification = (idx) => setCvData(p => ({ ...p, certifications: p.certifications.filter((_, i) => i !== idx) }));
   
-  const updateEducation = (i, f, v) => { const n = [...cvData.education]; n[i][f] = v; updateCvData(p => ({ ...p, education: n })); };
-  const addEducation = () => updateCvData(p => ({ ...p, education: [...p.education, { year: "", degree: "", location: "" }] }));
+  const updateEducation = (i, f, v) => { const n = [...cvData.education]; n[i][f] = v; setCvData(p => ({ ...p, education: n })); };
+  const addEducation = () => setCvData(p => ({ ...p, education: [...p.education, { year: "", degree: "", location: "" }] }));
   
-  const removeEducation = (i) => updateCvData(prev => ({
+  const removeEducation = (i) => setCvData(prev => ({
     ...prev,
     education: prev.education.filter((_, idx) => idx !== i)
   }));
@@ -706,12 +669,12 @@ Texte : ${rawText}`;
   const handlePurgeData = () => {
     localStorage.removeItem('smile_cv_data_final_v30_stable');
     localStorage.removeItem('smile_cv_privacy_accepted');
-    updateCvData(DEFAULT_CV_DATA);
+    setCvData(DEFAULT_CV_DATA);
     setShowPurgeConfirm(false);
     setShowPrivacyNotice(true); 
   };
 
-  const resetCV = () => { updateCvData(DEFAULT_CV_DATA); setShowResetConfirm(false); };
+  const resetCV = () => { setCvData(DEFAULT_CV_DATA); setShowResetConfirm(false); };
   const downloadJSON = () => { const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(cvData)); a.download = `${getFilenameBase()}.json`; a.click(); };
   
   const uploadJSON = (e) => {
@@ -723,7 +686,7 @@ Texte : ${rawText}`;
     reader.onload = (ev) => {
       try {
         const importedData = JSON.parse(String(ev.target.result));
-        updateCvData(prev => ({
+        setCvData(prev => ({
           ...DEFAULT_CV_DATA,
           ...importedData,
           profile: { ...DEFAULT_CV_DATA.profile, ...(importedData.profile || {}) },
@@ -762,59 +725,6 @@ Texte : ${rawText}`;
       printWindow.document.write(`<html><head><title>${getFilenameBase()}</title><script src="https://cdn.tailwindcss.com"></script><style>${styles}</style><style>@page { size: A4; margin: 0; } body { margin: 0; padding: 0; background: white; width: 210mm; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } .A4-page { box-shadow: none !important; margin: 0 !important; page-break-after: always !important; height: 297mm !important; width: 210mm !important; display: flex !important; flex-direction: column !important; } .triangle-bg, .bg-[#2E86C1], .bg-blue-50, .hexagon-fill { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; background-color: inherit !important; fill: inherit !important; } * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }</style></head><body onload="setTimeout(() => { window.print(); window.close(); }, 1000)"><div class="flex flex-col">${content}</div></body></html>`);
       printWindow.document.close();
   };
-
-  // Composants de pages pour gérer l'ordre dynamique
-  const PageCompetences = () => (
-    <A4Page>
-      <CornerTriangle customLogo={cvData.smileLogo} />
-      <HeaderSmall isAnonymous={cvData.isAnonymous} profile={cvData.profile} role={cvData.profile.current_role} logo={cvData.smileLogo} />
-      <div className="grid grid-cols-12 gap-10 mt-8 h-full px-12 flex-1 pb-32 overflow-hidden print:overflow-visible text-left">
-          <div className="col-span-5 border-r border-slate-100 pr-8 text-left">
-            <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-8 flex items-center gap-2 text-left"><Cpu size={20}/> Mes Compétences</h3>
-            <div className="space-y-8 text-left">{Object.entries(cvData.skills_categories || {}).map(([cat, skills]) => (<div key={cat}><h4 className="text-[10px] font-bold text-[#999999] uppercase tracking-widest border-b border-slate-100 pb-2 mb-3 text-left">{String(cat)}</h4><div className="space-y-3 text-left">{(skills || []).map((skill, i) => (<div key={i} className="flex items-center justify-between text-left"><span className="text-xs font-bold text-[#333333] uppercase text-left">{String(skill.name)}</span><HexagonRating score={skill.rating} /></div>))}</div></div>))}</div>
-          </div>
-          <div className="col-span-7 flex flex-col gap-10 text-left">
-            {cvData.showSecteur && (cvData.connaissances_sectorielles || []).length > 0 && (<section className="text-left"><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2 text-left"><Factory size={20}/> Connaissances Sectorielles</h3><div className="flex flex-wrap gap-2 text-left">{(cvData.connaissances_sectorielles || []).map((s, i) => (<span key={i} className="border-2 border-[#2E86C1] text-[#2E86C1] text-[10px] font-black px-3 py-1 rounded uppercase tracking-wider text-left">{String(s)}</span>))}</div></section>)}
-            {cvData.showCertif && (cvData.certifications || []).length > 0 && (
-              <section className="text-left">
-                <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2 text-left"><Award size={20}/> Certifications</h3>
-                <div className="grid grid-cols-2 gap-4 text-left">
-                  {cvData.certifications.map((c, i) => (
-                    <div key={i} className="flex items-center gap-3 bg-slate-50 p-2 rounded text-left">
-                      {c.logo && c.logo !== "null" && <img src={c.logo} onError={handleImageError} className="w-8 h-8 object-contain" alt={String(c.name)} />}
-                      <span className="text-[10px] font-bold text-slate-700 uppercase leading-tight text-left">{String(c.name)}</span>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-            <section className="text-left"><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-6 flex items-center gap-2 text-left"><GraduationCap size={20}/> Ma Formation</h3><div className="space-y-4 text-left">{(cvData.education || []).map((edu, i) => (<div key={i} className="border-l-2 border-slate-100 pl-4 text-left"><span className="text-[10px] font-bold text-[#999999] block mb-1 text-left">{String(edu.year)}</span><h4 className="text-xs font-bold text-[#333333] uppercase leading-tight text-left">{String(edu.degree)}</h4><span className="text-[9px] text-[#2E86C1] font-medium uppercase text-left">{String(edu.location)}</span></div>))}</div></section>
-          </div>
-      </div>
-      <Footer />
-    </A4Page>
-  );
-
-  const PagesExperiences = () => (
-    <>
-      {experiencePages.map((chunk, pageIndex) => (
-        <A4Page key={pageIndex}>
-          <CornerTriangle customLogo={cvData.smileLogo} />
-          <HeaderSmall isAnonymous={cvData.isAnonymous} profile={cvData.profile} role={cvData.profile.current_role} logo={cvData.smileLogo} />
-          <div className="flex justify-between items-end border-b border-slate-200 pb-2 mb-8 mt-8 px-12 flex-shrink-0 text-left">
-            <h3 className="text-xl font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat">
-              {pageIndex === 0 ? "Mes dernières expériences" : "Expériences (Suite)"}
-            </h3>
-            <span className="text-[10px] font-bold text-[#666666] uppercase text-left">Références</span>
-          </div>
-          <div className="flex-1 px-12 pb-32 overflow-hidden print:overflow-visible text-left">
-            {chunk.map((exp) => (<ExperienceItem key={exp.id} exp={exp} />))}
-          </div>
-          <Footer />
-        </A4Page>
-      ))}
-    </>
-  );
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col md:flex-row h-screen overflow-hidden font-sans text-left">
@@ -897,7 +807,7 @@ Texte : ${rawText}`;
                 {isImporting ? <Loader2 size={18} className="animate-spin text-white"/> : <FileSearch size={18} className="text-white"/>}
                 <span className="drop-shadow-sm">{isImporting ? "Analyse..." : "Import PDF"}</span>
               </button>
-              <button className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 border transition-all text-sm uppercase ${cvData.isAnonymous ? 'bg-red-50 text-red-600 border-red-200 shadow-sm' : 'bg-white text-slate-600 border-slate-200 shadow-sm hover:bg-slate-50'}`} onClick={() => updateCvData(p => ({...p, isAnonymous: !p.isAnonymous}))}>
+              <button className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 border transition-all text-sm uppercase ${cvData.isAnonymous ? 'bg-red-50 text-red-600 border-red-200 shadow-sm' : 'bg-white text-slate-600 border-slate-200 shadow-sm hover:bg-slate-50'}`} onClick={() => setCvData(p => ({...p, isAnonymous: !p.isAnonymous}))}>
                 <Lock size={16}/> {cvData.isAnonymous ? "Anonyme" : "Anonymiser"}
               </button>
               <input type="file" ref={pdfInputRef} className="hidden" accept=".pdf" onChange={handlePDFImport} />
@@ -916,11 +826,6 @@ Texte : ${rawText}`;
               <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter text-left">Refresh</span>
             </button>
             <div className="w-px h-10 bg-slate-100"></div>
-            <button className={`flex-1 flex flex-col items-center gap-1.5 group ${history.length === 0 ? 'opacity-20 cursor-not-allowed' : ''}`} onClick={undo} disabled={history.length === 0}>
-              <Undo2 size={22} className="text-slate-400 group-hover:text-[#2E86C1] transition-colors"/>
-              <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter text-left">Undo (Ctrl+Z)</span>
-            </button>
-            <div className="w-px h-10 bg-slate-100"></div>
             <button className="flex-1 flex flex-col items-center gap-1.5 group" onClick={downloadJSON}>
               <Save size={22} className="text-slate-400 group-hover:text-[#2E86C1] transition-colors"/>
               <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter text-left">Save</span>
@@ -930,6 +835,11 @@ Texte : ${rawText}`;
               <FolderOpen size={22} className="text-slate-400 group-hover:text-[#2E86C1] transition-colors"/>
               <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter text-left">Upload</span>
               <input type="file" ref={jsonInputRef} className="hidden" accept=".json" onChange={uploadJSON} />
+            </button>
+            <div className="w-px h-10 bg-slate-100"></div>
+            <button className="flex-1 flex flex-col items-center gap-1.5 group" onClick={handleEmailSend}>
+              <Mail size={22} className="text-slate-400 group-hover:text-[#2E86C1] transition-colors"/>
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter text-left">Send</span>
             </button>
           </div>
         </div>
@@ -945,9 +855,7 @@ Texte : ${rawText}`;
             <span className="text-xs font-bold text-slate-400 text-left">Étape {step} / 4</span>
           </div>
           <div className="flex gap-2 text-left">
-            <button className="flex-1 bg-slate-100 text-slate-600 hover:bg-slate-200 px-4 py-2 rounded-lg font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed text-left flex items-center justify-center gap-2" onClick={() => setStep(s => Math.max(1, s - 1))} disabled={step === 1}>
-              <ArrowLeft size={16} /> Précédent
-            </button>
+            <button className="flex-1 bg-slate-100 text-slate-600 hover:bg-slate-200 px-4 py-2 rounded-lg font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed text-left" onClick={() => setStep(s => Math.max(1, s - 1))} disabled={step === 1}><ArrowLeft size={16} /></button>
             {step < 4 ? (
               <button className="flex-[2] bg-[#2E86C1] text-white hover:bg-[#2573a7] px-4 py-2 rounded-lg font-bold text-sm shadow-md transition-all flex items-center gap-2 justify-center" onClick={() => setStep(s => Math.min(4, s + 1))}>Suivant <ArrowRight size={16} /></button>
             ) : (
@@ -960,29 +868,6 @@ Texte : ${rawText}`;
             {step === 1 && (
             <div className="space-y-6 animate-in slide-in-from-right transition-all text-left">
               <div className="flex items-center gap-3 mb-4 text-[#2E86C1] text-left"><User size={24} /><h2 className="text-lg font-bold uppercase text-left">Profil</h2></div>
-              
-              {/* NOUVELLE OPTION : ORDRE DES PAGES */}
-              <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 space-y-3">
-                <h3 className="text-[10px] font-black uppercase text-blue-400 tracking-widest">Mise en page des documents</h3>
-                <button 
-                  onClick={() => updateCvData(p => ({...p, swapPages: !p.swapPages}))}
-                  className="w-full flex items-center justify-between bg-white p-3 rounded-lg border border-blue-200 shadow-sm group hover:border-blue-400 transition-all"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
-                      {cvData.swapPages ? <Rows3 size={20}/> : <LayoutTemplate size={20}/>}
-                    </div>
-                    <div className="text-left">
-                      <p className="text-xs font-bold text-slate-700">Ordre des pages</p>
-                      <p className="text-[9px] text-slate-400 uppercase font-bold tracking-tighter">
-                        {cvData.swapPages ? "Expériences d'abord (Senior)" : "Compétences d'abord (Junior)"}
-                      </p>
-                    </div>
-                  </div>
-                  {cvData.swapPages ? <ToggleRight className="text-blue-600" size={28}/> : <ToggleLeft className="text-slate-300" size={28}/>}
-                </button>
-              </div>
-
               <div className="grid grid-cols-2 gap-4 mb-6 text-left">
                 <div className="p-3 border border-blue-100 bg-blue-50/50 rounded-lg flex flex-col gap-2 text-left">
                   <span className="text-[10px] font-bold text-[#2E86C1] uppercase text-left">Logo Entreprise (Import Manuel)</span>
@@ -1039,7 +924,7 @@ Texte : ${rawText}`;
             {step === 2 && (
             <div className="space-y-6 animate-in slide-in-from-right transition-all text-left">
                 <div className="flex items-center gap-3 mb-4 text-[#2E86C1] text-left"><Hexagon size={24} /><h2 className="text-lg font-bold uppercase text-left">Soft Skills</h2></div>
-                {[0, 1, 2].map(i => (<InputUI key={i} label={`Hexagone #${i+1}`} value={cvData.soft_skills[i]} onChange={(v) => {const s = [...cvData.soft_skills]; s[i] = v; updateCvData(p => ({...p, soft_skills: s}));}} />))}
+                {[0, 1, 2].map(i => (<InputUI key={i} label={`Hexagone #${i+1}`} value={cvData.soft_skills[i]} onChange={(v) => {const s = [...cvData.soft_skills]; s[i] = v; setCvData(p => ({...p, soft_skills: s}));}} />))}
             </div>
             )}
 
@@ -1047,6 +932,7 @@ Texte : ${rawText}`;
              <div className="space-y-8 animate-in slide-in-from-right transition-all text-left">
                <div className="flex items-center gap-3 mb-4 text-[#2E86C1] text-left"><GraduationCap size={24} /><h2 className="text-lg font-bold uppercase text-left">Formation & Compétences</h2></div>
                
+               {/* SECTION CERTIFICATIONS AVEC DRAG & DROP */}
                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm text-left">
                  <h3 className="text-[10px] font-black uppercase text-slate-400 mb-4 text-left">Secteur & Certifs</h3>
                  <div className="flex gap-2 mb-4 text-left">
@@ -1080,6 +966,7 @@ Texte : ${rawText}`;
                  </div>
                </div>
 
+               {/* SECTION DIPLÔMES AVEC DRAG & DROP */}
                <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 shadow-sm text-left">
                  <h3 className="text-[10px] font-black uppercase text-slate-400 mb-4 text-left">Parcours Académique</h3>
                  {(cvData.education || []).map((edu, i) => (
@@ -1111,6 +998,7 @@ Texte : ${rawText}`;
                  <ButtonUI onClick={addEducation} variant="secondary" className="w-full text-xs py-2 mt-2 shadow-sm text-left">Ajouter Formation</ButtonUI>
                </div>
 
+               {/* SECTION COMPÉTENCES */}
                <div className="bg-white p-4 rounded-xl border border-slate-200 text-left">
                   <h3 className="text-[10px] font-black uppercase text-slate-400 mb-4 text-left">Niveau Compétences</h3>
                   {Object.entries(cvData.skills_categories).map(([cat, skills], catIdx) => (
@@ -1236,7 +1124,6 @@ Texte : ${rawText}`;
             className="print-container block origin-top transition-transform duration-300 text-left" 
             style={{ transform: `scale(${zoom})`, height: `${scaledContentHeight}px`, width: `${210 * zoom}mm`, minHeight: 'max-content' }}
           >
-            {/* PAGE 1 : PROFIL (Toujours en premier) */}
             <A4Page>
               <CornerTriangle customLogo={cvData.smileLogo} />
               {!cvData.isAnonymous && cvData.profile.photo && cvData.profile.photo !== "null" && (
@@ -1275,19 +1162,44 @@ Texte : ${rawText}`;
               <Footer />
             </A4Page>
 
-            {/* ORDRE DYNAMIQUE DES PAGES SUIVANTES */}
-            {cvData.swapPages ? (
-              <>
-                <PagesExperiences />
-                <PageCompetences />
-              </>
-            ) : (
-              <>
-                <PageCompetences />
-                <PagesExperiences />
-              </>
-            )}
+            <A4Page>
+              <CornerTriangle customLogo={cvData.smileLogo} />
+              <HeaderSmall isAnonymous={cvData.isAnonymous} profile={cvData.profile} role={cvData.profile.current_role} logo={cvData.smileLogo} />
+              <div className="grid grid-cols-12 gap-10 mt-8 h-full px-12 flex-1 pb-32 overflow-hidden print:overflow-visible text-left">
+                  <div className="col-span-5 border-r border-slate-100 pr-8 text-left">
+                    <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-8 flex items-center gap-2 text-left"><Cpu size={20}/> Mes Compétences</h3>
+                    <div className="space-y-8 text-left">{Object.entries(cvData.skills_categories || {}).map(([cat, skills]) => (<div key={cat}><h4 className="text-[10px] font-bold text-[#999999] uppercase tracking-widest border-b border-slate-100 pb-2 mb-3 text-left">{String(cat)}</h4><div className="space-y-3 text-left">{(skills || []).map((skill, i) => (<div key={i} className="flex items-center justify-between text-left"><span className="text-xs font-bold text-[#333333] uppercase text-left">{String(skill.name)}</span><HexagonRating score={skill.rating} /></div>))}</div></div>))}</div>
+                  </div>
+                  <div className="col-span-7 flex flex-col gap-10 text-left">
+                    {cvData.showSecteur && (cvData.connaissances_sectorielles || []).length > 0 && (<section className="text-left"><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2 text-left"><Factory size={20}/> Connaissances Sectorielles</h3><div className="flex flex-wrap gap-2 text-left">{(cvData.connaissances_sectorielles || []).map((s, i) => (<span key={i} className="border-2 border-[#2E86C1] text-[#2E86C1] text-[10px] font-black px-3 py-1 rounded uppercase tracking-wider text-left">{String(s)}</span>))}</div></section>)}
+                    {cvData.showCertif && (cvData.certifications || []).length > 0 && (
+                      <section className="text-left">
+                        <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2 text-left"><Award size={20}/> Certifications</h3>
+                        <div className="grid grid-cols-2 gap-4 text-left">
+                          {cvData.certifications.map((c, i) => (
+                            <div key={i} className="flex items-center gap-3 bg-slate-50 p-2 rounded text-left">
+                              {c.logo && c.logo !== "null" && <img src={c.logo} onError={handleImageError} className="w-8 h-8 object-contain" alt={String(c.name)} />}
+                              <span className="text-[10px] font-bold text-slate-700 uppercase leading-tight text-left">{String(c.name)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    )}
+                    <section className="text-left"><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-6 flex items-center gap-2 text-left"><GraduationCap size={20}/> Ma Formation</h3><div className="space-y-4 text-left">{(cvData.education || []).map((edu, i) => (<div key={i} className="border-l-2 border-slate-100 pl-4 text-left"><span className="text-[10px] font-bold text-[#999999] block mb-1 text-left">{String(edu.year)}</span><h4 className="text-xs font-bold text-[#333333] uppercase leading-tight text-left">{String(edu.degree)}</h4><span className="text-[9px] text-[#2E86C1] font-medium uppercase text-left">{String(edu.location)}</span></div>))}</div></section>
+                  </div>
+              </div>
+              <Footer />
+            </A4Page>
 
+            {experiencePages.map((chunk, pageIndex) => (
+              <A4Page key={pageIndex}>
+                <CornerTriangle customLogo={cvData.smileLogo} />
+                <HeaderSmall isAnonymous={cvData.isAnonymous} profile={cvData.profile} role={cvData.profile.current_role} logo={cvData.smileLogo} />
+                <div className="flex justify-between items-end border-b border-slate-200 pb-2 mb-8 mt-8 px-12 flex-shrink-0 text-left"><h3 className="text-xl font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat">{pageIndex === 0 ? "Mes dernières expériences" : "Expériences (Suite)"}</h3><span className="text-[10px] font-bold text-[#666666] uppercase text-left">Références</span></div>
+                <div className="flex-1 px-12 pb-32 overflow-hidden print:overflow-visible text-left">{chunk.map((exp) => (<ExperienceItem key={exp.id} exp={exp} />))}</div>
+                <Footer />
+              </A4Page>
+            ))}
           </div>
         </div>
       </div>
