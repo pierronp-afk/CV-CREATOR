@@ -12,13 +12,13 @@ export default async function handler(req, res) {
 
   // --- STRATÉGIE MISE À JOUR : PRIORITÉ 1.5 LATEST ---
   const modelsToTry = [
-    // PRIORITÉ 1 : La version 1.5 la plus stable (Canal v1)
-    { id: "gemini-1.5-flash-latest", version: "v1" }, 
+    // PRIORITÉ 1 : 1.5 Flash sur v1beta (Accepte mieux le JSON brut)
+    { id: "gemini-1.5-flash-latest", version: "v1beta" }, 
 
-    // PRIORITÉ 2 : Secours sur le 1.5 Pro (Plus intelligent pour les CV complexes)
-    { id: "gemini-1.5-pro-latest", version: "v1" },
+    // PRIORITÉ 2 : 1.5 Pro sur v1beta (En cas de besoin de précision)
+    { id: "gemini-1.5-pro-latest", version: "v1beta" },
 
-    // PRIORITÉ 3 : Repli sur la branche 2.x si le 1.5 est indisponible
+    // PRIORITÉ 3 : Le 2.5 Flash (Dernier recours, souvent en erreur 429)
     { id: "gemini-2.5-flash-preview-09-2025", version: "v1beta" }
   ];
 
