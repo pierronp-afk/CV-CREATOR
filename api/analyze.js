@@ -12,14 +12,11 @@ export default async function handler(req, res) {
 
   // --- STRATÉGIE MISE À JOUR : PRIORITÉ 1.5 LATEST ---
   const modelsToTry = [
-    // PRIORITÉ 1 : 1.5 Flash sur v1beta (Accepte mieux le JSON brut)
-    { id: "gemini-1.5-flash-latest", version: "v1beta" }, 
-
-    // PRIORITÉ 2 : 1.5 Pro sur v1beta (En cas de besoin de précision)
-    { id: "gemini-1.5-pro-latest", version: "v1beta" },
-
-    // PRIORITÉ 3 : Le 2.5 Flash (Dernier recours, souvent en erreur 429)
-    { id: "gemini-2.5-flash-preview-09-2025", version: "v1beta" }
+    // On retire "-latest" qui cause parfois des soucis d'ID en v1beta
+    // On utilise les noms de base qui sont universels
+    { id: "gemini-1.5-flash", version: "v1beta" }, 
+    { id: "gemini-1.5-pro", version: "v1beta" },
+    { id: "gemini-2.0-flash-exp", version: "v1beta" }
   ];
 
   const prompt = `Tu es un expert en recrutement. Analyse ce CV et extrais les données en JSON strict.
