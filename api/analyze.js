@@ -10,25 +10,19 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Clé API non configurée sur le serveur Vercel." });
   }
 
-  // --- STRATÉGIE DE REBOND ÉTENDUE (FALLBACK) ---
-  // Liste ordonnée des modèles à tester.
-  // L'algorithme essaiera chaque configuration jusqu'à ce que l'une d'elles fonctionne.
+  // --- STRATÉGIE DE CONTOURNEMENT DES ERREURS 403/429 ---
+  // Nous définissons une liste de priorité.
+  // 1. On tente le modèle demandé (2.5 Flash).
+  // 2. S'il échoue (Quota, Droits, Introuvable), on bascule automatiquement sur le 1.5 Flash qui est plus permissif.
   const modelsToTry = [
-    // 1. Le standard rapide (v1beta pour le mode JSON natif)
-    { id: "gemini-1.5-flash", version: "v1beta" },
+    // PRIORITÉ 1 : Le modèle que vous voulez utiliser (Attention: Quota très faible ~3 RPM)
+    { id: "gemini-2.5-flash-preview-09-2025", version: "v1beta" },
     
-    // 2. La nouvelle génération rapide (v1beta)
+    // PRIORITÉ 2 : La version expérimentale 2.0 (Souvent disponible quand la 2.5 bloque)
     { id: "gemini-2.0-flash-exp", version: "v1beta" },
-    
-    // 3. Fallback sur l'API stable v1 (si v1beta plante)
-    { id: "gemini-1.5-flash", version: "v1" },
-    
-    // 4. Variante légère "8b" (souvent moins chargée)
-    { id: "gemini-1.5-flash-8b", version: "v1beta" },
-    
-    // 5. Modèles plus puissants (mais plus lents/chers en quota)
-    { id: "gemini-2.0-pro-exp-02-05", version: "v1beta" },
-    { id: "gemini-1.5-pro", version: "v1beta" }
+
+    // PRIORITÉ 3 : Le "Sauveur" (Stable, 15 RPM, fonctionne toujours en secours)
+    { id: "gemini-1.5-flash", version: "v1beta" }
   ];
 
   const prompt = `Tu es un expert en recrutement. Analyse ce CV et extrais les données en JSON strict.
@@ -43,7 +37,7 @@ Structure JSON attendue :
     "current_role": "Intitulé du poste",
     "years_experience": "Années d'XP (ex: 5)",
     "main_tech": "Technologie principale",
-    "summary": "Résumé..."
+    "summary": "Résumé court (7 lignes max)"
   },
   "experiences": [
     { 
@@ -51,7 +45,7 @@ Structure JSON attendue :
       "period": "Dates", 
       "role": "Rôle", 
       "context": "Contexte du projet", 
-      "phases": "• Action 1\n• Action 2", 
+      "phases": "• Action 1\n• Action 2 (Liste à puces avec verbes d'action)", 
       "tech_stack": ["Tech1", "Tech2"] 
     }
   ],
@@ -71,54 +65,43 @@ Texte du CV : ${text}`;
       
       const apiUrl = `https://generativelanguage.googleapis.com/${config.version}/models/${config.id}:generateContent?key=${apiKey}`;
       
-      // Construction dynamique du payload
-      const payload = {
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { 
-          temperature: 0.1
-        }
-      };
-
-      // AJUSTEMENT CRITIQUE : 'responseMimeType' cause une erreur 400 sur l'API 'v1' stable.
-      // On ne l'ajoute que si on est sur 'v1beta'.
-      if (config.version === "v1beta") {
-        payload.generationConfig.responseMimeType = "application/json";
-      }
-
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { 
+            // On force le JSON car on est sur v1beta pour tous les modèles listés ici
+            responseMimeType: "application/json",
+            temperature: 0.1
+          }
+        })
       });
 
-      // Si erreur 429 (Quota), on arrête tout de suite (inutile de changer de modèle, c'est la clé qui est limitée)
-      if (response.status === 429) {
-        return res.status(429).json({ error: "Quota API dépassé (429). Veuillez attendre une minute." });
+      // Si erreur 429 (Too Many Requests) ou 403 (Forbidden), on passe au modèle suivant
+      if (response.status === 429 || response.status === 403 || response.status === 404) {
+        const msg = await response.text();
+        console.warn(`Échec ${config.id} (Erreur ${response.status}): ${msg}. Bascule sur le modèle suivant...`);
+        lastError = `Le modèle ${config.id} a bloqué (${response.status})`;
+        continue; // On force la boucle à essayer le suivant
+      }
+
+      if (!response.ok) {
+        throw new Error(`Erreur API ${response.status}: ${await response.text()}`);
       }
 
       // Si ça passe, on traite
-      if (response.ok) {
-        const data = await response.json();
-        const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      const data = await response.json();
+      const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-        if (!content) throw new Error("Réponse vide de l'IA");
+      if (!content) throw new Error("Réponse vide de l'IA");
 
-        // Nettoyage au cas où (l'API v1 renvoie souvent du markdown ```json)
-        const cleanedContent = content
-          .replace(/```json/g, '')
-          .replace(/```/g, '')
-          .trim();
-          
-        const jsonResult = JSON.parse(cleanedContent);
+      // Nettoyage
+      const cleanedContent = content.replace(/```json|```/g, '').trim();
+      const jsonResult = JSON.parse(cleanedContent);
 
-        console.log(`Succès avec ${config.id}`);
-        return res.status(200).json(jsonResult);
-      }
-
-      // Si erreur (404, 500...), on capture le texte et on continue la boucle
-      const errorText = await response.text();
-      console.warn(`Échec avec ${config.id} (${response.status}): ${errorText}`);
-      lastError = `Erreur ${response.status} sur ${config.id} (${config.version})`;
+      console.log(`Succès avec ${config.id}`);
+      return res.status(200).json(jsonResult);
 
     } catch (error) {
       console.warn(`Exception avec ${config.id}:`, error.message);
@@ -127,10 +110,10 @@ Texte du CV : ${text}`;
     }
   }
 
-  // Si on arrive ici, c'est que tous les modèles ont échoué
+  // Si on arrive ici, c'est que TOUS les modèles (2.5, 2.0 et 1.5) ont échoué
   console.error("Tous les modèles ont échoué.");
   return res.status(500).json({ 
-    error: "Impossible d'analyser le document après plusieurs tentatives.",
+    error: "Service surchargé. Veuillez réessayer dans une minute.",
     details: lastError 
   });
 }
