@@ -155,7 +155,7 @@ const HeaderSmall = ({ isAnonymous, profile, role, logo }) => {
     : `${profile.firstname} ${profile.lastname}`;
     
   return (
-    <div className="flex justify-between items-start border-b-2 border-[#2E86C1] pb-4 pt-10 px-12 mt-8 flex-shrink-0 text-left">
+    <div className="flex justify-between items-start border-b-2 border-[#2E86C1] pb-4 pt-6 px-12 flex-shrink-0 text-left">
       <div className="w-12 h-12 flex items-center justify-center text-left">
          {logo && logo !== "null" && <img src={logo} onError={handleImageError} className="max-w-full max-h-full object-contain brightness-0 invert" alt="Logo" />}
       </div>
@@ -196,7 +196,6 @@ const ExperienceItem = ({ exp }) => (
           </span>
         )}
       </div>
-      {/* Le nom sous le logo ne s'affiche plus car il est soit dans le carré, soit remplacé par le logo */}
     </div>
     <div className="col-span-10 border-l border-slate-100 pl-6 pb-4 text-left">
       <div className="flex justify-between items-baseline mb-3">
@@ -1260,7 +1259,7 @@ export default function App() {
             <A4Page>
               <CornerTriangle customLogo={cvData.smileLogo} />
               <HeaderSmall isAnonymous={cvData.isAnonymous} profile={cvData.profile} role={cvData.profile.current_role} logo={cvData.smileLogo} />
-              <div className="grid grid-cols-12 gap-10 mt-20 h-full px-12 flex-1 pb-32 overflow-hidden print:overflow-visible text-left">
+              <div className="grid grid-cols-12 gap-10 mt-8 h-full px-12 flex-1 pb-32 overflow-hidden print:overflow-visible text-left">
                   <div className="col-span-5 border-r border-slate-100 pr-8 text-left">
                     <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-8 flex items-center gap-2 text-left"><Cpu size={20}/> Mes Compétences</h3>
                     <div className="space-y-8 text-left">{Object.entries(cvData.skills_categories || {}).map(([cat, skills]) => (<div key={cat}><h4 className="text-[10px] font-bold text-[#999999] uppercase tracking-widest border-b border-slate-100 pb-2 mb-3 text-left">{String(cat)}</h4><div className="space-y-3 text-left">{(skills || []).map((skill, i) => (<div key={i} className="flex items-center justify-between text-left"><span className="text-xs font-bold text-[#333333] uppercase text-left">{String(skill.name)}</span><HexagonRating score={skill.rating} /></div>))}</div></div>))}</div>
@@ -1290,7 +1289,7 @@ export default function App() {
               <A4Page key={pageIndex}>
                 <CornerTriangle customLogo={cvData.smileLogo} />
                 <HeaderSmall isAnonymous={cvData.isAnonymous} profile={cvData.profile} role={cvData.profile.current_role} logo={cvData.smileLogo} />
-                <div className="flex justify-between items-end border-b border-slate-200 pb-2 mb-8 mt-16 px-12 flex-shrink-0 text-left"><h3 className="text-xl font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat">{pageIndex === 0 ? "Mes dernières expériences" : "Expériences (Suite)"}</h3><span className="text-[10px] font-bold text-[#666666] uppercase text-left">Références</span></div>
+                <div className="flex justify-between items-end border-b border-slate-200 pb-2 mb-8 mt-8 px-12 flex-shrink-0 text-left"><h3 className="text-xl font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat">{pageIndex === 0 ? "Mes dernières expériences" : "Expériences (Suite)"}</h3><span className="text-[10px] font-bold text-[#666666] uppercase text-left">Références</span></div>
                 <div className="flex-1 px-12 pb-32 overflow-hidden print:overflow-visible text-left">{chunk.map((exp) => (<ExperienceItem key={exp.id} exp={exp} />))}</div>
                 <Footer />
               </A4Page>
