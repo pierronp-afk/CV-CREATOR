@@ -150,7 +150,6 @@ const CornerTriangle = ({ customLogo }) => (
 );
 
 const HeaderSmall = ({ isAnonymous, profile, role, logo }) => {
-  // Modification de la logique d'affichage anonyme : 1ère lettre prénom + 2 premières lettres nom
   const nameDisplay = isAnonymous 
     ? `${profile.firstname?.[0] || ''}${profile.lastname?.substring(0, 2) || ''}` 
     : `${profile.firstname} ${profile.lastname}`;
@@ -451,8 +450,12 @@ export default function App() {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newSkillsInput, setNewSkillsInput] = useState({});
   
-  // État pour gérer le drag and drop des compétences
+  // États pour gérer le drag and drop
   const [draggedSkill, setDraggedSkill] = useState(null);
+  const [draggedCategory, setDraggedCategory] = useState(null);
+  const [draggedEduIndex, setDraggedEduIndex] = useState(null);
+  const [draggedExpIndex, setDraggedExpIndex] = useState(null);
+  const [draggedCertIndex, setDraggedCertIndex] = useState(null);
 
   const [cvData, setCvData] = useState(() => {
     try {
@@ -621,34 +624,68 @@ export default function App() {
   const updateNewSkillInput = (cat, field, val) => { setNewSkillsInput(p => ({ ...p, [cat]: { ...(p[cat] || { name: '', rating: 3 }), [field]: val } })); };
   const removeSkillFromCategory = (cat, idx) => setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [cat]: p.skills_categories[cat].filter((_, i) => i !== idx) } }));
   
-  // Handlers pour le Drag & Drop des compétences
-  const handleSkillDragStart = (cat, index) => {
-    setDraggedSkill({ cat, index });
-  };
+  // --- HANDLERS DRAG & DROP GÉNERIQUES ---
 
-  const handleSkillDragOver = (e) => {
-    e.preventDefault(); // Nécessaire pour autoriser le drop
-  };
+  const handleDragOver = (e) => e.preventDefault();
 
+  // 1. Compétences (Items dans Catégorie)
+  const handleSkillDragStart = (cat, index) => setDraggedSkill({ cat, index });
   const handleSkillDrop = (targetCat, targetIndex) => {
-    if (!draggedSkill || draggedSkill.cat !== targetCat) {
-      setDraggedSkill(null);
-      return;
-    }
-
+    if (!draggedSkill || draggedSkill.cat !== targetCat) { setDraggedSkill(null); return; }
     const skills = [...cvData.skills_categories[targetCat]];
-    const [movedItem] = skills.splice(draggedSkill.index, 1);
-    skills.splice(targetIndex, 0, movedItem);
-
-    setCvData(prev => ({
-      ...prev,
-      skills_categories: {
-        ...prev.skills_categories,
-        [targetCat]: skills
-      }
-    }));
-    
+    const [moved] = skills.splice(draggedSkill.index, 1);
+    skills.splice(targetIndex, 0, moved);
+    setCvData(prev => ({ ...prev, skills_categories: { ...prev.skills_categories, [targetCat]: skills } }));
     setDraggedSkill(null);
+  };
+
+  // 2. Catégories de Compétences
+  const handleCategoryDragStart = (catName) => setDraggedCategory(catName);
+  const handleCategoryDrop = (targetCatName) => {
+    if (!draggedCategory || draggedCategory === targetCatName) { setDraggedCategory(null); return; }
+    const keys = Object.keys(cvData.skills_categories);
+    const fromIdx = keys.indexOf(draggedCategory);
+    const toIdx = keys.indexOf(targetCatName);
+    const newKeys = [...keys];
+    const [moved] = newKeys.splice(fromIdx, 1);
+    newKeys.splice(toIdx, 0, moved);
+    const newCategories = {};
+    newKeys.forEach(k => { newCategories[k] = cvData.skills_categories[k]; });
+    setCvData(prev => ({ ...prev, skills_categories: newCategories }));
+    setDraggedCategory(null);
+  };
+
+  // 3. Diplômes / Formations
+  const handleEduDragStart = (index) => setDraggedEduIndex(index);
+  const handleEduDrop = (targetIndex) => {
+    if (draggedEduIndex === null || draggedEduIndex === targetIndex) { setDraggedEduIndex(null); return; }
+    const list = [...cvData.education];
+    const [moved] = list.splice(draggedEduIndex, 1);
+    list.splice(targetIndex, 0, moved);
+    setCvData(prev => ({ ...prev, education: list }));
+    setDraggedEduIndex(null);
+  };
+
+  // 4. Expériences
+  const handleExpDragStart = (index) => setDraggedExpIndex(index);
+  const handleExpDrop = (targetIndex) => {
+    if (draggedExpIndex === null || draggedExpIndex === targetIndex) { setDraggedExpIndex(null); return; }
+    const list = [...cvData.experiences];
+    const [moved] = list.splice(draggedExpIndex, 1);
+    list.splice(targetIndex, 0, moved);
+    setCvData(prev => ({ ...prev, experiences: list }));
+    setDraggedExpIndex(null);
+  };
+
+  // 5. Certifications
+  const handleCertDragStart = (index) => setDraggedCertIndex(index);
+  const handleCertDrop = (targetIndex) => {
+    if (draggedCertIndex === null || draggedCertIndex === targetIndex) { setDraggedCertIndex(null); return; }
+    const list = [...cvData.certifications];
+    const [moved] = list.splice(draggedCertIndex, 1);
+    list.splice(targetIndex, 0, moved);
+    setCvData(prev => ({ ...prev, certifications: list }));
+    setDraggedCertIndex(null);
   };
 
   const addSecteur = () => { if (newSecteur) { setCvData(p => ({ ...p, connaissances_sectorielles: [...p.connaissances_sectorielles, newSecteur] })); setNewSecteur(""); }};
@@ -946,6 +983,8 @@ export default function App() {
             {step === 3 && (
              <div className="space-y-8 animate-in slide-in-from-right transition-all text-left">
                <div className="flex items-center gap-3 mb-4 text-[#2E86C1] text-left"><GraduationCap size={24} /><h2 className="text-lg font-bold uppercase text-left">Formation & Compétences</h2></div>
+               
+               {/* SECTION CERTIFICATIONS AVEC DRAG & DROP */}
                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm text-left">
                  <h3 className="text-[10px] font-black uppercase text-slate-400 mb-4 text-left">Secteur & Certifs</h3>
                  <div className="flex gap-2 mb-4 text-left">
@@ -962,32 +1001,56 @@ export default function App() {
                  
                  <div className="mt-2 space-y-1 text-left">
                     {(cvData.certifications || []).map((c, i) => (
-                      <div key={i} className="flex items-center justify-between text-[10px] bg-white p-1.5 rounded border uppercase font-bold text-left gap-2">
+                      <div 
+                        key={i} 
+                        className={`flex items-center justify-between text-[10px] bg-white p-1.5 rounded border uppercase font-bold text-left gap-2 transition-all ${draggedCertIndex === i ? 'opacity-30 border-dashed border-blue-400' : 'hover:bg-blue-50/50 cursor-default'}`}
+                        draggable
+                        onDragStart={() => handleCertDragStart(i)}
+                        onDragOver={handleDragOver}
+                        onDrop={() => handleCertDrop(i)}
+                      >
+                        <GripVertical size={14} className="text-slate-300 cursor-grab active:cursor-grabbing" />
                         {c.logo && <img src={c.logo} onError={handleImageError} className="w-5 h-5 object-contain" alt="" />}
                         <span className="flex-1 text-left">{c.name}</span>
-                        <button onClick={()=>removeCertification(i)} className="text-left"><X size={10}/></button>
+                        <button onClick={()=>removeCertification(i)} className="text-slate-300 hover:text-red-500"><X size={12}/></button>
                       </div>
                     ))}
                  </div>
                </div>
+
+               {/* SECTION DIPLÔMES AVEC DRAG & DROP */}
                <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 shadow-sm text-left">
                  <h3 className="text-[10px] font-black uppercase text-slate-400 mb-4 text-left">Parcours Académique</h3>
                  {(cvData.education || []).map((edu, i) => (
-                    <div key={i} className="bg-white p-3 rounded-lg border mb-3 relative group shadow-sm text-left">
+                    <div 
+                      key={i} 
+                      className={`bg-white p-3 rounded-lg border mb-3 relative group shadow-sm text-left transition-all ${draggedEduIndex === i ? 'opacity-30 border-dashed border-blue-400' : ''}`}
+                      draggable
+                      onDragStart={() => handleEduDragStart(i)}
+                      onDragOver={handleDragOver}
+                      onDrop={() => handleEduDrop(i)}
+                    >
+                      <div className="absolute top-2 left-2 text-slate-200 group-hover:text-slate-400 transition-colors cursor-grab active:cursor-grabbing">
+                        <GripVertical size={16}/>
+                      </div>
                       <div className="absolute top-2 right-2 flex gap-1 text-left">
                         <button onClick={() => moveItem('education', i, 'up')} disabled={i === 0} className="text-slate-300 hover:text-blue-500 disabled:opacity-20 transition-colors text-left"><ChevronUp size={16}/></button>
                         <button onClick={() => moveItem('education', i, 'down')} disabled={i === cvData.education.length - 1} className="text-slate-300 hover:text-blue-500 disabled:opacity-20 transition-colors text-left"><ChevronDown size={16}/></button>
                         <button onClick={() => removeEducation(i)} className="text-slate-300 hover:text-red-500 ml-1 text-left"><Trash2 size={14}/></button>
                       </div>
-                      <InputUI label="Diplôme" value={edu.degree} onChange={v => updateEducation(i, 'degree', v)} />
-                      <div className="grid grid-cols-2 gap-2 text-left">
-                        <InputUI label="Année" value={edu.year} onChange={v => updateEducation(i, 'year', v)} />
-                        <InputUI label="Lieu" value={edu.location} onChange={v => updateEducation(i, 'location', v)} />
+                      <div className="pl-6">
+                        <InputUI label="Diplôme" value={edu.degree} onChange={v => updateEducation(i, 'degree', v)} />
+                        <div className="grid grid-cols-2 gap-2 text-left">
+                          <InputUI label="Année" value={edu.year} onChange={v => updateEducation(i, 'year', v)} />
+                          <InputUI label="Lieu" value={edu.location} onChange={v => updateEducation(i, 'location', v)} />
+                        </div>
                       </div>
                     </div>
                  ))}
                  <ButtonUI onClick={addEducation} variant="secondary" className="w-full text-xs py-2 mt-2 shadow-sm text-left">Ajouter Formation</ButtonUI>
                </div>
+
+               {/* SECTION COMPÉTENCES AVEC DRAG & DROP DES CATÉGORIES ET DES ITEMS */}
                <div className="bg-white p-4 rounded-xl border border-slate-200 text-left">
                   <h3 className="text-[10px] font-black uppercase text-slate-400 mb-4 text-left">Niveau Compétences</h3>
                   <div className="flex gap-2 mb-4 text-left">
@@ -1001,9 +1064,19 @@ export default function App() {
                     <ButtonUI variant="outline" className="px-3 text-left" onClick={addSkillCategory}><Plus size={14}/></ButtonUI>
                   </div>
                   {Object.entries(cvData.skills_categories).map(([cat, skills], catIdx, allEntries) => (
-                    <div key={cat} className="mb-4 p-3 bg-slate-50 rounded-lg text-left relative group">
+                    <div 
+                      key={cat} 
+                      className={`mb-4 p-3 bg-slate-50 rounded-lg text-left relative group transition-all ${draggedCategory === cat ? 'opacity-30 border-dashed border-2 border-blue-400' : ''}`}
+                      draggable
+                      onDragStart={() => handleCategoryDragStart(cat)}
+                      onDragOver={handleDragOver}
+                      onDrop={() => handleCategoryDrop(cat)}
+                    >
                       <div className="flex justify-between items-center mb-2 text-left">
-                        <h4 className="text-xs font-bold uppercase text-left flex-1">{cat}</h4>
+                        <div className="flex items-center gap-2 flex-1">
+                          <GripVertical size={16} className="text-slate-300 cursor-grab active:cursor-grabbing flex-shrink-0" />
+                          <h4 className="text-xs font-bold uppercase text-left">{cat}</h4>
+                        </div>
                         <div className="flex items-center gap-1">
                           <button onClick={() => moveCategory(cat, 'up')} disabled={catIdx === 0} className="text-slate-300 hover:text-[#2E86C1] disabled:opacity-20 transition-colors"><ChevronUp size={14}/></button>
                           <button onClick={() => moveCategory(cat, 'down')} disabled={catIdx === allEntries.length - 1} className="text-slate-300 hover:text-[#2E86C1] disabled:opacity-20 transition-colors"><ChevronDown size={14}/></button>
@@ -1012,7 +1085,6 @@ export default function App() {
                         </div>
                       </div>
                       
-                      {/* LISTE DES COMPÉTENCES AVEC DRAG AND DROP */}
                       <div className="space-y-1 mb-3 text-left">
                         {(skills || []).map((skill, idx) => (
                           <div 
@@ -1020,7 +1092,7 @@ export default function App() {
                             className={`flex items-center justify-between text-xs bg-white p-1.5 rounded shadow-sm text-left gap-2 group/item transition-all ${draggedSkill?.cat === cat && draggedSkill?.index === idx ? 'opacity-30 scale-95 border-dashed border-2 border-blue-200' : 'hover:shadow-md'}`}
                             draggable
                             onDragStart={() => handleSkillDragStart(cat, idx)}
-                            onDragOver={handleSkillDragOver}
+                            onDragOver={handleDragOver}
                             onDrop={() => handleSkillDrop(cat, idx)}
                           >
                             <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -1039,7 +1111,7 @@ export default function App() {
                         ))}
                       </div>
 
-                      <div className="flex gap-1 text-left">
+                      <div className="flex gap-1 text-left pl-6">
                         <input className="flex-1 px-2 py-1 text-[10px] border rounded text-left" placeholder="Ajouter un item..." value={newSkillsInput[cat]?.name || ''} onChange={(e) => updateNewSkillInput(cat, 'name', e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addSkillToCategory(cat)} />
                         <ButtonUI variant="primary" className="p-1 h-auto text-left" onClick={() => addSkillToCategory(cat)}><Plus size={10}/></ButtonUI>
                       </div>
@@ -1051,40 +1123,68 @@ export default function App() {
 
             {step === 4 && (
              <div className="space-y-8 animate-in slide-in-from-right duration-300 text-left">
-               <div className="flex justify-between items-center mb-4 text-[#2E86C1] text-left"><div className="flex items-center gap-3 text-left"><Briefcase size={24} /><h2 className="text-lg font-bold uppercase text-left">Expériences</h2></div><ButtonUI onClick={addExperience} variant="outline" className="px-3 py-1 text-xs text-left"><Plus size={14} /> Ajouter</ButtonUI></div>
+               <div className="flex justify-between items-center mb-4 text-[#2E86C1] text-left">
+                 <div className="flex items-center gap-3 text-left">
+                   <Briefcase size={24} />
+                   <h2 className="text-lg font-bold uppercase text-left">Expériences</h2>
+                 </div>
+                 <ButtonUI onClick={addExperience} variant="outline" className="px-3 py-1 text-xs text-left"><Plus size={14} /> Ajouter</ButtonUI>
+               </div>
+               
                {(cvData.experiences || []).map((exp, index) => (
-                 <div key={exp.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm relative group mb-4 text-left">
+                 <div 
+                   key={exp.id} 
+                   className={`bg-white border border-slate-200 rounded-xl p-5 shadow-sm relative group mb-4 text-left transition-all ${draggedExpIndex === index ? 'opacity-30 border-dashed border-blue-400' : ''}`}
+                   draggable
+                   onDragStart={() => handleExpDragStart(index)}
+                   onDragOver={handleDragOver}
+                   onDrop={() => handleExpDrop(index)}
+                 >
+                   {/* POIGNÉE DRAG & DROP EXPÉRIENCES */}
+                   <div className="absolute top-4 left-4 text-slate-200 group-hover:text-slate-400 transition-colors cursor-grab active:cursor-grabbing">
+                      <GripVertical size={20}/>
+                   </div>
+
                    <div className="absolute top-4 right-4 flex gap-1 text-left">
                      <button onClick={() => moveItem('experiences', index, 'up')} disabled={index === 0} className="text-slate-300 hover:text-blue-500 disabled:opacity-20 transition-colors text-left"><ChevronUp size={18}/></button>
                      <button onClick={() => moveItem('experiences', index, 'down')} disabled={index === cvData.experiences.length - 1} className="text-slate-300 hover:text-blue-500 disabled:opacity-20 transition-colors text-left"><ChevronDown size={18}/></button>
                      <button onClick={() => removeExperience(exp.id)} className="text-red-300 hover:text-red-500 ml-1 text-left"><Trash2 size={16}/></button>
                    </div>
-                   <div className="mb-4 text-left">
-                     <span className="text-xs font-bold text-[#333333] uppercase block mb-2 text-left">Logo Client</span>
-                     <div className="flex items-center gap-4 text-left">
-                       <DropZoneUI 
-                         onFile={(file) => {
-                           const reader = new FileReader();
-                           reader.onload = (ev) => updateExperience(exp.id, 'client_logo', ev.target.result);
-                           reader.readAsDataURL(file);
-                         }} 
-                         label="Charger logo client" 
-                         className="flex-1 text-left" 
-                       />
-                       {exp.client_logo && <img src={exp.client_logo} onError={handleImageError} className="w-12 h-12 object-contain" alt="" />}
+
+                   <div className="pl-8">
+                     <div className="mb-4 text-left">
+                       <span className="text-xs font-bold text-[#333333] uppercase block mb-2 text-left">Logo Client</span>
+                       <div className="flex items-center gap-4 text-left">
+                         <DropZoneUI 
+                           onFile={(file) => {
+                             const reader = new FileReader();
+                             reader.onload = (ev) => updateExperience(exp.id, 'client_logo', ev.target.result);
+                             reader.readAsDataURL(file);
+                           }} 
+                           label="Charger logo client" 
+                           className="flex-1 text-left" 
+                         />
+                         {exp.client_logo && <img src={exp.client_logo} onError={handleImageError} className="w-12 h-12 object-contain" alt="" />}
+                       </div>
                      </div>
+                     <div className="mb-4 flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-100 text-left">
+                        <div className="flex items-center gap-2 text-left">
+                          <FilePlus size={16} className="text-[#2E86C1]"/>
+                          <span className="text-xs font-bold text-slate-600 text-left">Saut de page manuel</span>
+                        </div>
+                        <button onClick={() => updateExperience(exp.id, 'forceNewPage', !exp.forceNewPage)} className="text-left">
+                          {exp.forceNewPage ? <ToggleRight className="text-green-500"/> : <ToggleLeft className="text-slate-300"/>}
+                        </button>
+                     </div>
+                     <InputUI label="Client" value={exp.client_name} onChange={(v) => updateExperience(exp.id, 'client_name', v)} />
+                     <InputUI label="Rôle" value={exp.role} onChange={(v) => updateExperience(exp.id, 'role', v)} />
+                     <div className="grid grid-cols-2 gap-4 text-left">
+                       <InputUI label="Période" value={exp.period} onChange={(v) => updateExperience(exp.id, 'period', v)} />
+                       <InputUI label="Environnement Tech" value={Array.isArray(exp.tech_stack) ? exp.tech_stack.join(', ') : exp.tech_stack} onChange={(v) => updateExperience(exp.id, 'tech_stack', String(v).split(',').map(s=>s.trim()))} />
+                     </div>
+                     <RichTextareaUI label="Contexte" value={exp.context} onChange={(v) => updateExperience(exp.id, 'context', v)} />
+                     <RichTextareaUI label="Réalisation" value={exp.phases} onChange={(v) => updateExperience(exp.id, 'phases', v)} />
                    </div>
-                   <div className="mb-4 flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-100 text-left"><div className="flex items-center gap-2 text-left"><FilePlus size={16} className="text-[#2E86C1]"/><span className="text-xs font-bold text-slate-600 text-left">Saut de page manuel</span></div><button onClick={() => updateExperience(exp.id, 'forceNewPage', !exp.forceNewPage)} className="text-left">{exp.forceNewPage ? <ToggleRight className="text-green-500"/> : <ToggleLeft className="text-slate-300"/>}</button></div>
-                   <InputUI label="Client" value={exp.client_name} onChange={(v) => updateExperience(exp.id, 'client_name', v)} />
-                   <InputUI label="Rôle" value={exp.role} onChange={(v) => updateExperience(exp.id, 'role', v)} />
-                   <div className="grid grid-cols-2 gap-4 text-left">
-                     <InputUI label="Période" value={exp.period} onChange={(v) => updateExperience(exp.id, 'period', v)} />
-                     <InputUI label="Environnement Tech" value={Array.isArray(exp.tech_stack) ? exp.tech_stack.join(', ') : exp.tech_stack} onChange={(v) => updateExperience(exp.id, 'tech_stack', String(v).split(',').map(s=>s.trim()))} />
-                   </div>
-                   {/* CHAMP CONTEXTE */}
-                   <RichTextareaUI label="Contexte" value={exp.context} onChange={(v) => updateExperience(exp.id, 'context', v)} />
-                   {/* CHAMP OBJECTIF RETIRÉ */}
-                   <RichTextareaUI label="Réalisation" value={exp.phases} onChange={(v) => updateExperience(exp.id, 'phases', v)} />
                  </div>
                ))}
              </div>
@@ -1126,13 +1226,11 @@ export default function App() {
                   <div className="px-24 mb-10 relative z-10 flex flex-col items-center text-center text-left">
                      <p className="text-lg text-[#333333] leading-relaxed italic border-t border-slate-100 pt-8 text-center break-words w-full max-w-[160mm] text-left" dangerouslySetInnerHTML={{__html: formatTextForPreview(`"${cvData.profile.summary}"`)}}></p>
                   </div>
-                  {/* ESPACE RÉDUIT : py-3 et mb-1 */}
                   <div className="w-full bg-[#2E86C1] py-3 px-16 mb-1 flex items-center justify-center gap-10 shadow-inner relative z-10 flex-shrink-0 text-left tech-banner">
                     {(cvData.profile.tech_logos || []).map((logo, i) => (
                       logo.src && logo.src !== "null" ? <img key={i} src={logo.src} onError={handleImageError} className="h-14 w-auto object-contain brightness-0 invert opacity-95 transition-transform" alt={String(logo.name)} /> : null
                     ))}
                   </div>
-                  {/* HEXAGONES REMONTÉS : mt-2 */}
                   <div className="flex justify-center gap-12 relative z-10 px-10 flex-shrink-0 mt-2 text-left">
                     {(cvData.soft_skills || []).map((skill, i) => (
                       <div key={i} className="relative w-40 h-44 flex items-center justify-center text-left">
