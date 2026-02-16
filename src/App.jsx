@@ -555,10 +555,19 @@ export default function App() {
       let rawText = await extractTextFromPDF(pendingFile);
       rawText = rawText.replace(/\s+/g, ' ').trim();
       
+      const prompt = `Agis comme un expert Smile. Analyse ce texte de CV et retourne un objet JSON structuré. 
+      Règles de formatage : 
+      - profile.summary : doit être un paragraphe unique (pas de puces), maximum 7 lignes.
+      - experiences[].phases : doit être une liste à puces (•) avec les actions réalisées.
+      - profile (firstname, lastname, current_role, years_experience, main_tech)
+      - education (year, degree, location)
+      - skills_categories (Langages, Outils, etc.)
+      Texte : ${rawText}`;
+
       const response = await fetchWithRetry('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: rawText })
+        body: JSON.stringify({ text: prompt })
       });
 
       const data = await response.json();
@@ -570,8 +579,6 @@ export default function App() {
         ...prev,
         ...result,
         profile: { ...prev.profile, ...result.profile },
-        certifications: result.certifications?.length ? result.certifications : prev.certifications,
-        skills_categories: result.skills_categories && Object.keys(result.skills_categories).length ? result.skills_categories : prev.skills_categories,
         experiences: (result.experiences || []).map((exp, idx) => ({ 
           ...exp, 
           id: Date.now() + idx, 
