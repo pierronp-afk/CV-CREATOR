@@ -25,8 +25,8 @@ const getApiKey = () => {
       return import.meta.env.VITE_GOOGLE_API_KEY;
     }
     // @ts-ignore
-    if (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_GOOGLE_API_KEY) {
-      return process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
+    if (typeof process !== 'undefined' && process.env?.GOOGLE_API_KEY) {
+      return process.env.GOOGLE_API_KEY;
     }
   } catch (e) {}
   return ""; 
@@ -553,28 +553,44 @@ export default function App() {
     setImportError(null);
     try {
       let rawText = await extractTextFromPDF(pendingFile);
-      rawText = rawText.replace(/\s+/g, ' ').trim();
+      // Nettoyage agressif pour limiter les tokens et éviter le timeout
+      rawText = rawText.replace(/\s+/g, ' ').trim().substring(0, 10000); 
       
       const prompt = `Agis comme un expert Smile. Analyse ce texte de CV et retourne un objet JSON structuré. 
-      Règles de formatage : 
-      - profile.summary : doit être un paragraphe unique (pas de puces), maximum 7 lignes.
-      - experiences[].phases : doit être une liste à puces (•) avec les actions réalisées.
-      - profile (firstname, lastname, current_role, years_experience, main_tech)
-      - education (year, degree, location)
-      - skills_categories (Langages, Outils, etc.)
-      Texte : ${rawText}`;
+Règles de formatage impératives :
+- profile.summary : doit être un paragraphe unique (pas de puces), maximum 7 lignes.
+- experiences[].phases : doit être une liste à puces (•) avec les actions réalisées.
+- profile (firstname, lastname, current_role, years_experience, main_tech)
+- education (year, degree, location)
+- skills_categories (Langages, Outils, etc.)
+Texte : ${rawText}`;
 
       const response = await fetchWithRetry('/api/analyze', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          // L'API utilise la clé configurée côté serveur (process.env.GOOGLE_API_KEY)
+        },
         body: JSON.stringify({ text: prompt })
       });
 
-      const data = await response.json();
-      const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!content) throw new Error("L'IA n'a pas renvoyé de données exploitables.");
+      // Gestion de la réponse Gateway Timeout (HTML renvoyé au lieu de JSON)
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        if (response.status === 504) throw new Error("Le serveur Gemini a mis trop de temps à répondre (Timeout). Réessayez avec un CV moins long.");
+        throw new Error("Erreur serveur inattendue.");
+      }
 
-      const result = JSON.parse(content);
+      const data = await response.json();
+      
+      // Extraction du texte JSON selon le retour de Gemini
+      const rawContent = data.candidates?.[0]?.content?.parts?.[0]?.text || data.text || data.content || "";
+      if (!rawContent) throw new Error("L'IA n'a pas renvoyé de contenu exploitable.");
+
+      // Nettoyage des balises markdown éventuelles
+      const cleanJson = rawContent.replace(/```json|```/g, "").trim();
+      const result = JSON.parse(cleanJson);
+      
       setCvData(prev => ({
         ...prev,
         ...result,
@@ -588,7 +604,7 @@ export default function App() {
       }));
     } catch (err) {
       console.error(err);
-      setImportError(err.message || "Erreur lors de l'analyse IA. Vérifiez que la route /api/analyze est déployée.");
+      setImportError(err.message || "Erreur lors de l'analyse IA. Le service est peut-être saturé.");
     } finally {
       setIsImporting(false);
       setPendingFile(null);
@@ -628,7 +644,7 @@ export default function App() {
   const removeExperience = (id) => setCvData(p => ({ ...p, experiences: p.experiences.filter(e => e.id !== id) }));
   
   const addSkillCategory = () => { if (newCategoryName) { setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [newCategoryName]: [] } })); setNewCategoryName(""); } };
-  const deleteCategory = (n) => setCvData(p => { const newC = { ...p.skills_categories }; delete newC[n]; return { ...p, skills_categories: newC }; });
+  const deleteCategory = (n) => setCvData(p => { const newC = { ...p.skills_categories }; delete newC[n]; return { ...p, skills_categories: n }; });
   const updateSkillInCategory = (cat, idx, f, v) => setCvData(p => { const s = [...p.skills_categories[cat]]; s[idx] = { ...s[idx], [f]: v }; return { ...p, skills_categories: { ...p.skills_categories, [cat]: s } }; });
   const addSkillToCategory = (cat) => { const i = newSkillsInput[cat] || { name: '', rating: 3 }; if (i.name) { setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [cat]: [...p.skills_categories[cat], { name: i.name, rating: i.rating }] } })); setNewSkillsInput(p => ({ ...p, [cat]: { name: '', rating: 3 } })); } };
   const updateNewSkillInput = (cat, field, val) => { setNewSkillsInput(p => ({ ...p, [cat]: { ...(p[cat] || { name: '', rating: 3 }), [field]: val } })); };
