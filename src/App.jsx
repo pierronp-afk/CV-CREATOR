@@ -7,7 +7,7 @@ import {
   Bold, List, Copy, HelpCircle, RefreshCw, Cloud, Mail, Printer,
   ChevronUp, ChevronDown, Award, Factory, ToggleLeft, ToggleRight, FilePlus,
   FileSearch, Loader2, Lock, Sparkles, AlertCircle, LifeBuoy, GripVertical,
-  Undo2, Columns2
+  Undo2
 } from 'lucide-react';
 
 // --- CONFIGURATION & THÈME ---
@@ -451,7 +451,15 @@ export default function App() {
   const [cvData, setCvData] = useState(() => {
     try {
       const saved = localStorage.getItem('smile_cv_data_final_v30_stable');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+         // --- SANITIZATION (Réparation des données corrompues) ---
+         const parsed = JSON.parse(saved);
+         // Si skills_categories est une chaîne au lieu d'un objet, on réinitialise
+         if (typeof parsed.skills_categories !== 'object' || Array.isArray(parsed.skills_categories)) {
+            parsed.skills_categories = DEFAULT_CV_DATA.skills_categories;
+         }
+         return parsed;
+      }
     } catch(e) { console.error(e); }
     return DEFAULT_CV_DATA;
   });
@@ -468,7 +476,7 @@ export default function App() {
       const next = typeof updater === 'function' ? updater(prev) : updater;
       // On n'ajoute à l'historique que si les données ont réellement changé
       if (JSON.stringify(prev) !== JSON.stringify(next)) {
-        setHistory(h => [prev, ...h].slice(0, 20)); // Limite à 20 étapes
+        setHistory(h => [prev, ...h].slice(0, 30)); // Limite à 30 étapes
       }
       return next;
     });
@@ -902,7 +910,7 @@ Texte : ${rawText}`;
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
-                      {cvData.swapPages ? <List size={20}/> : <Columns2 size={20}/>}
+                      {cvData.swapPages ? <List size={20}/> : <LayoutTemplate size={20}/>}
                     </div>
                     <div className="text-left">
                       <p className="text-xs font-bold text-slate-700">Ordre des pages</p>
