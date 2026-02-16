@@ -1,89 +1,61 @@
-export const config = {
-  runtime: 'edge', // Optimisé pour la rapidité sur Vercel
-};
-
-export default async function handler(req) {
-  // 1. Sécurité : Vérifier la méthode
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method Not Allowed' }), { status: 405 });
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const { text } = req.body;
+  const apiKey = process.env.GOOGLE_API_KEY;
+
+  if (!apiKey) {
+    return res.status(500).json({ error: "Clé API non configurée sur le serveur Vercel." });
+  }
+
+  const prompt = `Agis comme un expert en recrutement. Analyse ce texte de CV et retourne un objet JSON structuré respectant EXACTEMENT ce schéma :
+{
+  "profile": {
+    "firstname": "Prénom",
+    "lastname": "NOM",
+    "current_role": "Poste",
+    "years_experience": "Nombre",
+    "main_tech": "Techno principale",
+    "summary": "Résumé de 5 lignes max sans puces"
+  },
+  "experiences": [
+    { "client_name": "Nom", "period": "Dates", "role": "Poste", "context": "Contexte", "phases": "Réalisations sous forme de puces •", "tech_stack": ["Tag1", "Tag2"] }
+  ],
+  "education": [ { "year": "Dates", "degree": "Diplôme", "location": "Ville" } ],
+  "certifications": [ { "name": "Nom" } ],
+  "skills_categories": { "Catégorie": [ { "name": "Skill", "rating": 5 } ] }
+}
+
+Texte du CV : ${text}`;
+
   try {
-    // 2. Récupérer la clé secrète côté serveur
-    const apiKey = process.env.GOOGLE_API_KEY;
-    
-    if (!apiKey) {
-      return new Response(JSON.stringify({ error: 'Configuration serveur incomplète : GOOGLE_API_KEY manquante.' }), { 
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
-    // 3. Lire le corps de la requête (le texte du PDF envoyé par le front)
-    const { text } = await req.json();
-
-    if (!text) {
-      return new Response(JSON.stringify({ error: 'Aucun texte fourni.' }), { status: 400 });
-    }
-
-    // 4. Définir le Prompt Système (Déplacé ici pour la sécurité et la propreté)
-    const systemPrompt = `Tu es un expert en analyse de CV. Tu reçois du texte extrait d'un PDF. 
-    TA MISSION : Transformer ce texte en un JSON valide.
-    RÈGLES D'EXTRACTION CRITIQUES :
-    1. EXHAUSTIVITÉ ABSOLUE : Tu dois extraire TOUTES les expériences professionnelles mentionnées dans le texte, sans exception.
-    2. DÉTAILS : Sépare bien le contexte du projet, l'objectif principal et les réalisations (phases).
-    3. STRUCTURE DU JSON : Respecte strictement ce schéma :
-    {
-      "profile": { "firstname": "", "lastname": "", "years_experience": "", "current_role": "", "main_tech": "", "summary": "" },
-      "soft_skills": ["3 max"],
-      "connaissances_sectorielles": [],
-      "education": [{ "year": "", "degree": "", "location": "" }],
-      "certifications": [{ "name": "Nom Certification", "logo": "" }],
-      "skills_categories": { 
-          "Langages": [{ "name": "Java", "rating": 3 }], 
-          "Frameworks": [{ "name": "Spring", "rating": 3 }],
-          "Outils": [{ "name": "Git", "rating": 3 }]
-      },
-      "experiences": [{ 
-          "client_name": "", 
-          "period": "", 
-          "role": "", 
-          "context": "Contexte du projet (équipe, enjeux...)", 
-          "objective": "Objectif de la mission", 
-          "phases": "Détail des réalisations et tâches techniques", 
-          "tech_stack": [] 
-      }]
-    }
-    4. QUALITÉ : Si une donnée est absente, laisse une chaîne vide "". Pour "years_experience", n'extrais que le nombre entier.`;
-
-    // 5. Appeler l'API Google Gemini depuis le SERVEUR
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: `Texte intégral du CV à traiter : ${text}` }] }],
-        systemInstruction: { parts: [{ text: systemPrompt }] },
-        generationConfig: { 
-          responseMimeType: "application/json",
-          maxOutputTokens: 8192,
-          temperature: 0.1
-        }
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { responseMimeType: "application/json" }
       })
     });
 
-    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(`Google API Error: ${response.status}`);
+    }
 
-    // 6. Renvoyer la réponse de Google au Frontend
-    return new Response(JSON.stringify(data), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    const data = await response.json();
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!content) {
+      throw new Error("Réponse vide de l'IA");
+    }
+
+    // On renvoie directement l'objet JSON extrait
+    return res.status(200).json(JSON.parse(content));
 
   } catch (error) {
-    console.error("Erreur API:", error);
-    return new Response(JSON.stringify({ error: error.message }), { 
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    console.error(error);
+    return res.status(500).json({ error: "Erreur lors de l'analyse : " + error.message });
   }
 }
