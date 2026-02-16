@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { 
   ArrowRight, ArrowLeft, Download, Plus, Trash2, MoveUp, MoveDown, 
   Upload, X, Briefcase, GraduationCap, User, Hexagon, Cpu, 
@@ -6,7 +6,8 @@ import {
   Save, FolderOpen, Eye, Shield, Check, Edit2,
   Bold, List, Copy, HelpCircle, RefreshCw, Cloud, Mail, Printer,
   ChevronUp, ChevronDown, Award, Factory, ToggleLeft, ToggleRight, FilePlus,
-  FileSearch, Loader2, Lock, Sparkles, AlertCircle, LifeBuoy, GripVertical
+  FileSearch, Loader2, Lock, Sparkles, AlertCircle, LifeBuoy, GripVertical,
+  Undo2, Columns2, Rows2
 } from 'lucide-react';
 
 // --- CONFIGURATION & THÈME ---
@@ -26,6 +27,7 @@ const DEFAULT_CV_DATA = {
   isAnonymous: false,
   showSecteur: true,
   showCertif: true,
+  swapPages: false, // false: Compétences en p2 | true: Expériences en p2
   smileLogo: null, 
   profile: {
     firstname: "Prénom",
@@ -52,7 +54,7 @@ const DEFAULT_CV_DATA = {
       period: "Jan 2023 - Présent",
       role: "Développeur Frontend",
       context: "Projet de refonte globale du site consommateur.",
-      phases: "Conception, Développement",
+      phases: "• Conception\n• Développement",
       tech_stack: ["Drupal", "Twig"],
       forceNewPage: false
     }
@@ -96,7 +98,7 @@ const handleImageError = (e) => {
   e.target.style.display = 'none';
 };
 
-// --- SOUS-COMPOSANTS ---
+// --- SOUS-COMPOSANTS UI ---
 
 const ModalUI = ({ title, children, onClose, onConfirm, confirmText = "Confirmer", icon = <AlertCircle size={32} />, danger = true }) => (
   <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 text-left">
@@ -443,6 +445,9 @@ export default function App() {
   const [draggedExpIndex, setDraggedExpIndex] = useState(null);
   const [draggedCertIndex, setDraggedCertIndex] = useState(null);
 
+  // --- GESTION DE L'HISTORIQUE (CTRL+Z) ---
+  const [history, setHistory] = useState([]);
+
   const [cvData, setCvData] = useState(() => {
     try {
       const saved = localStorage.getItem('smile_cv_data_final_v30_stable');
@@ -450,6 +455,44 @@ export default function App() {
     } catch(e) { console.error(e); }
     return DEFAULT_CV_DATA;
   });
+
+  // --- CALCULS DU DOCUMENT ---
+  // On définit ces variables ici pour qu'elles soient accessibles dans tout le composant
+  const experiencePages = paginateExperiences(cvData.experiences);
+  const totalPagesCount = 2 + experiencePages.length; 
+  const scaledContentHeight = (totalPagesCount * 1122.5 * zoom) + ((totalPagesCount - 1) * 40 * zoom);
+
+  // Fonction pour mettre à jour les données avec sauvegarde dans l'historique
+  const updateCvData = useCallback((updater) => {
+    setCvData(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      // On n'ajoute à l'historique que si les données ont réellement changé
+      if (JSON.stringify(prev) !== JSON.stringify(next)) {
+        setHistory(h => [prev, ...h].slice(0, 20)); // Limite à 20 étapes
+      }
+      return next;
+    });
+  }, []);
+
+  const undo = useCallback(() => {
+    if (history.length > 0) {
+      const [lastState, ...remainingHistory] = history;
+      setCvData(lastState);
+      setHistory(remainingHistory);
+    }
+  }, [history]);
+
+  // Écouteur Ctrl+Z
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        e.preventDefault();
+        undo();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [undo]);
 
   useEffect(() => {
     const accepted = localStorage.getItem('smile_cv_privacy_accepted');
@@ -543,7 +586,7 @@ Texte : ${rawText}`;
 
       const result = await response.json();
       
-      setCvData(prev => ({
+      updateCvData(prev => ({
         ...prev,
         ...result,
         profile: { ...prev.profile, ...result.profile },
@@ -563,31 +606,35 @@ Texte : ${rawText}`;
     }
   };
 
-  const handleProfileChange = (f, v) => setCvData(p => ({ ...p, profile: { ...p.profile, [f]: v } }));
-  const handlePhotoUpload = (file) => { if(file) { const reader = new FileReader(); reader.onload = (ev) => setCvData(prev => ({...prev, profile: { ...prev.profile, photo: ev.target.result }})); reader.readAsDataURL(file); } };
-  const addTechLogo = (o) => setCvData(p => ({ ...p, profile: { ...p.profile, tech_logos: [...p.profile.tech_logos, o] } }));
-  const removeTechLogo = (i) => setCvData(p => ({ ...p, profile: { ...p.profile, tech_logos: p.profile.tech_logos.filter((_, idx) => idx !== i) } }));
-  const handleSmileLogo = (file) => { if(file) { const reader = new FileReader(); reader.onload = (ev) => setCvData(prev => ({...prev, smileLogo: ev.target.result})); reader.readAsDataURL(file); } };
+  const handleProfileChange = (f, v) => updateCvData(p => ({ ...p, profile: { ...p.profile, [f]: v } }));
+  const handlePhotoUpload = (file) => { if(file) { const reader = new FileReader(); reader.onload = (ev) => updateCvData(prev => ({...prev, profile: { ...prev.profile, photo: ev.target.result }})); reader.readAsDataURL(file); } };
+  const addTechLogo = (o) => updateCvData(p => ({ ...p, profile: { ...p.profile, tech_logos: [...p.profile.tech_logos, o] } }));
+  const removeTechLogo = (i) => updateCvData(p => ({ ...p, profile: { ...p.profile, tech_logos: p.profile.tech_logos.filter((_, idx) => idx !== i) } }));
+  const handleSmileLogo = (file) => { if(file) { const reader = new FileReader(); reader.onload = (ev) => updateCvData(prev => ({...prev, smileLogo: ev.target.result})); reader.readAsDataURL(file); } };
   
   const moveItem = (listName, index, direction) => {
     const list = [...cvData[listName]];
     const target = direction === 'up' ? index - 1 : index + 1;
     if (target >= 0 && target < list.length) {
       [list[index], list[target]] = [list[target], list[index]];
-      setCvData(p => ({ ...p, [listName]: list }));
+      updateCvData(p => ({ ...p, [listName]: list }));
     }
   };
 
-  const updateExperience = (id, f, v) => setCvData(p => ({ ...p, experiences: p.experiences.map(e => e.id === id ? { ...e, [f]: v } : e) }));
-  const addExperience = () => setCvData(p => ({ ...p, experiences: [{ id: Date.now(), client_name: "", client_logo: null, period: "", role: "", context: "", phases: "", achievements: [], tech_stack: [], forceNewPage: false }, ...p.experiences] }));
-  const removeExperience = (id) => setCvData(p => ({ ...p, experiences: p.experiences.filter(e => e.id !== id) }));
+  const updateExperience = (id, f, v) => updateCvData(p => ({ ...p, experiences: p.experiences.map(e => e.id === id ? { ...e, [f]: v } : e) }));
+  const addExperience = () => updateCvData(p => ({ ...p, experiences: [{ id: Date.now(), client_name: "", client_logo: null, period: "", role: "", context: "", phases: "", achievements: [], tech_stack: [], forceNewPage: false }, ...p.experiences] }));
+  const removeExperience = (id) => updateCvData(p => ({ ...p, experiences: p.experiences.filter(e => e.id !== id) }));
   
-  const addSkillCategory = () => { if (newCategoryName) { setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [newCategoryName]: [] } })); setNewCategoryName(""); } };
-  const deleteCategory = (n) => setCvData(p => { const newC = { ...p.skills_categories }; delete newC[n]; return { ...p, skills_categories: newC }; });
-  const updateSkillInCategory = (cat, idx, f, v) => setCvData(p => { const s = [...p.skills_categories[cat]]; s[idx] = { ...s[idx], [f]: v }; return { ...p, skills_categories: { ...p.skills_categories, [cat]: s } }; });
-  const addSkillToCategory = (cat) => { const i = newSkillsInput[cat] || { name: '', rating: 3 }; if (i.name) { setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [cat]: [...p.skills_categories[cat], { name: i.name, rating: i.rating }] } })); setNewSkillsInput(p => ({ ...p, [cat]: { name: '', rating: 3 } })); } };
+  const addSkillCategory = () => { if (newCategoryName) { updateCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [newCategoryName]: [] } })); setNewCategoryName(""); } };
+  const deleteCategory = (n) => updateCvData(p => { 
+    const newC = { ...p.skills_categories }; 
+    delete newC[n]; 
+    return { ...p, skills_categories: newC }; 
+  });
+  const updateSkillInCategory = (cat, idx, f, v) => updateCvData(p => { const s = [...p.skills_categories[cat]]; s[idx] = { ...s[idx], [f]: v }; return { ...p, skills_categories: { ...p.skills_categories, [cat]: s } }; });
+  const addSkillToCategory = (cat) => { const i = newSkillsInput[cat] || { name: '', rating: 3 }; if (i.name) { updateCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [cat]: [...p.skills_categories[cat], { name: i.name, rating: i.rating }] } })); setNewSkillsInput(p => ({ ...p, [cat]: { name: '', rating: 3 } })); } };
   const updateNewSkillInput = (cat, field, val) => { setNewSkillsInput(p => ({ ...p, [cat]: { ...(p[cat] || { name: '', rating: 3 }), [field]: val } })); };
-  const removeSkillFromCategory = (cat, idx) => setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [cat]: p.skills_categories[cat].filter((_, i) => i !== idx) } }));
+  const removeSkillFromCategory = (cat, idx) => updateCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [cat]: p.skills_categories[cat].filter((_, i) => i !== idx) } }));
   
   const handleDragOver = (e) => e.preventDefault();
 
@@ -597,7 +644,7 @@ Texte : ${rawText}`;
     const skills = [...cvData.skills_categories[targetCat]];
     const [moved] = skills.splice(draggedSkill.index, 1);
     skills.splice(targetIndex, 0, moved);
-    setCvData(prev => ({ ...prev, skills_categories: { ...prev.skills_categories, [targetCat]: skills } }));
+    updateCvData(prev => ({ ...prev, skills_categories: { ...prev.skills_categories, [targetCat]: skills } }));
     setDraggedSkill(null);
   };
 
@@ -612,7 +659,7 @@ Texte : ${rawText}`;
     newKeys.splice(toIdx, 0, moved);
     const newCategories = {};
     newKeys.forEach(k => { newCategories[k] = cvData.skills_categories[k]; });
-    setCvData(prev => ({ ...prev, skills_categories: newCategories }));
+    updateCvData(prev => ({ ...prev, skills_categories: newCategories }));
     setDraggedCategory(null);
   };
 
@@ -622,7 +669,7 @@ Texte : ${rawText}`;
     const list = [...cvData.education];
     const [moved] = list.splice(draggedEduIndex, 1);
     list.splice(targetIndex, 0, moved);
-    setCvData(prev => ({ ...prev, education: list }));
+    updateCvData(prev => ({ ...prev, education: list }));
     setDraggedEduIndex(null);
   };
 
@@ -632,7 +679,7 @@ Texte : ${rawText}`;
     const list = [...cvData.experiences];
     const [moved] = list.splice(draggedExpIndex, 1);
     list.splice(targetIndex, 0, moved);
-    setCvData(prev => ({ ...prev, experiences: list }));
+    updateCvData(prev => ({ ...prev, experiences: list }));
     setDraggedExpIndex(null);
   };
 
@@ -642,23 +689,19 @@ Texte : ${rawText}`;
     const list = [...cvData.certifications];
     const [moved] = list.splice(draggedCertIndex, 1);
     list.splice(targetIndex, 0, moved);
-    setCvData(prev => ({ ...prev, certifications: list }));
+    updateCvData(prev => ({ ...prev, certifications: list }));
     setDraggedCertIndex(null);
   };
 
-  const addSecteur = () => { if (newSecteur) { setCvData(p => ({ ...p, connaissances_sectorielles: [...p.connaissances_sectorielles, newSecteur] })); setNewSecteur(""); }};
-  const removeSecteur = (idx) => setCvData(p => ({ ...p, connaissances_sectorielles: p.connaissances_sectorielles.filter((_, i) => i !== idx) }));
+  const addSecteur = () => { if (newSecteur) { updateCvData(p => ({ ...p, connaissances_sectorielles: [...p.connaissances_sectorielles, newSecteur] })); setNewSecteur(""); }};
+  const removeSecteur = (idx) => updateCvData(p => ({ ...p, connaissances_sectorielles: p.connaissances_sectorielles.filter((_, i) => i !== idx) }));
   
-  const addCertification = (o) => setCvData(p => ({ ...p, certifications: [...p.certifications, { name: o.name, logo: o.src }] }));
-  const removeCertification = (idx) => setCvData(p => ({ ...p, certifications: p.certifications.filter((_, i) => i !== idx) }));
+  const addCertification = (o) => updateCvData(p => ({ ...p, certifications: [...p.certifications, { name: o.name, logo: o.src }] }));
+  const removeCertification = (idx) => updateCvData(p => ({ ...p, certifications: p.certifications.filter((_, i) => i !== idx) }));
   
-  const updateEducation = (i, f, v) => { const n = [...cvData.education]; n[i][f] = v; setCvData(p => ({ ...p, education: n })); };
-  const addEducation = () => setCvData(p => ({ ...p, education: [...p.education, { year: "", degree: "", location: "" }] }));
-  
-  const removeEducation = (i) => setCvData(prev => ({
-    ...prev,
-    education: prev.education.filter((_, idx) => idx !== i)
-  }));
+  const updateEducation = (i, f, v) => { const n = [...cvData.education]; n[i][f] = v; updateCvData(p => ({ ...p, education: n })); };
+  const addEducation = () => updateCvData(p => ({ ...p, education: [...p.education, { year: "", degree: "", location: "" }] }));
+  const removeEducation = (i) => updateCvData(prev => ({ ...prev, education: prev.education.filter((_, idx) => idx !== i) }));
   
   const acceptPrivacy = () => {
     localStorage.setItem('smile_cv_privacy_accepted', 'true');
@@ -669,24 +712,22 @@ Texte : ${rawText}`;
   const handlePurgeData = () => {
     localStorage.removeItem('smile_cv_data_final_v30_stable');
     localStorage.removeItem('smile_cv_privacy_accepted');
-    setCvData(DEFAULT_CV_DATA);
+    updateCvData(DEFAULT_CV_DATA);
     setShowPurgeConfirm(false);
     setShowPrivacyNotice(true); 
   };
 
-  const resetCV = () => { setCvData(DEFAULT_CV_DATA); setShowResetConfirm(false); };
+  const resetCV = () => { updateCvData(DEFAULT_CV_DATA); setShowResetConfirm(false); };
   const downloadJSON = () => { const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(cvData)); a.download = `${getFilenameBase()}.json`; a.click(); };
   
   const uploadJSON = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    
-    setImportError(null);
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
         const importedData = JSON.parse(String(ev.target.result));
-        setCvData(prev => ({
+        updateCvData(prev => ({
           ...DEFAULT_CV_DATA,
           ...importedData,
           profile: { ...DEFAULT_CV_DATA.profile, ...(importedData.profile || {}) },
@@ -714,10 +755,6 @@ Texte : ${rawText}`;
     window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
   };
 
-  const experiencePages = paginateExperiences(cvData.experiences);
-  const totalPages = 2 + experiencePages.length; 
-  const scaledContentHeight = (totalPages * 1122.5 * zoom) + ((totalPages - 1) * 40 * zoom) + (20 * zoom);
-
   const handlePrint = () => {
       const printWindow = window.open('', '_blank');
       const content = document.querySelector('.print-container').innerHTML;
@@ -726,104 +763,98 @@ Texte : ${rawText}`;
       printWindow.document.close();
   };
 
+  // --- RENDU DES PAGES POUR L'APERÇU ---
+  // On définit les composants de rendu de page à l'intérieur d'App pour accéder aux calculs de pagination
+  const PageCompetences = () => (
+    <A4Page>
+      <CornerTriangle customLogo={cvData.smileLogo} />
+      <HeaderSmall isAnonymous={cvData.isAnonymous} profile={cvData.profile} role={cvData.profile.current_role} logo={cvData.smileLogo} />
+      <div className="grid grid-cols-12 gap-10 mt-8 h-full px-12 flex-1 pb-32 overflow-hidden print:overflow-visible text-left">
+          <div className="col-span-5 border-r border-slate-100 pr-8 text-left">
+            <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-8 flex items-center gap-2 text-left"><Cpu size={20}/> Mes Compétences</h3>
+            <div className="space-y-8 text-left">{Object.entries(cvData.skills_categories || {}).map(([cat, skills]) => (<div key={cat}><h4 className="text-[10px] font-bold text-[#999999] uppercase tracking-widest border-b border-slate-100 pb-2 mb-3 text-left">{String(cat)}</h4><div className="space-y-3 text-left">{(skills || []).map((skill, i) => (<div key={i} className="flex items-center justify-between text-left"><span className="text-xs font-bold text-[#333333] uppercase text-left">{String(skill.name)}</span><HexagonRating score={skill.rating} /></div>))}</div></div>))}</div>
+          </div>
+          <div className="col-span-7 flex flex-col gap-10 text-left">
+            {cvData.showSecteur && (cvData.connaissances_sectorielles || []).length > 0 && (<section className="text-left"><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2 text-left"><Factory size={20}/> Connaissances Sectorielles</h3><div className="flex flex-wrap gap-2 text-left">{(cvData.connaissances_sectorielles || []).map((s, i) => (<span key={i} className="border-2 border-[#2E86C1] text-[#2E86C1] text-[10px] font-black px-3 py-1 rounded uppercase tracking-wider text-left">{String(s)}</span>))}</div></section>)}
+            {cvData.showCertif && (cvData.certifications || []).length > 0 && (
+              <section className="text-left">
+                <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2 text-left"><Award size={20}/> Certifications</h3>
+                <div className="grid grid-cols-2 gap-4 text-left">
+                  {cvData.certifications.map((c, i) => (
+                    <div key={i} className="flex items-center gap-3 bg-slate-50 p-2 rounded text-left">
+                      {c.logo && c.logo !== "null" && <img src={c.logo} onError={handleImageError} className="w-8 h-8 object-contain" alt={String(c.name)} />}
+                      <span className="text-[10px] font-bold text-slate-700 uppercase leading-tight text-left">{String(c.name)}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+            <section className="text-left"><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-6 flex items-center gap-2 text-left"><GraduationCap size={20}/> Ma Formation</h3><div className="space-y-4 text-left">{(cvData.education || []).map((edu, i) => (<div key={i} className="border-l-2 border-slate-100 pl-4 text-left"><span className="text-[10px] font-bold text-[#999999] block mb-1 text-left">{String(edu.year)}</span><h4 className="text-xs font-bold text-[#333333] uppercase leading-tight text-left">{String(edu.degree)}</h4><span className="text-[9px] text-[#2E86C1] font-medium uppercase text-left">{String(edu.location)}</span></div>))}</div></section>
+          </div>
+      </div>
+      <Footer />
+    </A4Page>
+  );
+
+  const PagesExperiences = () => (
+    <>
+      {experiencePages.map((chunk, pageIndex) => (
+        <A4Page key={pageIndex}>
+          <CornerTriangle customLogo={cvData.smileLogo} />
+          <HeaderSmall isAnonymous={cvData.isAnonymous} profile={cvData.profile} role={cvData.profile.current_role} logo={cvData.smileLogo} />
+          <div className="flex justify-between items-end border-b border-slate-200 pb-2 mb-8 mt-8 px-12 flex-shrink-0 text-left">
+            <h3 className="text-xl font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat">
+              {pageIndex === 0 ? "Mes dernières expériences" : "Expériences (Suite)"}
+            </h3>
+            <span className="text-[10px] font-bold text-[#666666] uppercase text-left">Références</span>
+          </div>
+          <div className="flex-1 px-12 pb-32 overflow-hidden print:overflow-visible text-left">
+            {chunk.map((exp) => (<ExperienceItem key={exp.id} exp={exp} />))}
+          </div>
+          <Footer />
+        </A4Page>
+      ))}
+    </>
+  );
+
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col md:flex-row h-screen overflow-hidden font-sans text-left">
-      
+      {/* ... Modales existantes ... */}
       {showPrivacyNotice && (
-        <ModalUI 
-          title="Notice de Confidentialité & RGPD" 
-          confirmText="J'ai compris et j'accepte"
-          onConfirm={acceptPrivacy}
-          icon={<Shield size={32} />}
-          danger={false}
-        >
-          <div className="space-y-3">
-            <p>Pour garantir la protection de vos données personnelles conformément au RGPD :</p>
-            <ul className="list-disc pl-4 space-y-1 text-xs text-left">
-              <li><strong>Stockage Local :</strong> Vos données sont enregistrées exclusivement dans votre navigateur (localStorage). Elles ne sont jamais stockées sur nos serveurs.</li>
-              <li><strong>Intelligence Artificielle :</strong> L'importation PDF utilise l'API Google Gemini via un proxy sécurisé.</li>
-              <li><strong>Services Tiers :</strong> L'affichage des logos s'appuie sur SimpleIcons et Clearbit.</li>
-            </ul>
-          </div>
-        </ModalUI>
-      )}
-
-      {showGuide && (
-        <ModalUI 
-          title="Guide de Rédaction Smile" 
-          confirmText="C'est noté !"
-          onConfirm={() => setShowGuide(false)}
-          icon={<LifeBuoy size={32} />}
-          danger={false}
-        >
-          <div className="space-y-4 text-left text-sm text-slate-600">
-            <p>Quelques conseils pour un CV parfait :</p>
-            <ul className="list-disc pl-4 space-y-2">
-              <li><strong>Photo :</strong> Privilégiez un fond neutre et une tenue professionnelle.</li>
-              <li><strong>Résumé :</strong> Soyez concis (3-4 lignes max) et mettez en avant votre valeur ajoutée.</li>
-              <li><strong>Expériences :</strong> Distinguez bien le <em>Contexte</em> (équipe, méthode, enjeux) de la <em>Réalisation</em> (vos actions concrètes).</li>
-            </ul>
-          </div>
+        <ModalUI title="Confidentialité" confirmText="J'ai compris" onConfirm={acceptPrivacy} icon={<Shield size={32} />} danger={false}>
+          <p className="text-sm">Vos données sont stockées localement. L'importation utilise Gemini via un proxy sécurisé.</p>
         </ModalUI>
       )}
 
       {showAIConsent && (
-        <ModalUI 
-          title="Autoriser l'analyse par l'IA ?" 
-          confirmText="Autoriser et Analyser"
-          onClose={() => { setShowAIConsent(false); setPendingFile(null); }}
-          onConfirm={confirmAIAnalysis}
-          icon={<Sparkles size={32} />}
-          danger={false}
-        >
-          <div className="space-y-3 text-left">
-            <p>Le contenu de votre fichier sera envoyé à l'intelligence artificielle pour extraction des données.</p>
-            <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 text-[11px] text-blue-700">
-              Note : Les données sont traitées de manière éphémère.
-            </div>
-          </div>
-        </ModalUI>
-      )}
-
-      {showResetConfirm && (
-        <ModalUI title="Réinitialiser le formulaire ?" onClose={() => setShowResetConfirm(false)} onConfirm={resetCV}>
-          <p>Toutes les modifications non sauvegardées seront perdues.</p>
-        </ModalUI>
-      )}
-
-      {showPurgeConfirm && (
-        <ModalUI title="Supprimer définitivement ?" onClose={() => setShowPurgeConfirm(false)} onConfirm={handlePurgeData} confirmText="Oui, purger tout">
-          <p>Toutes vos données seront supprimées de votre navigateur. Cette action est irréversible.</p>
+        <ModalUI title="Autoriser l'IA ?" confirmText="Analyser" onClose={() => { setShowAIConsent(false); setPendingFile(null); }} onConfirm={confirmAIAnalysis} icon={<Sparkles size={32} />} danger={false}>
+          <p>Le fichier sera analysé par l'IA pour extraction automatique.</p>
         </ModalUI>
       )}
 
       {/* FORMULAIRE */}
       <div className="w-full md:w-[500px] bg-white border-r border-slate-200 flex flex-col h-full z-10 shadow-xl print:hidden text-left">
-        
-        <div className="p-4 bg-slate-50/50 border-b border-slate-200 space-y-4 text-left">
-          <div className="flex flex-col gap-2">
-            <div className="flex gap-2 text-left">
-              <button className="flex-1 bg-[#2E86C1] hover:bg-[#2573a7] text-white py-3 rounded-xl font-bold flex items-center justify-center gap-3 shadow-md transition-all uppercase text-sm" onClick={() => pdfInputRef.current.click()} disabled={isImporting}>
-                {isImporting ? <Loader2 size={18} className="animate-spin text-white"/> : <FileSearch size={18} className="text-white"/>}
-                <span className="drop-shadow-sm">{isImporting ? "Analyse..." : "Import PDF"}</span>
-              </button>
-              <button className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 border transition-all text-sm uppercase ${cvData.isAnonymous ? 'bg-red-50 text-red-600 border-red-200 shadow-sm' : 'bg-white text-slate-600 border-slate-200 shadow-sm hover:bg-slate-50'}`} onClick={() => setCvData(p => ({...p, isAnonymous: !p.isAnonymous}))}>
-                <Lock size={16}/> {cvData.isAnonymous ? "Anonyme" : "Anonymiser"}
-              </button>
-              <input type="file" ref={pdfInputRef} className="hidden" accept=".pdf" onChange={handlePDFImport} />
-            </div>
-            {importError && (
-              <div className="px-3 py-2 bg-red-50 border border-red-100 rounded-lg flex items-center gap-2 text-red-600 text-[10px] font-bold">
-                <AlertCircle size={14} /> {importError}
-                <button onClick={() => setImportError(null)} className="ml-auto hover:text-red-800"><X size={12}/></button>
-              </div>
-            )}
+        <div className="p-4 bg-slate-50/50 border-b border-slate-200 space-y-4">
+          <div className="flex gap-2">
+            <button className="flex-1 bg-[#2E86C1] hover:bg-[#2573a7] text-white py-3 rounded-xl font-bold flex items-center justify-center gap-3 shadow-md transition-all uppercase text-sm" onClick={() => pdfInputRef.current.click()} disabled={isImporting}>
+              {isImporting ? <Loader2 size={18} className="animate-spin text-white"/> : <FileSearch size={18} className="text-white"/>}
+              <span className="drop-shadow-sm">{isImporting ? "Analyse..." : "Import PDF"}</span>
+            </button>
+            <button className={`px-6 py-3 rounded-xl font-bold border transition-all text-sm uppercase ${cvData.isAnonymous ? 'bg-red-50 text-red-600 border-red-200 shadow-sm' : 'bg-white text-slate-600 border-slate-200 shadow-sm hover:bg-slate-50'}`} onClick={() => updateCvData(p => ({...p, isAnonymous: !p.isAnonymous}))}>
+              <Lock size={16}/> {cvData.isAnonymous ? "Anonyme" : "Anonymiser"}
+            </button>
+            <input type="file" ref={pdfInputRef} className="hidden" accept=".pdf" onChange={handlePDFImport} />
           </div>
 
           <div className="bg-white border border-slate-200 rounded-2xl shadow-sm flex items-center justify-between px-2 py-4 text-left">
             <button className="flex-1 flex flex-col items-center gap-1.5 group" onClick={() => setShowResetConfirm(true)}>
               <RefreshCw size={22} className="text-slate-400 group-hover:text-[#2E86C1] transition-colors"/>
               <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter text-left">Refresh</span>
+            </button>
+            <div className="w-px h-10 bg-slate-100"></div>
+            <button className={`flex-1 flex flex-col items-center gap-1.5 group ${history.length === 0 ? 'opacity-20 cursor-not-allowed' : ''}`} onClick={undo} disabled={history.length === 0}>
+              <Undo2 size={22} className="text-slate-400 group-hover:text-[#2E86C1] transition-colors"/>
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter text-left">Undo (Ctrl+Z)</span>
             </button>
             <div className="w-px h-10 bg-slate-100"></div>
             <button className="flex-1 flex flex-col items-center gap-1.5 group" onClick={downloadJSON}>
@@ -836,26 +867,20 @@ Texte : ${rawText}`;
               <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter text-left">Upload</span>
               <input type="file" ref={jsonInputRef} className="hidden" accept=".json" onChange={uploadJSON} />
             </button>
-            <div className="w-px h-10 bg-slate-100"></div>
-            <button className="flex-1 flex flex-col items-center gap-1.5 group" onClick={handleEmailSend}>
-              <Mail size={22} className="text-slate-400 group-hover:text-[#2E86C1] transition-colors"/>
-              <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter text-left">Send</span>
-            </button>
           </div>
         </div>
 
         <div className="p-6 border-b border-slate-100 bg-white sticky top-0 z-20 text-left">
           <div className="flex justify-between items-center mb-6 text-left">
             <div className="flex items-center gap-2">
-              <h1 className="font-bold text-xl text-[#2E86C1] text-left">Smile Editor</h1>
-              <button onClick={() => setShowGuide(true)} className="text-slate-400 hover:text-[#2E86C1] transition-colors p-1 rounded-full hover:bg-slate-50" title="Guide de rédaction">
-                <LifeBuoy size={20} />
-              </button>
+              <h1 className="font-bold text-xl text-[#2E86C1]">Smile Editor</h1>
             </div>
             <span className="text-xs font-bold text-slate-400 text-left">Étape {step} / 4</span>
           </div>
           <div className="flex gap-2 text-left">
-            <button className="flex-1 bg-slate-100 text-slate-600 hover:bg-slate-200 px-4 py-2 rounded-lg font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed text-left" onClick={() => setStep(s => Math.max(1, s - 1))} disabled={step === 1}><ArrowLeft size={16} /></button>
+            <button className="flex-1 bg-slate-100 text-slate-600 hover:bg-slate-200 px-4 py-2 rounded-lg font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed text-left flex items-center justify-center gap-2" onClick={() => setStep(s => Math.max(1, s - 1))} disabled={step === 1}>
+              <ArrowLeft size={16} /> Précédent
+            </button>
             {step < 4 ? (
               <button className="flex-[2] bg-[#2E86C1] text-white hover:bg-[#2573a7] px-4 py-2 rounded-lg font-bold text-sm shadow-md transition-all flex items-center gap-2 justify-center" onClick={() => setStep(s => Math.min(4, s + 1))}>Suivant <ArrowRight size={16} /></button>
             ) : (
@@ -868,6 +893,28 @@ Texte : ${rawText}`;
             {step === 1 && (
             <div className="space-y-6 animate-in slide-in-from-right transition-all text-left">
               <div className="flex items-center gap-3 mb-4 text-[#2E86C1] text-left"><User size={24} /><h2 className="text-lg font-bold uppercase text-left">Profil</h2></div>
+              
+              <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 space-y-3">
+                <h3 className="text-[10px] font-black uppercase text-blue-400 tracking-widest">Mise en page des documents</h3>
+                <button 
+                  onClick={() => updateCvData(p => ({...p, swapPages: !p.swapPages}))}
+                  className="w-full flex items-center justify-between bg-white p-3 rounded-lg border border-blue-200 shadow-sm group hover:border-blue-400 transition-all"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
+                      {cvData.swapPages ? <Rows2 size={20}/> : <Columns2 size={20}/>}
+                    </div>
+                    <div className="text-left">
+                      <p className="text-xs font-bold text-slate-700">Ordre des pages</p>
+                      <p className="text-[9px] text-slate-400 uppercase font-bold tracking-tighter">
+                        {cvData.swapPages ? "Expériences d'abord" : "Compétences d'abord"}
+                      </p>
+                    </div>
+                  </div>
+                  {cvData.swapPages ? <ToggleRight className="text-blue-600" size={28}/> : <ToggleLeft className="text-slate-300" size={28}/>}
+                </button>
+              </div>
+
               <div className="grid grid-cols-2 gap-4 mb-6 text-left">
                 <div className="p-3 border border-blue-100 bg-blue-50/50 rounded-lg flex flex-col gap-2 text-left">
                   <span className="text-[10px] font-bold text-[#2E86C1] uppercase text-left">Logo Entreprise (Import Manuel)</span>
@@ -924,7 +971,7 @@ Texte : ${rawText}`;
             {step === 2 && (
             <div className="space-y-6 animate-in slide-in-from-right transition-all text-left">
                 <div className="flex items-center gap-3 mb-4 text-[#2E86C1] text-left"><Hexagon size={24} /><h2 className="text-lg font-bold uppercase text-left">Soft Skills</h2></div>
-                {[0, 1, 2].map(i => (<InputUI key={i} label={`Hexagone #${i+1}`} value={cvData.soft_skills[i]} onChange={(v) => {const s = [...cvData.soft_skills]; s[i] = v; setCvData(p => ({...p, soft_skills: s}));}} />))}
+                {[0, 1, 2].map(i => (<InputUI key={i} label={`Hexagone #${i+1}`} value={cvData.soft_skills[i]} onChange={(v) => {const s = [...cvData.soft_skills]; s[i] = v; updateCvData(p => ({...p, soft_skills: s}));}} />))}
             </div>
             )}
 
@@ -1124,6 +1171,7 @@ Texte : ${rawText}`;
             className="print-container block origin-top transition-transform duration-300 text-left" 
             style={{ transform: `scale(${zoom})`, height: `${scaledContentHeight}px`, width: `${210 * zoom}mm`, minHeight: 'max-content' }}
           >
+            {/* PAGE 1 : PROFIL (Toujours en premier) */}
             <A4Page>
               <CornerTriangle customLogo={cvData.smileLogo} />
               {!cvData.isAnonymous && cvData.profile.photo && cvData.profile.photo !== "null" && (
@@ -1162,44 +1210,19 @@ Texte : ${rawText}`;
               <Footer />
             </A4Page>
 
-            <A4Page>
-              <CornerTriangle customLogo={cvData.smileLogo} />
-              <HeaderSmall isAnonymous={cvData.isAnonymous} profile={cvData.profile} role={cvData.profile.current_role} logo={cvData.smileLogo} />
-              <div className="grid grid-cols-12 gap-10 mt-8 h-full px-12 flex-1 pb-32 overflow-hidden print:overflow-visible text-left">
-                  <div className="col-span-5 border-r border-slate-100 pr-8 text-left">
-                    <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-8 flex items-center gap-2 text-left"><Cpu size={20}/> Mes Compétences</h3>
-                    <div className="space-y-8 text-left">{Object.entries(cvData.skills_categories || {}).map(([cat, skills]) => (<div key={cat}><h4 className="text-[10px] font-bold text-[#999999] uppercase tracking-widest border-b border-slate-100 pb-2 mb-3 text-left">{String(cat)}</h4><div className="space-y-3 text-left">{(skills || []).map((skill, i) => (<div key={i} className="flex items-center justify-between text-left"><span className="text-xs font-bold text-[#333333] uppercase text-left">{String(skill.name)}</span><HexagonRating score={skill.rating} /></div>))}</div></div>))}</div>
-                  </div>
-                  <div className="col-span-7 flex flex-col gap-10 text-left">
-                    {cvData.showSecteur && (cvData.connaissances_sectorielles || []).length > 0 && (<section className="text-left"><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2 text-left"><Factory size={20}/> Connaissances Sectorielles</h3><div className="flex flex-wrap gap-2 text-left">{(cvData.connaissances_sectorielles || []).map((s, i) => (<span key={i} className="border-2 border-[#2E86C1] text-[#2E86C1] text-[10px] font-black px-3 py-1 rounded uppercase tracking-wider text-left">{String(s)}</span>))}</div></section>)}
-                    {cvData.showCertif && (cvData.certifications || []).length > 0 && (
-                      <section className="text-left">
-                        <h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-4 flex items-center gap-2 text-left"><Award size={20}/> Certifications</h3>
-                        <div className="grid grid-cols-2 gap-4 text-left">
-                          {cvData.certifications.map((c, i) => (
-                            <div key={i} className="flex items-center gap-3 bg-slate-50 p-2 rounded text-left">
-                              {c.logo && c.logo !== "null" && <img src={c.logo} onError={handleImageError} className="w-8 h-8 object-contain" alt={String(c.name)} />}
-                              <span className="text-[10px] font-bold text-slate-700 uppercase leading-tight text-left">{String(c.name)}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </section>
-                    )}
-                    <section className="text-left"><h3 className="text-lg font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat mb-6 flex items-center gap-2 text-left"><GraduationCap size={20}/> Ma Formation</h3><div className="space-y-4 text-left">{(cvData.education || []).map((edu, i) => (<div key={i} className="border-l-2 border-slate-100 pl-4 text-left"><span className="text-[10px] font-bold text-[#999999] block mb-1 text-left">{String(edu.year)}</span><h4 className="text-xs font-bold text-[#333333] uppercase leading-tight text-left">{String(edu.degree)}</h4><span className="text-[9px] text-[#2E86C1] font-medium uppercase text-left">{String(edu.location)}</span></div>))}</div></section>
-                  </div>
-              </div>
-              <Footer />
-            </A4Page>
+            {/* RENDU DYNAMIQUE SELON L'ORDRE CHOISI */}
+            {cvData.swapPages ? (
+              <>
+                <PagesExperiences />
+                <PageCompetences />
+              </>
+            ) : (
+              <>
+                <PageCompetences />
+                <PagesExperiences />
+              </>
+            )}
 
-            {experiencePages.map((chunk, pageIndex) => (
-              <A4Page key={pageIndex}>
-                <CornerTriangle customLogo={cvData.smileLogo} />
-                <HeaderSmall isAnonymous={cvData.isAnonymous} profile={cvData.profile} role={cvData.profile.current_role} logo={cvData.smileLogo} />
-                <div className="flex justify-between items-end border-b border-slate-200 pb-2 mb-8 mt-8 px-12 flex-shrink-0 text-left"><h3 className="text-xl font-bold text-[#2E86C1] uppercase tracking-wide font-montserrat">{pageIndex === 0 ? "Mes dernières expériences" : "Expériences (Suite)"}</h3><span className="text-[10px] font-bold text-[#666666] uppercase text-left">Références</span></div>
-                <div className="flex-1 px-12 pb-32 overflow-hidden print:overflow-visible text-left">{chunk.map((exp) => (<ExperienceItem key={exp.id} exp={exp} />))}</div>
-                <Footer />
-              </A4Page>
-            ))}
           </div>
         </div>
       </div>
@@ -1214,10 +1237,7 @@ Texte : ${rawText}`;
           @page { size: A4; margin: 0; }
           body { margin: 0; padding: 0; background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .print-hidden { display: none !important; }
-          .flex-1.bg-slate-800 { display: block !important; height: auto !important; overflow: visible !important; background: white !important; padding: 0 !important; }
-          .print-container { transform: none !important; margin: 0 !important; width: 100% !important; display: block !important; }
-          .A4-page { margin: 0 !important; box-shadow: none !important; page-break-after: always !important; break-after: page !important; width: 210mm !important; height: 297mm !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; }
-          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          .A4-page { margin: 0 !important; box-shadow: none !important; page-break-after: always !important; }
         }
       `}</style>
     </div>
