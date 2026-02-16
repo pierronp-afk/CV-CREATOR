@@ -10,19 +10,14 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Clé API non configurée sur le serveur Vercel." });
   }
 
-  // CORRECTION APPLIQUÉE : 
-  // 1. Modèle : gemini-1.5-flash (Stable, rapide, 15 RPM gratuit)
-  // 2. Endpoint : v1 (Stable) au lieu de v1beta pour éviter les erreurs 404 "Model not found"
+  // ON RESTE SUR V1 (STABLE) car v1beta posait problème de 404 chez vous
   const modelId = "gemini-1.5-flash"; 
   const apiUrl = `https://generativelanguage.googleapis.com/v1/models/${modelId}:generateContent?key=${apiKey}`;
 
-  // Prompt optimisé pour le formatage JSON strict
+  // Prompt renforcé pour exiger du JSON brut car on ne peut pas utiliser le mode 'json' natif en v1
   const prompt = `Tu es un expert en recrutement. Analyse ce CV et extrais les données en JSON strict.
   
-Règles de formatage IMPORTANTES :
-1. "profile.summary" : Un paragraphe unique, clair et percutant (Max 7 lignes). Pas de liste à puces.
-2. "experiences[].phases" : Une liste à puces commençant par des verbes d'action (ex: "• Pilotage de...", "• Développement de...").
-3. Respecte scrupuleusement la structure JSON ci-dessous.
+IMPORTANT : Ne réponds RIEN d'autre que l'objet JSON. Pas de "Voici le JSON", pas de balises markdown. Juste le JSON brut.
 
 Structure JSON attendue :
 {
@@ -57,8 +52,8 @@ Texte du CV : ${text}`;
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
+        // CORRECTION : Suppression de 'responseMimeType' qui cause l'erreur 400 sur l'API v1
         generationConfig: { 
-          responseMimeType: "application/json",
           temperature: 0.1
         }
       })
@@ -71,11 +66,6 @@ Texte du CV : ${text}`;
       if (response.status === 429) {
         return res.status(429).json({ error: "Trop de requêtes à l'IA (Quota dépassé). Attendez 1 minute." });
       }
-      
-      // Si le modèle n'est pas trouvé (404), on renvoie une erreur explicite
-      if (response.status === 404) {
-         return res.status(404).json({ error: "Modèle IA introuvable sur l'API v1. Vérifiez que Gemini 1.5 Flash est actif." });
-      }
 
       return res.status(response.status).json({ error: `Erreur Google API (${response.status})`, details: errorText });
     }
@@ -87,14 +77,22 @@ Texte du CV : ${text}`;
       throw new Error("L'IA n'a renvoyé aucun contenu.");
     }
 
-    const cleanedContent = content.replace(/```json|```/g, '').trim();
+    // Nettoyage manuel des balises markdown (```json ... ```) car l'IA en met souvent même sans le mode forcé
+    const cleanedContent = content
+      .replace(/```json/g, '')
+      .replace(/```/g, '')
+      .trim();
     
     return res.status(200).json(JSON.parse(cleanedContent));
 
   } catch (error) {
     console.error("Analyze Handler Error:", error);
+    // Gestion spécifique si le JSON est mal formé par l'IA
+    if (error instanceof SyntaxError) {
+       return res.status(500).json({ error: "L'IA a renvoyé un format invalide. Réessayez." });
+    }
     return res.status(500).json({ 
-      error: "Erreur serveur lors de l'analyse. Vérifiez le format du CV." 
+      error: "Erreur serveur : " + error.message 
     });
   }
 }
