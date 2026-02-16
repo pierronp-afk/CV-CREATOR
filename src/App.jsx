@@ -6,7 +6,7 @@ import {
   Save, FolderOpen, Eye, Shield, Check, Edit2,
   Bold, List, Copy, HelpCircle, RefreshCw, Cloud, Mail, Printer,
   ChevronUp, ChevronDown, Award, Factory, ToggleLeft, ToggleRight, FilePlus,
-  FileSearch, Loader2, Lock, Sparkles, AlertCircle, LifeBuoy
+  FileSearch, Loader2, Lock, Sparkles, AlertCircle, LifeBuoy, GripVertical
 } from 'lucide-react';
 
 // --- CONFIGURATION & THÈME ---
@@ -450,6 +450,9 @@ export default function App() {
   const [importError, setImportError] = useState(null);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newSkillsInput, setNewSkillsInput] = useState({});
+  
+  // État pour gérer le drag and drop des compétences
+  const [draggedSkill, setDraggedSkill] = useState(null);
 
   const [cvData, setCvData] = useState(() => {
     try {
@@ -618,6 +621,36 @@ export default function App() {
   const updateNewSkillInput = (cat, field, val) => { setNewSkillsInput(p => ({ ...p, [cat]: { ...(p[cat] || { name: '', rating: 3 }), [field]: val } })); };
   const removeSkillFromCategory = (cat, idx) => setCvData(p => ({ ...p, skills_categories: { ...p.skills_categories, [cat]: p.skills_categories[cat].filter((_, i) => i !== idx) } }));
   
+  // Handlers pour le Drag & Drop des compétences
+  const handleSkillDragStart = (cat, index) => {
+    setDraggedSkill({ cat, index });
+  };
+
+  const handleSkillDragOver = (e) => {
+    e.preventDefault(); // Nécessaire pour autoriser le drop
+  };
+
+  const handleSkillDrop = (targetCat, targetIndex) => {
+    if (!draggedSkill || draggedSkill.cat !== targetCat) {
+      setDraggedSkill(null);
+      return;
+    }
+
+    const skills = [...cvData.skills_categories[targetCat]];
+    const [movedItem] = skills.splice(draggedSkill.index, 1);
+    skills.splice(targetIndex, 0, movedItem);
+
+    setCvData(prev => ({
+      ...prev,
+      skills_categories: {
+        ...prev.skills_categories,
+        [targetCat]: skills
+      }
+    }));
+    
+    setDraggedSkill(null);
+  };
+
   const addSecteur = () => { if (newSecteur) { setCvData(p => ({ ...p, connaissances_sectorielles: [...p.connaissances_sectorielles, newSecteur] })); setNewSecteur(""); }};
   const removeSecteur = (idx) => setCvData(p => ({ ...p, connaissances_sectorielles: p.connaissances_sectorielles.filter((_, i) => i !== idx) }));
   
@@ -978,17 +1011,34 @@ export default function App() {
                           <button onClick={() => deleteCategory(cat)} className="text-red-300 hover:text-red-500 transition-colors"><Trash2 size={12}/></button>
                         </div>
                       </div>
+                      
+                      {/* LISTE DES COMPÉTENCES AVEC DRAG AND DROP */}
                       <div className="space-y-1 mb-3 text-left">
                         {(skills || []).map((skill, idx) => (
-                          <div key={idx} className="flex items-center justify-between text-xs bg-white p-1.5 rounded shadow-sm text-left gap-2 group/item">
-                            <input className="bg-transparent outline-none flex-1 font-medium text-left" value={skill.name} onChange={(e) => updateSkillInCategory(cat, idx, 'name', e.target.value)} />
+                          <div 
+                            key={`${cat}-${idx}`} 
+                            className={`flex items-center justify-between text-xs bg-white p-1.5 rounded shadow-sm text-left gap-2 group/item transition-all ${draggedSkill?.cat === cat && draggedSkill?.index === idx ? 'opacity-30 scale-95 border-dashed border-2 border-blue-200' : 'hover:shadow-md'}`}
+                            draggable
+                            onDragStart={() => handleSkillDragStart(cat, idx)}
+                            onDragOver={handleSkillDragOver}
+                            onDrop={() => handleSkillDrop(cat, idx)}
+                          >
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                               <GripVertical size={14} className="text-slate-300 cursor-grab active:cursor-grabbing flex-shrink-0" />
+                               <input 
+                                 className="bg-transparent outline-none flex-1 font-medium text-left truncate" 
+                                 value={skill.name} 
+                                 onChange={(e) => updateSkillInCategory(cat, idx, 'name', e.target.value)} 
+                               />
+                            </div>
                             <div className="flex items-center gap-2">
                               <HexagonRating score={skill.rating} onChange={(r) => updateSkillInCategory(cat, idx, 'rating', r)} />
-                              <button onClick={() => removeSkillFromCategory(cat, idx)} className="text-slate-300 hover:text-red-500 transition-colors p-0.5"><X size={12}/></button>
+                              <button onClick={() => removeSkillFromCategory(cat, idx)} className="text-slate-300 hover:text-red-500 transition-colors p-0.5 flex-shrink-0"><X size={12}/></button>
                             </div>
                           </div>
                         ))}
                       </div>
+
                       <div className="flex gap-1 text-left">
                         <input className="flex-1 px-2 py-1 text-[10px] border rounded text-left" placeholder="Ajouter un item..." value={newSkillsInput[cat]?.name || ''} onChange={(e) => updateNewSkillInput(cat, 'name', e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addSkillToCategory(cat)} />
                         <ButtonUI variant="primary" className="p-1 h-auto text-left" onClick={() => addSkillToCategory(cat)}><Plus size={10}/></ButtonUI>
