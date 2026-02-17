@@ -7,7 +7,7 @@ import {
   Bold, List, Copy, HelpCircle, RefreshCw, Cloud, Mail, Printer,
   ChevronUp, ChevronDown, Award, Factory, ToggleLeft, ToggleRight, FilePlus,
   FileSearch, Loader2, Lock, Sparkles, AlertCircle, LifeBuoy, GripVertical,
-  Undo2
+  Undo2, Columns2, Rows2
 } from 'lucide-react';
 
 // --- CONFIGURATION & THÈME ---
@@ -490,7 +490,7 @@ export default function App() {
     }
   }, [history]);
 
-  // Écouteur Ctrl+Z
+  // Écouteur global pour le Ctrl+Z
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
@@ -1108,6 +1108,19 @@ Texte : ${rawText}`;
                {/* SECTION COMPÉTENCES */}
                <div className="bg-white p-4 rounded-xl border border-slate-200 text-left">
                   <h3 className="text-[10px] font-black uppercase text-slate-400 mb-4 text-left">Niveau Compétences</h3>
+                  
+                  {/* AJOUT : Input nouvelle catégorie */}
+                  <div className="flex gap-2 mb-4 text-left">
+                    <input 
+                      className="flex-1 px-3 py-2 border rounded text-xs text-left focus:ring-2 focus:ring-[#2E86C1] outline-none" 
+                      placeholder="Nouvelle catégorie (ex: Outils...)" 
+                      value={newCategoryName} 
+                      onChange={(e) => setNewCategoryName(e.target.value)} 
+                      onKeyDown={(e) => e.key === 'Enter' && addSkillCategory()} 
+                    />
+                    <ButtonUI variant="outline" className="px-3 text-left" onClick={addSkillCategory}><Plus size={14}/></ButtonUI>
+                  </div>
+
                   {Object.entries(cvData.skills_categories).map(([cat, skills], catIdx) => (
                     <div 
                       key={cat} 
@@ -1144,9 +1157,23 @@ Texte : ${rawText}`;
                                />
                             </div>
                             <HexagonRating score={skill.rating} onChange={(r) => updateSkillInCategory(cat, idx, 'rating', r)} />
+                            <button onClick={() => removeSkillFromCategory(cat, idx)} className="text-slate-300 hover:text-red-500 transition-colors p-0.5 flex-shrink-0"><X size={12}/></button>
                           </div>
                         ))}
                       </div>
+
+                      {/* AJOUT : Input nouvel item */}
+                      <div className="flex gap-1 text-left pl-6 pt-2 border-t border-slate-100">
+                        <input 
+                          className="flex-1 px-2 py-1 text-[10px] border rounded text-left focus:ring-1 focus:ring-[#2E86C1] outline-none" 
+                          placeholder="Ajouter un item..." 
+                          value={newSkillsInput[cat]?.name || ''} 
+                          onChange={(e) => updateNewSkillInput(cat, 'name', e.target.value)} 
+                          onKeyDown={(e) => e.key === 'Enter' && addSkillToCategory(cat)} 
+                        />
+                        <ButtonUI variant="primary" className="p-1 h-auto text-left" onClick={() => addSkillToCategory(cat)}><Plus size={10}/></ButtonUI>
+                      </div>
+
                     </div>
                   ))}
                </div>
