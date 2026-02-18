@@ -1229,6 +1229,17 @@ Texte : ${rawText}`;
                         )}
                      </div>
 
+                     {/* SAUT DE PAGE MANUEL RÉINTÉGRÉ */}
+                     <div className="mb-4 flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-100 text-left">
+                        <div className="flex items-center gap-2 text-left">
+                          <FilePlus size={16} className="text-[#2E86C1]"/>
+                          <span className="text-xs font-bold text-slate-600 text-left">Saut de page manuel</span>
+                        </div>
+                        <button onClick={() => updateExperience(exp.id, 'forceNewPage', !exp.forceNewPage)} className="text-left">
+                          {exp.forceNewPage ? <ToggleRight className="text-green-500" size={24}/> : <ToggleLeft className="text-slate-300" size={24}/>}
+                        </button>
+                     </div>
+
                      <InputUI label="Nom du Client" value={exp.client_name} onChange={(v) => updateExperience(exp.id, 'client_name', v)} />
                      <InputUI label="Rôle" value={exp.role} onChange={(v) => updateExperience(exp.id, 'role', v)} />
                      <div className="grid grid-cols-2 gap-4 text-left">
