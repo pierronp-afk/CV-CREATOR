@@ -7,7 +7,7 @@ import {
   Bold, List, Copy, HelpCircle, RefreshCw, Cloud, Mail, Printer,
   ChevronUp, ChevronDown, Award, Factory, ToggleLeft, ToggleRight, FilePlus,
   FileSearch, Loader2, Lock, Sparkles, AlertCircle, LifeBuoy, GripVertical,
-  Undo2, Columns2, Rows2
+  Undo2, Columns2, Rows2, AlignLeft, AlignCenter, AlignRight, AlignJustify
 } from 'lucide-react';
 
 // --- CONFIGURATION & THÈME ---
@@ -67,11 +67,27 @@ const DEFAULT_CV_DATA = {
 };
 
 // --- HELPERS ---
-const formatTextForPreview = (text) => {
+const formatTextForPreview = (text, withQuotes = false) => {
   if (!text) return "";
-  return String(text)
+  let content = String(text);
+
+  // Si des guillemets sont demandés, on les injecte intelligemment
+  if (withQuotes) {
+    // Si le texte contient une balise div d'alignement, on injecte les guillemets à l'intérieur
+    if (content.includes('<div class="text-')) {
+      content = content.replace(/(<div class="text-(?:left|center|right|justify)">)/g, '$1"')
+                       .replace(/(<\/div>)$/g, '"$1');
+    } else {
+      content = `"${content}"`;
+    }
+  }
+
+  return content
     .replace(/</g, "&lt;").replace(/>/g, "&gt;") 
     .replace(/&lt;b&gt;/g, "<b>").replace(/&lt;\/b&gt;/g, "</b>") 
+    // Autorise les div d'alignement
+    .replace(/&lt;div class="text-(left|center|right|justify)"&gt;\n?/g, '<div class="text-$1">')
+    .replace(/\n?&lt;\/div&gt;/g, "</div>")
     .replace(/\n/g, "<br/>"); 
 };
 
@@ -129,7 +145,7 @@ const CornerTriangle = ({ customLogo }) => (
     <div className="absolute top-0 left-0 w-full h-full bg-[#2E86C1] triangle-bg" style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)' }}></div>
     {customLogo && customLogo !== "null" && (
       <div className="absolute top-[12px] left-[12px] w-[100px] h-[100px] flex items-center justify-center">
-         <img src={customLogo} onError={handleImageError} className="max-w-full max-h-full object-contain brightness-0 invert" style={{ transform: 'rotate(-45deg)' }} alt="Logo" />
+          <img src={customLogo} onError={handleImageError} className="max-w-full max-h-full object-contain brightness-0 invert" style={{ transform: 'rotate(-45deg)' }} alt="Logo" />
       </div>
     )}
   </div>
@@ -191,13 +207,15 @@ const ExperienceItem = ({ exp }) => (
       {exp.context && (
         <div className="mb-4 text-left">
            <h5 className="text-[10px] font-bold text-[#2E86C1] uppercase mb-1">Contexte</h5>
-           <p className="text-sm text-[#333333] leading-relaxed break-words" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.context)}}></p>
+           {/* Modifié : div au lieu de p, et ajout text-justify par défaut */}
+           <div className="text-sm text-[#333333] leading-relaxed break-words text-justify" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.context)}}></div>
         </div>
       )}
       <div className="mt-4 pt-4 border-t border-slate-50 space-y-4 text-left">
          <div className="text-left">
             <h5 className="text-[10px] font-bold text-[#999999] uppercase mb-1">Réalisation</h5>
-            <p className="text-xs font-medium text-[#333333] break-words text-left" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.phases)}}></p>
+            {/* Modifié : div au lieu de p, et ajout text-justify par défaut */}
+            <div className="text-xs font-medium text-[#333333] break-words text-justify" dangerouslySetInnerHTML={{__html: formatTextForPreview(exp.phases)}}></div>
          </div>
          <div className="text-left">
             <h5 className="text-[10px] font-bold text-[#999999] uppercase mb-1">Environnement</h5>
@@ -265,6 +283,15 @@ const RichTextareaUI = ({ label, value, onChange, placeholder }) => {
       } else {
         onChange(`${before}• ${after}`);
       }
+    } else if (['left', 'center', 'right', 'justify'].includes(tag)) {
+      if (start === end) {
+        // Applique l'alignement à tout le texte sans ajouter de sauts de ligne
+        let cleanText = text.replace(/<div class="text-(left|center|right|justify)">/g, '').replace(/<\/div>/g, '');
+        onChange(`<div class="text-${tag}">${cleanText}</div>`);
+      } else {
+        // Applique uniquement sur la sélection sans sauts de ligne
+        onChange(`${before}<div class="text-${tag}">${selected}</div>${after}`);
+      }
     }
   };
 
@@ -295,10 +322,31 @@ const RichTextareaUI = ({ label, value, onChange, placeholder }) => {
             </p>
           </div>
           
-          <div className="flex items-center gap-1 px-2 py-1.5 text-left">
+          <div className="flex items-center gap-1 px-2 py-1.5 text-left flex-wrap">
             <ButtonUI variant="toolbar" onClick={() => insertTag('b')} title="Gras"><Bold size={12}/></ButtonUI>
             <ButtonUI variant="toolbar" onClick={() => insertTag('list')} title="Puce"><List size={12}/></ButtonUI>
             <div className="w-px h-3 bg-slate-300 mx-1"></div>
+            
+            <div className="flex items-center bg-slate-100 hover:bg-slate-200 transition-colors rounded px-1.5 py-0.5">
+              <AlignJustify size={12} className="text-slate-500 mr-1" />
+              <select 
+                className="bg-transparent text-[10px] text-slate-600 outline-none cursor-pointer font-bold uppercase tracking-tighter"
+                onChange={(e) => {
+                  if (e.target.value) insertTag(e.target.value);
+                  e.target.value = ""; // Réinitialise le select après le choix
+                }}
+                defaultValue=""
+                title="Alignement"
+              >
+                <option value="" disabled>Alignement</option>
+                <option value="left">Gauche</option>
+                <option value="center">Centré</option>
+                <option value="right">Droite</option>
+                <option value="justify">Justifié</option>
+              </select>
+            </div>
+            <div className="w-px h-3 bg-slate-300 mx-1"></div>
+
             <span className="text-[9px] text-slate-400 font-bold mr-1 uppercase tracking-tighter">IA:</span>
             {[
               { name: 'ChatGPT', url: 'https://chat.openai.com/', domain: 'openai.com' },
@@ -756,13 +804,6 @@ Texte : ${rawText}`;
     reader.readAsText(file);
   };
   
-  const handleEmailSend = () => {
-    const namePart = cvData.isAnonymous ? "Anonyme" : `${cvData.profile.firstname} ${cvData.profile.lastname}`;
-    const subject = encodeURIComponent(`CV Smile : ${namePart}`);
-    const body = encodeURIComponent(`Bonjour,\n\nVeuillez trouver ci-joint mon CV aux formats PDF et JSON.\n\nCordialement.`);
-    window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
-  };
-
   const handlePrint = () => {
       const printWindow = window.open('', '_blank');
       const content = document.querySelector('.print-container').innerHTML;
@@ -827,7 +868,6 @@ Texte : ${rawText}`;
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col md:flex-row h-screen overflow-hidden font-sans text-left">
-      {/* ... Modales existantes ... */}
       {showPrivacyNotice && (
         <ModalUI 
           title="Notice de Confidentialité & RGPD" 
@@ -1289,7 +1329,8 @@ Texte : ${rawText}`;
               </div>
               <div className="flex-1 flex flex-col justify-start pt-0 pb-12 overflow-hidden text-center text-left">
                   <div className="px-24 mb-10 relative z-10 flex flex-col items-center text-center text-left">
-                     <p className="text-lg text-[#333333] leading-relaxed italic border-t border-slate-100 pt-8 text-center break-words w-full max-w-[160mm] text-left" dangerouslySetInnerHTML={{__html: formatTextForPreview(`"${cvData.profile.summary}"`)}}></p>
+                     {/* Modifié : Appel avec true pour injecter les guillemets à l'intérieur des tags */}
+                     <div className="text-lg text-[#333333] leading-relaxed italic border-t border-slate-100 pt-8 break-words w-full max-w-[160mm] text-justify" dangerouslySetInnerHTML={{__html: formatTextForPreview(cvData.profile.summary, true)}}></div>
                   </div>
                   <div className="w-full bg-[#2E86C1] py-3 px-16 mb-1 flex items-center justify-center gap-10 shadow-inner relative z-10 flex-shrink-0 text-left tech-banner">
                     {(cvData.profile.tech_logos || []).map((logo, i) => (
